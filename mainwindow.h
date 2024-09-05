@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QComboBox>
 #include <QSerialPort>
 #include <mavlink/common/mavlink.h>
 
@@ -43,8 +44,14 @@ private:
 private:
   void showStatusMessage(const QString &message);
   void showWriteError(const QString &message);
+  void fillPortsInfo();
 
   Ui::MainWindow *m_ui = nullptr;
+  QToolBar *m_toolbar = nullptr;
+  QComboBox *m_ports_box = nullptr;
+  QAction *m_action_connect = nullptr;
+  QAction *m_action_disconnect = nullptr;
+  QAction *m_action_clear= nullptr;
   QLabel *m_status = nullptr;
   Console *m_console = nullptr;
   SettingsDialog *m_settings = nullptr;

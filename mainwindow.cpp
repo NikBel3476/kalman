@@ -6,26 +6,56 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
+#include <QSerialPortInfo>
 
 #include <chrono>
 
 static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
+static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_ui(new Ui::MainWindow), m_status(new QLabel),
+    : QMainWindow(parent), m_ui(new Ui::MainWindow),
+      m_toolbar(new QToolBar(this)),
+      m_ports_box(new QComboBox(m_toolbar)),
+      m_action_connect(new QAction(m_toolbar)),
+      m_action_disconnect(new QAction(m_toolbar)),
+      m_action_clear(new QAction(m_toolbar)),
+      m_status(new QLabel),
       m_console(new Console), m_settings(new SettingsDialog(this)),
       m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
       mavlink_message{}, mavlink_status{} {
   m_ui->setupUi(this);
+
+  setWindowTitle("Autopilot selfcheck");
+  setGeometry(QRect(0, 0, 800, 600));
+
+  addToolBar(m_toolbar);
+
+  m_toolbar->addWidget(m_ports_box);
+
+  m_action_connect->setIcon(QIcon(":/images/connect.png"));
+  m_action_connect->setText("Connect");
+  m_action_connect->setToolTip("Connect to serial port");
+  m_action_connect->setEnabled(true);
+
+  m_action_disconnect->setIcon(QIcon(":/images/disconnect.png"));
+  m_action_disconnect->setText("Disconnect");
+  m_action_disconnect->setToolTip("Disconnect from serial port");
+  m_action_disconnect->setEnabled(false);
+
+  m_action_clear->setIcon(QIcon(":/images/clear.png"));
+  m_action_clear->setText("Clear");
+  m_action_clear->setToolTip("Clear terminal");
+  m_action_clear->setEnabled(true);
+
+  m_toolbar->addAction(m_action_connect);
+  m_toolbar->addAction(m_action_disconnect);
+  m_toolbar->addAction(m_action_clear);
+
   m_console->setEnabled(false);
   setCentralWidget(m_console);
 
-  m_ui->actionConnect->setEnabled(true);
-  m_ui->actionDisconnect->setEnabled(false);
-  m_ui->actionQuit->setEnabled(true);
-  m_ui->actionConfigure->setEnabled(true);
-
-  m_ui->statusBar->addWidget(m_status);
+  // m_ui->statusBar->addWidget(m_status);
 
   initActionsConnections();
 
@@ -38,6 +68,8 @@ MainWindow::MainWindow(QWidget *parent)
   connect(m_serial, &QSerialPort::bytesWritten, this,
           &MainWindow::handleBytesWritten);
   connect(m_console, &Console::getData, this, &MainWindow::writeData);
+
+  fillPortsInfo();
 }
 
 MainWindow::~MainWindow() {
@@ -57,9 +89,8 @@ void MainWindow::openSerialPort() {
   if (m_serial->open(QIODevice::ReadWrite)) {
     m_console->setEnabled(true);
     m_console->setLocalEchoEnabled(p.localEchoEnabled);
-    m_ui->actionConnect->setEnabled(false);
-    m_ui->actionDisconnect->setEnabled(true);
-    m_ui->actionConfigure->setEnabled(false);
+    m_action_connect->setEnabled(false);
+    m_action_disconnect->setEnabled(true);
     showStatusMessage(tr("Connected to %1 : %2, %3, %4, %5, %6")
                           .arg(p.name, p.stringBaudRate, p.stringDataBits,
                                p.stringParity, p.stringStopBits,
@@ -75,9 +106,9 @@ void MainWindow::closeSerialPort() {
   if (m_serial->isOpen())
     m_serial->close();
   m_console->setEnabled(false);
-  m_ui->actionConnect->setEnabled(true);
-  m_ui->actionDisconnect->setEnabled(false);
-  m_ui->actionConfigure->setEnabled(true);
+  m_action_connect->setEnabled(true);
+  m_action_disconnect->setEnabled(false);
+  // m_ui->actionConfigure->setEnabled(true);
   showStatusMessage(tr("Disconnected"));
 }
 
@@ -143,6 +174,8 @@ void MainWindow::readData() {
       default:
         break;
       }
+
+
     }
   }
 }
@@ -168,17 +201,12 @@ void MainWindow::handleWriteTimeout() {
 }
 
 void MainWindow::initActionsConnections() {
-  connect(m_ui->actionConnect, &QAction::triggered, this,
+  connect(m_action_connect, &QAction::triggered, this,
           &MainWindow::openSerialPort);
-  connect(m_ui->actionDisconnect, &QAction::triggered, this,
+  connect(m_action_disconnect, &QAction::triggered, this,
           &MainWindow::closeSerialPort);
-  connect(m_ui->actionQuit, &QAction::triggered, this, &MainWindow::close);
-  connect(m_ui->actionConfigure, &QAction::triggered, m_settings,
-          &SettingsDialog::show);
-  connect(m_ui->actionClear, &QAction::triggered, m_console, &Console::clear);
-  connect(m_ui->actionAbout, &QAction::triggered, this, &MainWindow::about);
-  connect(m_ui->actionAboutQt, &QAction::triggered, qApp,
-          &QApplication::aboutQt);
+  connect(m_action_clear, &QAction::triggered, m_console, &Console::clear);
+  // connect(m_ports_box,)
 }
 
 void MainWindow::showStatusMessage(const QString &message) {
@@ -187,4 +215,30 @@ void MainWindow::showStatusMessage(const QString &message) {
 
 void MainWindow::showWriteError(const QString &message) {
   QMessageBox::warning(this, tr("Warning"), message);
+}
+
+void MainWindow::fillPortsInfo() {
+  m_ports_box->clear();
+  const QString blankString = tr(::blankString);
+  const auto infos = QSerialPortInfo::availablePorts();
+
+  for (const QSerialPortInfo &info : infos) {
+          QStringList list;
+          const QString description = info.description();
+          const QString manufacturer = info.manufacturer();
+          const QString serialNumber = info.serialNumber();
+          const auto vendorId = info.vendorIdentifier();
+          const auto productId = info.productIdentifier();
+          list << info.systemLocation()
+                  << (!description.isEmpty() ? description : blankString)
+                  << (!manufacturer.isEmpty() ? manufacturer : blankString)
+                  << (!serialNumber.isEmpty() ? serialNumber : blankString)
+                  << info.systemLocation()
+                  << (vendorId ? QString::number(vendorId, 16) : blankString)
+                  << (productId ? QString::number(productId, 16) : blankString);
+
+          m_ports_box->addItem(list.constFirst(), list);
+  }
+
+  m_ports_box->addItem(tr("Custom"));
 }
