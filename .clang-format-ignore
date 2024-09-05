@@ -1,0 +1,7 @@
+build/*
+images/*
+
+*.txt
+*.md
+*.ui
+*.user
