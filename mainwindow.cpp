@@ -14,7 +14,8 @@ static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_ui(new Ui::MainWindow), m_status(new QLabel),
       m_console(new Console), m_settings(new SettingsDialog(this)),
-      m_timer(new QTimer(this)), m_serial(new QSerialPort(this)) {
+      m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
+      mavlink_message{}, mavlink_status{} {
   m_ui->setupUi(this);
   m_console->setEnabled(false);
   setCentralWidget(m_console);
@@ -105,11 +106,12 @@ void MainWindow::readData() {
     if (mavlink_parse_char(MAVLINK_COMM_0, byte, &mavlink_message,
                            &mavlink_status)) {
       const auto msg =
-          "ID " + std::to_string(mavlink_message.msgid) + ' ' +
-          "sequence: " + std::to_string(mavlink_message.seq) + ' ' +
-          "from component " + std::to_string(mavlink_message.compid) + ' ' +
-          "of system " + std::to_string(mavlink_message.sysid) + '\n';
-      QByteArray data(msg.c_str(), msg.length());
+          std::format("ID: {} sequence: {} from component: {} of system: {}\n",
+                      std::to_string(mavlink_message.msgid),
+                      std::to_string(mavlink_message.seq),
+                      std::to_string(mavlink_message.compid),
+                      std::to_string(mavlink_message.sysid));
+      QByteArray data(msg.c_str(), static_cast<uint32_t>(msg.length()));
       m_console->putData(data);
 
       switch (mavlink_message.msgid) {
@@ -117,13 +119,16 @@ void MainWindow::readData() {
         mavlink_sys_status_t sys_status;
         mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
         const auto status_str = std::format(
-            "sensors present: {} sensors enabled: {} load: {} errors_comm: {}",
-            sys_status.onboard_control_sensors_present,
-            sys_status.onboard_control_sensors_enabled,
-            sys_status.voltage_battery, sys_status.errors_comm);
-        QByteArray data(status_str.c_str(), status_str.length());
+            "sensors present: {} sensors enabled: {} load: {} errors_comm: "
+            "{}\n",
+            std::to_string(sys_status.onboard_control_sensors_present),
+            std::to_string(sys_status.onboard_control_sensors_enabled),
+            std::to_string(sys_status.voltage_battery),
+            std::to_string(sys_status.errors_comm));
+        QByteArray data(status_str.c_str(),
+                        static_cast<uint32_t>(status_str.length()));
         m_console->putData(data);
-      }
+      } break;
       case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: {
         mavlink_global_position_int_t global_position;
         mavlink_msg_global_position_int_decode(&mavlink_message,
@@ -131,9 +136,12 @@ void MainWindow::readData() {
         const auto coords_str =
             std::format("lon: {} lat: {} alt: {}\n", global_position.lon,
                         global_position.lat, global_position.alt);
-        QByteArray data(coords_str.c_str(), coords_str.length());
+        QByteArray data(coords_str.c_str(),
+                        static_cast<uint32_t>(coords_str.length()));
         m_console->putData(data);
       } break;
+      default:
+        break;
       }
     }
   }

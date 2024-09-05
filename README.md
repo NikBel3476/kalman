@@ -15,3 +15,6 @@
 3. run the executable - `./build/autopilot_selfcheck`
 
 #### Note: not tested on windows
+
+### Code formatting
+`clang-format -i -style=file *.cpp *.h"`
