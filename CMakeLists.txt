@@ -1,19 +1,25 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.18)
 project(autopilot_selfcheck LANGUAGES CXX)
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui SerialPort Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui SerialPort Widgets LinguistTools)
 find_package(MAVLink REQUIRED)
 
-qt_standard_project_setup()
+qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES ru)
 
 qt_add_executable(${PROJECT_NAME}
     console.cpp console.h
     main.cpp
     mainwindow.cpp mainwindow.h
 )
+
+qt_add_translations(${PROJECT_NAME} TS_FILES autopilot_selfcheck_en.ts autopilot_selfcheck_ru.ts)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     WIN32_EXECUTABLE TRUE

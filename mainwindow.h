@@ -36,7 +36,6 @@ public:
 private slots:
   void openSerialPort();
   void closeSerialPort();
-  void about();
   void writeData(const QByteArray &data);
   void readData();
 
@@ -59,7 +58,9 @@ private:
   QComboBox *m_ports_box = nullptr;
   QAction *m_action_connect = nullptr;
   QAction *m_action_disconnect = nullptr;
-  QAction *m_action_clear= nullptr;
+  QAction *m_action_clear = nullptr;
+  QWidget *m_central_widget = nullptr;
+  QStatusBar *m_status_bar = nullptr;
   QLabel *m_status = nullptr;
   Console *m_console = nullptr;
   qint64 m_bytesToWrite = 0;

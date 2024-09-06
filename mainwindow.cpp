@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "console.h"
 
+#include <QLayout>
 #include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
@@ -8,6 +9,7 @@
 #include <QComboBox>
 #include <QAction>
 #include <QToolBar>
+#include <QStatusBar>
 #include <string>
 #include <format>
 
@@ -23,43 +25,51 @@ MainWindow::MainWindow(QWidget *parent)
       m_action_connect(new QAction(m_toolbar)),
       m_action_disconnect(new QAction(m_toolbar)),
       m_action_clear(new QAction(m_toolbar)),
+      m_central_widget(new QWidget(this)),
+      m_status_bar(new QStatusBar()),
       m_status(new QLabel),
       m_console(new Console),
       m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
       m_mavlink_message{}, m_mavlink_status{},
       m_port_settings{} {
-  // m_ui->setupUi(this);
 
   setWindowTitle("Autopilot selfcheck");
   setGeometry(QRect(0, 0, 800, 600));
 
+  // Main window content
   addToolBar(m_toolbar);
+  setCentralWidget(m_console);
+  setStatusBar(m_status_bar);
 
+  // toolbar content
+  m_toolbar->setMovable(false);
   m_toolbar->addWidget(m_ports_box);
 
   m_action_connect->setIcon(QIcon(":/images/connect.png"));
-  m_action_connect->setText("Connect");
-  m_action_connect->setToolTip("Connect to serial port");
+  m_action_connect->setText(tr("Connect"));
+  m_action_connect->setToolTip(tr("Connect"));
   m_action_connect->setEnabled(false);
 
   m_action_disconnect->setIcon(QIcon(":/images/disconnect.png"));
-  m_action_disconnect->setText("Disconnect");
-  m_action_disconnect->setToolTip("Disconnect from serial port");
+  m_action_disconnect->setText(tr("Disconnect"));
+  m_action_disconnect->setToolTip(tr("Disconnect"));
   m_action_disconnect->setEnabled(false);
 
   m_action_clear->setIcon(QIcon(":/images/clear.png"));
-  m_action_clear->setText("Clear");
-  m_action_clear->setToolTip("Clear terminal");
+  m_action_clear->setText(tr("Clear"));
+  m_action_clear->setToolTip(tr("Clear"));
   m_action_clear->setEnabled(true);
 
   m_toolbar->addAction(m_action_connect);
   m_toolbar->addAction(m_action_disconnect);
   m_toolbar->addAction(m_action_clear);
 
+  // central widget content
   m_console->setEnabled(false);
-  setCentralWidget(m_console);
 
-  // m_ui->statusBar->addWidget(m_status);
+  // status bar content
+  m_status_bar->addWidget(m_status);
+  m_status->setText(tr("Disconnected"));
 
   initActionsConnections();
   initSerialPortEventsConnections();
@@ -87,9 +97,9 @@ void MainWindow::openSerialPort() {
     // m_console->setLocalEchoEnabled(p.localEchoEnabled);
     m_action_connect->setEnabled(false);
     m_action_disconnect->setEnabled(true);
+    m_status->setText(tr("Connected to %1").arg(m_serial->portName()));
   } else {
     QMessageBox::critical(this, tr("Error"), m_serial->errorString());
-
     showStatusMessage(tr("Open error"));
   }
 }
@@ -100,14 +110,7 @@ void MainWindow::closeSerialPort() {
   m_console->setEnabled(false);
   m_action_connect->setEnabled(true);
   m_action_disconnect->setEnabled(false);
-  // m_ui->actionConfigure->setEnabled(true);
   showStatusMessage(tr("Disconnected"));
-}
-
-void MainWindow::about() {
-  QMessageBox::about(this, tr("About Autopilot selfcheck"),
-                     tr("The <b>Autopilot selfcheck</b> intended to automatic "
-                        "checking of autopilot status and its peripherals."));
 }
 
 void MainWindow::writeData(const QByteArray &data) {
