@@ -14,7 +14,7 @@
 2. build - `cmake --build build`
 3. run the executable - `./build/autopilot_selfcheck`
 
-#### Note: not tested on windows
+#### Note: tested only on linux
 
 ### Code formatting
 `clang-format -i -style=file *.cpp *.h"`
