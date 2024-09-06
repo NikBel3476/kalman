@@ -1,6 +1,3 @@
-# Copyright (C) 2022 The Qt Company Ltd.
-# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
-
 cmake_minimum_required(VERSION 3.16)
 project(autopilot_selfcheck LANGUAGES CXX)
 
@@ -15,8 +12,7 @@ qt_standard_project_setup()
 qt_add_executable(${PROJECT_NAME}
     console.cpp console.h
     main.cpp
-    mainwindow.cpp mainwindow.h mainwindow.ui
-    settingsdialog.cpp settingsdialog.h settingsdialog.ui
+    mainwindow.cpp mainwindow.h
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

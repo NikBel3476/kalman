@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QComboBox>
 #include <QSerialPort>
+
+
 #include <mavlink/common/mavlink.h>
 
 QT_BEGIN_NAMESPACE
@@ -11,14 +13,9 @@ QT_BEGIN_NAMESPACE
 class QLabel;
 class QTimer;
 
-namespace Ui {
-class MainWindow;
-}
-
 QT_END_NAMESPACE
 
 class Console;
-class SettingsDialog;
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -26,6 +23,15 @@ class MainWindow : public QMainWindow {
 public:
   explicit MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
+
+  struct Settings {
+    QString name;
+    qint32 baudRate;
+    QSerialPort::DataBits dataBits;
+    QSerialPort::Parity parity;
+    QSerialPort::StopBits stopBits;
+    QSerialPort::FlowControl flowControl;
+  };
 
 private slots:
   void openSerialPort();
@@ -40,13 +46,15 @@ private slots:
 
 private:
   void initActionsConnections();
+  void initSerialPortEventsConnections();
 
 private:
   void showStatusMessage(const QString &message);
   void showWriteError(const QString &message);
   void fillPortsInfo();
+  void setPortSettings(int idx);
+  void initPortsBoxEventsConnections();
 
-  Ui::MainWindow *m_ui = nullptr;
   QToolBar *m_toolbar = nullptr;
   QComboBox *m_ports_box = nullptr;
   QAction *m_action_connect = nullptr;
@@ -54,12 +62,12 @@ private:
   QAction *m_action_clear= nullptr;
   QLabel *m_status = nullptr;
   Console *m_console = nullptr;
-  SettingsDialog *m_settings = nullptr;
   qint64 m_bytesToWrite = 0;
   QTimer *m_timer = nullptr;
   QSerialPort *m_serial = nullptr;
-  mavlink_message_t mavlink_message;
-  mavlink_status_t mavlink_status;
+  mavlink_message_t m_mavlink_message;
+  mavlink_status_t m_mavlink_status;
+  Settings m_port_settings;
 };
 
 #endif // MAINWINDOW_H

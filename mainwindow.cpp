@@ -1,12 +1,15 @@
 #include "mainwindow.h"
 #include "console.h"
-#include "settingsdialog.h"
-#include "ui_mainwindow.h"
 
 #include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
 #include <QSerialPortInfo>
+#include <QComboBox>
+#include <QAction>
+#include <QToolBar>
+#include <string>
+#include <format>
 
 #include <chrono>
 
@@ -14,17 +17,18 @@ static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_ui(new Ui::MainWindow),
+    : QMainWindow(parent),
       m_toolbar(new QToolBar(this)),
       m_ports_box(new QComboBox(m_toolbar)),
       m_action_connect(new QAction(m_toolbar)),
       m_action_disconnect(new QAction(m_toolbar)),
       m_action_clear(new QAction(m_toolbar)),
       m_status(new QLabel),
-      m_console(new Console), m_settings(new SettingsDialog(this)),
+      m_console(new Console),
       m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
-      mavlink_message{}, mavlink_status{} {
-  m_ui->setupUi(this);
+      m_mavlink_message{}, m_mavlink_status{},
+      m_port_settings{} {
+  // m_ui->setupUi(this);
 
   setWindowTitle("Autopilot selfcheck");
   setGeometry(QRect(0, 0, 800, 600));
@@ -36,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
   m_action_connect->setIcon(QIcon(":/images/connect.png"));
   m_action_connect->setText("Connect");
   m_action_connect->setToolTip("Connect to serial port");
-  m_action_connect->setEnabled(true);
+  m_action_connect->setEnabled(false);
 
   m_action_disconnect->setIcon(QIcon(":/images/disconnect.png"));
   m_action_disconnect->setText("Disconnect");
@@ -58,27 +62,19 @@ MainWindow::MainWindow(QWidget *parent)
   // m_ui->statusBar->addWidget(m_status);
 
   initActionsConnections();
+  initSerialPortEventsConnections();
+  initPortsBoxEventsConnections();
 
-  connect(m_serial, &QSerialPort::errorOccurred, this,
-          &MainWindow::handleError);
   connect(m_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
   m_timer->setSingleShot(true);
-
-  connect(m_serial, &QSerialPort::readyRead, this, &MainWindow::readData);
-  connect(m_serial, &QSerialPort::bytesWritten, this,
-          &MainWindow::handleBytesWritten);
-  connect(m_console, &Console::getData, this, &MainWindow::writeData);
 
   fillPortsInfo();
 }
 
-MainWindow::~MainWindow() {
-  delete m_settings;
-  delete m_ui;
-}
+MainWindow::~MainWindow() = default;
 
 void MainWindow::openSerialPort() {
-  const SettingsDialog::Settings p = m_settings->settings();
+  const auto p = m_port_settings;
   m_serial->setPortName(p.name);
   m_serial->setBaudRate(p.baudRate);
   m_serial->setDataBits(p.dataBits);
@@ -88,13 +84,9 @@ void MainWindow::openSerialPort() {
 
   if (m_serial->open(QIODevice::ReadWrite)) {
     m_console->setEnabled(true);
-    m_console->setLocalEchoEnabled(p.localEchoEnabled);
+    // m_console->setLocalEchoEnabled(p.localEchoEnabled);
     m_action_connect->setEnabled(false);
     m_action_disconnect->setEnabled(true);
-    showStatusMessage(tr("Connected to %1 : %2, %3, %4, %5, %6")
-                          .arg(p.name, p.stringBaudRate, p.stringDataBits,
-                               p.stringParity, p.stringStopBits,
-                               p.stringFlowControl));
   } else {
     QMessageBox::critical(this, tr("Error"), m_serial->errorString());
 
@@ -134,21 +126,21 @@ void MainWindow::writeData(const QByteArray &data) {
 void MainWindow::readData() {
   const auto data = m_serial->readAll();
   for (auto byte : data) {
-    if (mavlink_parse_char(MAVLINK_COMM_0, byte, &mavlink_message,
-                           &mavlink_status)) {
+    if (mavlink_parse_char(MAVLINK_COMM_0, byte, &m_mavlink_message,
+                           &m_mavlink_status)) {
       const auto msg =
           std::format("ID: {} sequence: {} from component: {} of system: {}\n",
-                      std::to_string(mavlink_message.msgid),
-                      std::to_string(mavlink_message.seq),
-                      std::to_string(mavlink_message.compid),
-                      std::to_string(mavlink_message.sysid));
+                      std::to_string(m_mavlink_message.msgid),
+                      std::to_string(m_mavlink_message.seq),
+                      std::to_string(m_mavlink_message.compid),
+                      std::to_string(m_mavlink_message.sysid));
       QByteArray data(msg.c_str(), static_cast<uint32_t>(msg.length()));
       m_console->putData(data);
 
-      switch (mavlink_message.msgid) {
+      switch (m_mavlink_message.msgid) {
       case MAVLINK_MSG_ID_SYS_STATUS: {
         mavlink_sys_status_t sys_status;
-        mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
+        mavlink_msg_sys_status_decode(&m_mavlink_message, &sys_status);
         const auto status_str = std::format(
             "sensors present: {} sensors enabled: {} load: {} errors_comm: "
             "{}\n",
@@ -162,7 +154,7 @@ void MainWindow::readData() {
       } break;
       case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: {
         mavlink_global_position_int_t global_position;
-        mavlink_msg_global_position_int_decode(&mavlink_message,
+        mavlink_msg_global_position_int_decode(&m_mavlink_message,
                                                &global_position);
         const auto coords_str =
             std::format("lon: {} lat: {} alt: {}\n", global_position.lon,
@@ -174,8 +166,6 @@ void MainWindow::readData() {
       default:
         break;
       }
-
-
     }
   }
 }
@@ -206,7 +196,35 @@ void MainWindow::initActionsConnections() {
   connect(m_action_disconnect, &QAction::triggered, this,
           &MainWindow::closeSerialPort);
   connect(m_action_clear, &QAction::triggered, m_console, &Console::clear);
-  // connect(m_ports_box,)
+}
+
+void MainWindow::initSerialPortEventsConnections() {
+  connect(m_serial, &QSerialPort::errorOccurred, this,
+          &MainWindow::handleError);
+  connect(m_serial, &QSerialPort::readyRead, this, &MainWindow::readData);
+  connect(m_serial, &QSerialPort::bytesWritten, this,
+          &MainWindow::handleBytesWritten);
+  connect(m_console, &Console::getData, this, &MainWindow::writeData);
+}
+
+void MainWindow::initPortsBoxEventsConnections() {
+  connect(m_ports_box, &QComboBox::currentIndexChanged, this, &MainWindow::setPortSettings);
+}
+
+void MainWindow::setPortSettings(int idx) {
+  auto portSettingsMaybe = m_ports_box->itemData(idx);
+  if (portSettingsMaybe.canConvert<QStringList>()) {
+    auto port_settings_list = portSettingsMaybe.value<QStringList>();
+    m_port_settings = Settings {
+      .name = port_settings_list[0],
+      .baudRate = 57600,
+      .dataBits = QSerialPort::Data8,
+      .parity = QSerialPort::NoParity,
+      .stopBits = QSerialPort::OneStop,
+      .flowControl = QSerialPort::NoFlowControl
+    };
+    m_action_connect->setEnabled(true);
+  }
 }
 
 void MainWindow::showStatusMessage(const QString &message) {
