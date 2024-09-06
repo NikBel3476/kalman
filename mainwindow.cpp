@@ -1,17 +1,17 @@
 #include "mainwindow.h"
 #include "console.h"
 
-#include <QLayout>
-#include <QLabel>
-#include <QMessageBox>
-#include <QTimer>
-#include <QSerialPortInfo>
-#include <QComboBox>
 #include <QAction>
-#include <QToolBar>
+#include <QComboBox>
+#include <QLabel>
+#include <QLayout>
+#include <QMessageBox>
+#include <QSerialPortInfo>
 #include <QStatusBar>
-#include <string>
+#include <QTimer>
+#include <QToolBar>
 #include <format>
+#include <string>
 
 #include <chrono>
 
@@ -19,18 +19,14 @@ static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent),
-      m_toolbar(new QToolBar(this)),
+    : QMainWindow(parent), m_toolbar(new QToolBar(this)),
       m_ports_box(new QComboBox(m_toolbar)),
       m_action_connect(new QAction(m_toolbar)),
       m_action_disconnect(new QAction(m_toolbar)),
       m_action_clear(new QAction(m_toolbar)),
-      m_central_widget(new QWidget(this)),
-      m_status_bar(new QStatusBar()),
-      m_status(new QLabel),
-      m_console(new Console),
-      m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
-      m_mavlink_message{}, m_mavlink_status{},
+      m_central_widget(new QWidget(this)), m_status_bar(new QStatusBar()),
+      m_status(new QLabel), m_console(new Console), m_timer(new QTimer(this)),
+      m_serial(new QSerialPort(this)), m_mavlink_message{}, m_mavlink_status{},
       m_port_settings{} {
 
   setWindowTitle("Autopilot selfcheck");
@@ -211,21 +207,20 @@ void MainWindow::initSerialPortEventsConnections() {
 }
 
 void MainWindow::initPortsBoxEventsConnections() {
-  connect(m_ports_box, &QComboBox::currentIndexChanged, this, &MainWindow::setPortSettings);
+  connect(m_ports_box, &QComboBox::currentIndexChanged, this,
+          &MainWindow::setPortSettings);
 }
 
 void MainWindow::setPortSettings(int idx) {
   auto portSettingsMaybe = m_ports_box->itemData(idx);
   if (portSettingsMaybe.canConvert<QStringList>()) {
     auto port_settings_list = portSettingsMaybe.value<QStringList>();
-    m_port_settings = Settings {
-      .name = port_settings_list[0],
-      .baudRate = 57600,
-      .dataBits = QSerialPort::Data8,
-      .parity = QSerialPort::NoParity,
-      .stopBits = QSerialPort::OneStop,
-      .flowControl = QSerialPort::NoFlowControl
-    };
+    m_port_settings = Settings{.name = port_settings_list[0],
+                               .baudRate = 57600,
+                               .dataBits = QSerialPort::Data8,
+                               .parity = QSerialPort::NoParity,
+                               .stopBits = QSerialPort::OneStop,
+                               .flowControl = QSerialPort::NoFlowControl};
     m_action_connect->setEnabled(true);
   }
 }
@@ -244,21 +239,21 @@ void MainWindow::fillPortsInfo() {
   const auto infos = QSerialPortInfo::availablePorts();
 
   for (const QSerialPortInfo &info : infos) {
-          QStringList list;
-          const QString description = info.description();
-          const QString manufacturer = info.manufacturer();
-          const QString serialNumber = info.serialNumber();
-          const auto vendorId = info.vendorIdentifier();
-          const auto productId = info.productIdentifier();
-          list << info.systemLocation()
-                  << (!description.isEmpty() ? description : blankString)
-                  << (!manufacturer.isEmpty() ? manufacturer : blankString)
-                  << (!serialNumber.isEmpty() ? serialNumber : blankString)
-                  << info.systemLocation()
-                  << (vendorId ? QString::number(vendorId, 16) : blankString)
-                  << (productId ? QString::number(productId, 16) : blankString);
+    QStringList list;
+    const QString description = info.description();
+    const QString manufacturer = info.manufacturer();
+    const QString serialNumber = info.serialNumber();
+    const auto vendorId = info.vendorIdentifier();
+    const auto productId = info.productIdentifier();
+    list << info.systemLocation()
+         << (!description.isEmpty() ? description : blankString)
+         << (!manufacturer.isEmpty() ? manufacturer : blankString)
+         << (!serialNumber.isEmpty() ? serialNumber : blankString)
+         << info.systemLocation()
+         << (vendorId ? QString::number(vendorId, 16) : blankString)
+         << (productId ? QString::number(productId, 16) : blankString);
 
-          m_ports_box->addItem(list.constFirst(), list);
+    m_ports_box->addItem(list.constFirst(), list);
   }
 
   m_ports_box->addItem(tr("Custom"));

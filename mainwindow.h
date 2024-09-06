@@ -1,10 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
 #include <QComboBox>
+#include <QMainWindow>
 #include <QSerialPort>
-
 
 #include <mavlink/common/mavlink.h>
 

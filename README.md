@@ -17,4 +17,4 @@
 #### Note: tested only on linux
 
 ### Code formatting
-`clang-format -i -style=file *.cpp *.h"`
+`clang-format -i -style=file *.cpp *.h`
