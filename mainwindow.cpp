@@ -19,22 +19,31 @@ static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_toolbar(new QToolBar(this)),
-      m_ports_box(new QComboBox(m_toolbar)),
-      m_action_connect(new QAction(m_toolbar)),
-      m_action_disconnect(new QAction(m_toolbar)),
-      m_action_clear(new QAction(m_toolbar)),
-      m_central_widget(new QWidget(this)), m_status_bar(new QStatusBar()),
-      m_status(new QLabel), m_console(new Console), m_timer(new QTimer(this)),
-      m_serial(new QSerialPort(this)), m_mavlink_message{}, m_mavlink_status{},
-      m_port_settings{} {
-
+  : QMainWindow(parent), m_toolbar(new QToolBar(this)),
+    m_ports_box(new QComboBox(m_toolbar)),
+    m_action_connect(new QAction(m_toolbar)),
+    m_action_disconnect(new QAction(m_toolbar)),
+    m_action_clear(new QAction(m_toolbar)),
+    m_status_bar(new QStatusBar(this)),
+    m_status(new QLabel),
+    m_console(new Console),
+    m_central_widget(new QWidget(this)),
+    m_central_widget_layout(new QVBoxLayout(m_central_widget)),
+    m_qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
+    m_qml_container(QWidget::createWindowContainer(m_qml_view, this)),
+    m_timer(new QTimer(this)),
+    m_serial(new QSerialPort(this)),
+    m_mavlink_message{},
+    m_mavlink_status{},
+    m_port_settings{}
+{
   setWindowTitle("Autopilot selfcheck");
   setGeometry(QRect(0, 0, 800, 600));
 
+
   // Main window content
   addToolBar(m_toolbar);
-  setCentralWidget(m_console);
+  setCentralWidget(m_central_widget);
   setStatusBar(m_status_bar);
 
   // toolbar content
@@ -61,6 +70,13 @@ MainWindow::MainWindow(QWidget *parent)
   m_toolbar->addAction(m_action_clear);
 
   // central widget content
+  m_central_widget->setLayout(m_central_widget_layout);
+
+  // m_central_widget_layout->addWidget(m_console);
+  m_central_widget_layout->addWidget(m_qml_container);
+
+  m_qml_container->setFocusPolicy(Qt::TabFocus);
+
   m_console->setEnabled(false);
 
   // status bar content
@@ -245,7 +261,7 @@ void MainWindow::fillPortsInfo() {
     const QString serialNumber = info.serialNumber();
     const auto vendorId = info.vendorIdentifier();
     const auto productId = info.productIdentifier();
-    list << info.systemLocation()
+    list << info.portName()
          << (!description.isEmpty() ? description : blankString)
          << (!manufacturer.isEmpty() ? manufacturer : blankString)
          << (!serialNumber.isEmpty() ? serialNumber : blankString)

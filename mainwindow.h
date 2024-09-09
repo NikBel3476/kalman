@@ -3,10 +3,10 @@
 
 #include <QComboBox>
 #include <QMainWindow>
+#include <QtQuick/QQuickView>
 #include <QSerialPort>
 
-// #include <mavlink/common/mavlink.h>
-#include "mavlink/common/mavlink.h"
+#include <mavlink/common/mavlink.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -59,10 +59,13 @@ private:
   QAction *m_action_connect = nullptr;
   QAction *m_action_disconnect = nullptr;
   QAction *m_action_clear = nullptr;
-  QWidget *m_central_widget = nullptr;
   QStatusBar *m_status_bar = nullptr;
   QLabel *m_status = nullptr;
   Console *m_console = nullptr;
+  QWidget *m_central_widget = nullptr;
+  QLayout *m_central_widget_layout = nullptr;
+  QQuickView *m_qml_view = nullptr;
+  QWidget *m_qml_container = nullptr;
   qint64 m_bytesToWrite = 0;
   QTimer *m_timer = nullptr;
   QSerialPort *m_serial = nullptr;

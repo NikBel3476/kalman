@@ -43,5 +43,13 @@
         <source>"Failed to write all data to port %1.\n Error: %2"</source>
         <translation>"Не удалось записать все данные в порт %1.\n Ошибка: %2"</translation>
     </message>
+    <message>
+        <source>Username</source>
+        <translation>Имя пользователя</translation>
+    </message>
+    <message>
+        <source>Password</source>
+        <translation>Пароль</translation>
+    </message>
 </context>
 </TS>

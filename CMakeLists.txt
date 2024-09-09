@@ -8,15 +8,24 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui SerialPort Widgets LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS
+    Core
+    Gui
+    Widgets
+    Qml
+    Quick
+    SerialPort
+    LinguistTools
+)
 find_package(MAVLink REQUIRED)
 
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES ru)
 
 qt_add_executable(${PROJECT_NAME}
-    console.cpp console.h
     main.cpp
     mainwindow.cpp mainwindow.h
+    console.cpp console.h
+    AuthenticationForm.qml
 )
 
 qt_add_translations(${PROJECT_NAME} TS_FILES autopilot_selfcheck_en.ts autopilot_selfcheck_ru.ts)
@@ -31,6 +40,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Gui
     Qt::SerialPort
     Qt::Widgets
+    Qt6::Qml
+    Qt6::Quick
     MAVLink::mavlink
 )
 
@@ -41,6 +52,7 @@ set(resource_files
     "images/connect.png"
     "images/disconnect.png"
     "images/settings.png"
+    "AuthenticationForm.qml"
 )
 
 qt_add_resources(${PROJECT_NAME} "autopilot_selfcheck"
