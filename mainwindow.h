@@ -5,7 +5,8 @@
 #include <QMainWindow>
 #include <QSerialPort>
 
-#include <mavlink/common/mavlink.h>
+// #include <mavlink/common/mavlink.h>
+#include "mavlink/common/mavlink.h"
 
 QT_BEGIN_NAMESPACE
 
