@@ -52,4 +52,55 @@
         <translation>Пароль</translation>
     </message>
 </context>
+<context>
+    <name>AuthenticationForm</name>
+    <message>
+        <source>Username</source>
+        <translation>Имя пользователя</translation>
+    </message>
+    <message>
+        <source>Password</source>
+        <translation>Пароль</translation>
+    </message>
+    <message>
+        <source>Login</source>
+        <translation>Войти</translation>
+    </message>
+</context>
+<context>
+    <name>FirmwareUploadPage</name>
+    <message>
+        <source>Single wing</source>
+        <translation>Крыло</translation>
+    </message>
+    <message>
+        <source>Quadrocopter</source>
+        <translation>Квадрокоптер</translation>
+    </message>
+    <message>
+        <source>Upload firmware</source>
+        <translation>Загрузить прошивку</translation>
+    </message>
+</context>
+<context>
+    <name>MagnetometrInfoWidget</name>
+    <message>
+        <source>Magnetometr</source>
+        <translation>Магнитометр</translation>
+    </message>
+</context>
+<context>
+    <name>AccelerometrInfoWidget</name>
+    <message>
+        <source>Acceletometr</source>
+        <translation>Акселерометр</translation>
+    </message>
+</context>
+<context>
+    <name>GyroscopeInfoWidget</name>
+    <message>
+        <source>Gyroscope</source>
+        <translation>Гироскоп</translation>
+    </message>
+</context>
 </TS>

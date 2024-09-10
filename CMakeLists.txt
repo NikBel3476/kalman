@@ -26,6 +26,13 @@ qt_add_executable(${PROJECT_NAME}
     mainwindow.cpp mainwindow.h
     console.cpp console.h
     AuthenticationForm.qml
+    authenticationform.h authenticationform.cpp
+    firmwareuploadpage.h firmwareuploadpage.cpp
+    magnetometrinfowidget.h magnetometrinfowidget.cpp
+    autopilotsettingspage.h autopilotsettingspage.cpp
+    accelerometrinfowidget.h accelerometrinfowidget.cpp
+    gyroscopeinfowidget.h gyroscopeinfowidget.cpp
+    mcuinfowidget.h mcuinfowidget.cpp
 )
 
 qt_add_translations(${PROJECT_NAME} TS_FILES autopilot_selfcheck_en.ts autopilot_selfcheck_ru.ts)

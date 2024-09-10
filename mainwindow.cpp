@@ -16,6 +16,7 @@
 #include <chrono>
 
 static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
+static constexpr std::chrono::seconds kHeartbeatTimeout = std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
@@ -24,18 +25,21 @@ MainWindow::MainWindow(QWidget *parent)
     m_action_connect(new QAction(m_toolbar)),
     m_action_disconnect(new QAction(m_toolbar)),
     m_action_clear(new QAction(m_toolbar)),
-    m_status_bar(new QStatusBar(this)),
+    m_statusbar(new QStatusBar(this)),
     m_status(new QLabel),
     m_console(new Console),
-    m_central_widget(new QWidget(this)),
-    m_central_widget_layout(new QVBoxLayout(m_central_widget)),
-    m_qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
-    m_qml_container(QWidget::createWindowContainer(m_qml_view, this)),
+    m_central_widget(new QStackedWidget()),
+    m_authentication_form(new AuthenticationForm()),
+    m_firmware_upload_page(new FirmwareUploadPage()),
+    m_autopilot_settings_page(new AutopilotSettingsPage()),
+    // m_qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
+    // m_qml_container(QWidget::createWindowContainer(m_qml_view, this)),
     m_timer(new QTimer(this)),
     m_serial(new QSerialPort(this)),
     m_mavlink_message{},
     m_mavlink_status{},
-    m_port_settings{}
+    m_port_settings{},
+    m_heartbeat_timer(new QTimer(this))
 {
   setWindowTitle("Autopilot selfcheck");
   setGeometry(QRect(0, 0, 800, 600));
@@ -44,11 +48,16 @@ MainWindow::MainWindow(QWidget *parent)
   // Main window content
   addToolBar(m_toolbar);
   setCentralWidget(m_central_widget);
-  setStatusBar(m_status_bar);
+  setStatusBar(m_statusbar);
 
   // toolbar content
   m_toolbar->setMovable(false);
   m_toolbar->addWidget(m_ports_box);
+  m_toolbar->setVisible(false);
+
+  m_toolbar->addAction(m_action_connect);
+  m_toolbar->addAction(m_action_disconnect);
+  m_toolbar->addAction(m_action_clear);
 
   m_action_connect->setIcon(QIcon(":/images/connect.png"));
   m_action_connect->setText(tr("Connect"));
@@ -65,22 +74,25 @@ MainWindow::MainWindow(QWidget *parent)
   m_action_clear->setToolTip(tr("Clear"));
   m_action_clear->setEnabled(true);
 
-  m_toolbar->addAction(m_action_connect);
-  m_toolbar->addAction(m_action_disconnect);
-  m_toolbar->addAction(m_action_clear);
-
   // central widget content
-  m_central_widget->setLayout(m_central_widget_layout);
+  m_central_widget->addWidget(m_authentication_form);
+  m_central_widget->addWidget(m_firmware_upload_page);
+  // m_central_widget->addWidget(m_console);
+  m_central_widget->addWidget(m_autopilot_settings_page);
 
+  m_central_widget->setCurrentWidget(m_authentication_form);
+
+  // m_central_widget_layout->addWidget(m_authentication_form);
   // m_central_widget_layout->addWidget(m_console);
-  m_central_widget_layout->addWidget(m_qml_container);
+  // m_central_widget_layout->addWidget(m_qml_container);
 
-  m_qml_container->setFocusPolicy(Qt::TabFocus);
+  // m_qml_container->setFocusPolicy(Qt::TabFocus);
 
   m_console->setEnabled(false);
 
   // status bar content
-  m_status_bar->addWidget(m_status);
+  m_statusbar->addWidget(m_status);
+  m_statusbar->setVisible(false);
   m_status->setText(tr("Disconnected"));
 
   initActionsConnections();
@@ -89,6 +101,21 @@ MainWindow::MainWindow(QWidget *parent)
 
   connect(m_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
   m_timer->setSingleShot(true);
+
+  // authentiation form connections
+  connect(m_authentication_form, &AuthenticationForm::login, this, &MainWindow::handleLogin);
+
+  // firmware upload page connections
+  connect(this, &MainWindow::autopilotConnected, m_firmware_upload_page, &FirmwareUploadPage::handleAutopilotConnection);
+  connect(this, &MainWindow::autopilotDisconnected, m_firmware_upload_page, &FirmwareUploadPage::handleAutopilotDisconnection);
+  connect(m_firmware_upload_page, &FirmwareUploadPage::firmwareUploaded, this, &MainWindow::handleFirmwareUpload);
+
+  // autopilot settings page connections
+  connect(this, &MainWindow::IMUUpdated, m_autopilot_settings_page, &AutopilotSettingsPage::handleIMUUpdate);
+  connect(this, &MainWindow::powerStatusUpdated, m_autopilot_settings_page, &AutopilotSettingsPage::handlePowerStatusUpdate);
+  connect(this, &MainWindow::mcuStatusUpdated, m_autopilot_settings_page, &AutopilotSettingsPage::handleMcuStatusUpdate);
+
+  connect(m_heartbeat_timer, &QTimer::timeout, this, &MainWindow::handleHeartbeatTimeout);
 
   fillPortsInfo();
 }
@@ -110,6 +137,8 @@ void MainWindow::openSerialPort() {
     m_action_connect->setEnabled(false);
     m_action_disconnect->setEnabled(true);
     m_status->setText(tr("Connected to %1").arg(m_serial->portName()));
+    m_heartbeat_timer->start(kHeartbeatTimeout);
+    emit autopilotConnected();
   } else {
     QMessageBox::critical(this, tr("Error"), m_serial->errorString());
     showStatusMessage(tr("Open error"));
@@ -123,6 +152,9 @@ void MainWindow::closeSerialPort() {
   m_action_connect->setEnabled(true);
   m_action_disconnect->setEnabled(false);
   showStatusMessage(tr("Disconnected"));
+  m_central_widget->setCurrentWidget(m_firmware_upload_page);
+  m_heartbeat_timer->stop();
+  emit autopilotDisconnected();
 }
 
 void MainWindow::writeData(const QByteArray &data) {
@@ -153,6 +185,11 @@ void MainWindow::readData() {
       m_console->putData(data);
 
       switch (m_mavlink_message.msgid) {
+      case MAVLINK_MSG_ID_HEARTBEAT: {
+        mavlink_heartbeat_t heartbeat;
+        mavlink_msg_heartbeat_decode(&m_mavlink_message, &heartbeat);
+        m_heartbeat_timer->start(kHeartbeatTimeout);
+      } break;
       case MAVLINK_MSG_ID_SYS_STATUS: {
         mavlink_sys_status_t sys_status;
         mavlink_msg_sys_status_decode(&m_mavlink_message, &sys_status);
@@ -177,6 +214,40 @@ void MainWindow::readData() {
         QByteArray data(coords_str.c_str(),
                         static_cast<uint32_t>(coords_str.length()));
         m_console->putData(data);
+      } break;
+      case MAVLINK_MSG_ID_POWER_STATUS: {
+        mavlink_power_status_t power_status;
+        mavlink_msg_power_status_decode(&m_mavlink_message, &power_status);
+        const auto status_str = std::format("Rail voltage: {} mV\n", power_status.Vcc);
+        QByteArray data(status_str.c_str(), static_cast<uint32_t>(status_str.length()));
+        m_console->putData(data);
+        emit powerStatusUpdated(power_status);
+      } break;
+      case MAVLINK_MSG_ID_RAW_IMU: {
+        mavlink_raw_imu_t raw_imu;
+        mavlink_msg_raw_imu_decode(&m_mavlink_message, &raw_imu);
+        const auto raw_imu_str = std::format(
+          "Time: {} xacc: {} yacc: {} zacc: {} xgyro: {} ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {} id: {}\n",
+          std::to_string(raw_imu.time_usec),
+          std::to_string(raw_imu.xacc),
+          std::to_string(raw_imu.yacc),
+          std::to_string(raw_imu.zacc),
+          std::to_string(raw_imu.xgyro),
+          std::to_string(raw_imu.ygyro),
+          std::to_string(raw_imu.zgyro),
+          std::to_string(raw_imu.xmag),
+          std::to_string(raw_imu.ymag),
+          std::to_string(raw_imu.zmag),
+          std::to_string(raw_imu.id)
+        );
+        QByteArray data(raw_imu_str.c_str(), static_cast<uint32_t>(raw_imu_str.length()));
+        m_console->putData(data);
+        emit IMUUpdated(raw_imu);
+      } break;
+      case MAVLINK_MSG_ID_MCU_STATUS: {
+        mavlink_mcu_status_t mcu_status;
+        mavlink_msg_mcu_status_decode(&m_mavlink_message, &mcu_status);
+        emit mcuStatusUpdated(mcu_status);
       } break;
       default:
         break;
@@ -205,6 +276,24 @@ void MainWindow::handleWriteTimeout() {
   showWriteError(error);
 }
 
+void MainWindow::handleLogin(const QString &username, const QString &password) {
+  qDebug() << "Login event\n" << username << '\n' << password << '\n';
+  // TODO: add authentication
+  m_central_widget->setCurrentWidget(m_firmware_upload_page);
+  m_toolbar->setVisible(true);
+  m_statusbar->setVisible(true);
+}
+
+void MainWindow::handleFirmwareUpload() {
+  m_central_widget->setCurrentWidget(m_autopilot_settings_page);
+  m_console->show();
+}
+
+void MainWindow::handleHeartbeatTimeout() {
+  QMessageBox::critical(this, tr("Error"), tr("Heartbeat error"));
+  closeSerialPort();
+}
+
 void MainWindow::initActionsConnections() {
   connect(m_action_connect, &QAction::triggered, this,
           &MainWindow::openSerialPort);
@@ -227,8 +316,8 @@ void MainWindow::initPortsBoxEventsConnections() {
           &MainWindow::setPortSettings);
 }
 
-void MainWindow::setPortSettings(int idx) {
-  auto portSettingsMaybe = m_ports_box->itemData(idx);
+void MainWindow::setPortSettings(int index) {
+  auto portSettingsMaybe = m_ports_box->itemData(index);
   if (portSettingsMaybe.canConvert<QStringList>()) {
     auto port_settings_list = portSettingsMaybe.value<QStringList>();
     m_port_settings = Settings{.name = port_settings_list[0],

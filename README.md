@@ -5,7 +5,7 @@
 ### Prerequisites
 
 * qt6
-* mavlink c library v2
+* mavlink c library v2 (ardupilotmega dialect)
 * cmake
 * microsoft visual studio 2022 (for windows)
 
