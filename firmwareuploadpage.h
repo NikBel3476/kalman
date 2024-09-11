@@ -1,10 +1,10 @@
 #ifndef FIRMWAREUPLOADPAGE_H
 #define FIRMWAREUPLOADPAGE_H
 
-#include <QWidget>
 #include <QComboBox>
-#include <QVBoxLayout>
 #include <QPushButton>
+#include <QVBoxLayout>
+#include <QWidget>
 
 class FirmwareUploadPage : public QWidget {
   Q_OBJECT

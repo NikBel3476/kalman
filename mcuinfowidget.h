@@ -1,10 +1,10 @@
 #ifndef MCUINFOWIDGET_H
 #define MCUINFOWIDGET_H
 
-#include <QWidget>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QVBoxLayout>
+#include <QWidget>
 
 #include "mavlink/ardupilotmega/mavlink.h"
 
@@ -17,11 +17,13 @@ signals:
 
 public slots:
   void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
+  void handlePowerStatusUpdate(uint16_t rail_voltage);
 
 private:
   QVBoxLayout *m_layout = nullptr;
   QLabel *m_temperature_label = nullptr;
   QLabel *m_voltage_label = nullptr;
+  QLabel *m_rail_voltage_label = nullptr;
 };
 
 #endif // MCUINFOWIDGET_H

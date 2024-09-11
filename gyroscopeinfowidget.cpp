@@ -1,12 +1,9 @@
 #include "gyroscopeinfowidget.h"
 
-GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent) :
-                                                            QWidget{parent},
-                                                            m_layout(new QVBoxLayout(this)),
-                                                            m_x_label(new QLabel("x: 0")),
-                                                            m_y_label(new QLabel("y: 0")),
-                                                            m_z_label(new QLabel("z: 0"))
-{
+GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent)
+    : QWidget{parent}, m_layout(new QVBoxLayout(this)),
+      m_x_label(new QLabel("x: 0")), m_y_label(new QLabel("y: 0")),
+      m_z_label(new QLabel("z: 0")) {
   auto values_layout = new QHBoxLayout();
   m_layout->addWidget(new QLabel(tr("Gyroscope")));
   m_layout->addLayout(values_layout);

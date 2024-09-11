@@ -1,10 +1,10 @@
 #ifndef GYROSCOPEINFOWIDGET_H
 #define GYROSCOPEINFOWIDGET_H
 
-#include <QWidget>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QVBoxLayout>
+#include <QWidget>
 
 class GyroscopeInfoWidget : public QWidget {
   Q_OBJECT

@@ -3,29 +3,31 @@
 const int MIN_PAGE_WIDTH = 150;
 const int MAX_PAGE_WIDTH = 250;
 
-FirmwareUploadPage::FirmwareUploadPage(QWidget *parent) :
-                                                          QWidget{parent},
-                                                          m_layout(new QVBoxLayout(this)),
-                                                          m_drone_type_box(new QComboBox()),
-                                                          m_firmware_upload_button(new QPushButton())
-{
+FirmwareUploadPage::FirmwareUploadPage(QWidget *parent)
+    : QWidget{parent}, m_layout(new QVBoxLayout(this)),
+      m_drone_type_box(new QComboBox()),
+      m_firmware_upload_button(new QPushButton()) {
   m_layout->setAlignment(Qt::AlignCenter);
   m_layout->addWidget(m_drone_type_box);
   m_layout->addWidget(m_firmware_upload_button);
 
-  m_drone_type_box->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
+  m_drone_type_box->setSizePolicy(
+      QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
   m_drone_type_box->setMinimumWidth(MIN_PAGE_WIDTH);
   m_drone_type_box->setMaximumWidth(MAX_PAGE_WIDTH);
   m_drone_type_box->setVisible(false);
 
   m_firmware_upload_button->setText(tr("Upload firmware"));
-  m_firmware_upload_button->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
+  m_firmware_upload_button->setSizePolicy(
+      QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
   m_firmware_upload_button->setMinimumWidth(MIN_PAGE_WIDTH);
   m_firmware_upload_button->setMaximumWidth(MAX_PAGE_WIDTH);
   m_firmware_upload_button->setVisible(false);
 
-  connect(m_drone_type_box, &QComboBox::currentIndexChanged, this, &FirmwareUploadPage::handleDroneTypeBoxChange);
-  connect(m_firmware_upload_button, &QPushButton::pressed, this, &FirmwareUploadPage::handleUploadButtonPress);
+  connect(m_drone_type_box, &QComboBox::currentIndexChanged, this,
+          &FirmwareUploadPage::handleDroneTypeBoxChange);
+  connect(m_firmware_upload_button, &QPushButton::pressed, this,
+          &FirmwareUploadPage::handleUploadButtonPress);
 
   m_drone_type_box->addItem(tr("Single wing"), "Singe wing");
   m_drone_type_box->addItem(tr("Quadrocopter"), "Quadrocopter");

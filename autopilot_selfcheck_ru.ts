@@ -95,12 +95,31 @@
         <source>Acceletometr</source>
         <translation>Акселерометр</translation>
     </message>
+    <message>
+        <source>Calibration</source>
+        <translation>Калибровка</translation>
+    </message>
 </context>
 <context>
     <name>GyroscopeInfoWidget</name>
     <message>
         <source>Gyroscope</source>
         <translation>Гироскоп</translation>
+    </message>
+</context>
+<context>
+    <name>McuInfoWidget</name>
+    <message>
+        <source>"Temperature: %1.%2 C"</source>
+        <translation>"Температура: %1.%2 C"</translation>
+    </message>
+    <message>
+        <source>"Voltage: %1 mV"</source>
+        <translation>"Напряжение: %1 mV"</translation>
+    </message>
+    <message>
+        <source>"Rail voltage: %1 mV"</source>
+        <translation>"Напряжение питания: %1 mV"</translation>
     </message>
 </context>
 </TS>

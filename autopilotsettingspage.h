@@ -1,14 +1,14 @@
 #ifndef AUTOPILOTSETTINGSPAGE_H
 #define AUTOPILOTSETTINGSPAGE_H
 
-#include <QWidget>
 #include <QVBoxLayout>
+#include <QWidget>
 
 #include "mavlink/ardupilotmega/mavlink.h"
 
-#include "magnetometerinfowidget.h"
 #include "accelerometerinfowidget.h"
 #include "gyroscopeinfowidget.h"
+#include "magnetometerinfowidget.h"
 #include "mcuinfowidget.h"
 
 class AutopilotSettingsPage : public QWidget {
@@ -17,11 +17,13 @@ public:
   explicit AutopilotSettingsPage(QWidget *parent = nullptr);
 
 signals:
+  void startCalibration();
 
 public slots:
   void handleIMUUpdate(mavlink_raw_imu_t raw_imu);
   void handlePowerStatusUpdate(mavlink_power_status_t power_status);
   void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
+  void handleStartCalibration();
 
 private:
   QVBoxLayout *m_layout = nullptr;

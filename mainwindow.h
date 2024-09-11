@@ -3,16 +3,16 @@
 
 #include <QComboBox>
 #include <QMainWindow>
+#include <QMessageBox>
+#include <QSerialPort>
 #include <QStackedWidget>
 #include <QtQuick/QQuickView>
-#include <QSerialPort>
-#include <QMessageBox>
 
 #include "mavlink/ardupilotmega/mavlink.h"
 
 #include "authenticationform.h"
-#include "firmwareuploadpage.h"
 #include "autopilotsettingspage.h"
+#include "firmwareuploadpage.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -59,6 +59,7 @@ private slots:
 
   void handleLogin(const QString &username, const QString &password);
   void handleFirmwareUpload();
+  void handleStartCalibration();
 
 private:
   void initActionsConnections();
@@ -70,6 +71,7 @@ private:
   void fillPortsInfo();
   void setPortSettings(int idx);
   void initPortsBoxEventsConnections();
+  void parseCommand(const mavlink_command_long_t &cmd);
 
   QToolBar *m_toolbar = nullptr;
   QComboBox *m_ports_box = nullptr;

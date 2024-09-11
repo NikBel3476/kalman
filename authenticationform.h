@@ -1,11 +1,11 @@
 #ifndef AUTHENTICATIONFORM_H
 #define AUTHENTICATIONFORM_H
 
-#include <QWidget>
-#include <QVBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QString>
+#include <QVBoxLayout>
+#include <QWidget>
 
 class AuthenticationForm : public QWidget {
   Q_OBJECT
