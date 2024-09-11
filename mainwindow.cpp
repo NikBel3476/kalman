@@ -148,7 +148,7 @@ void MainWindow::openSerialPort() {
 void MainWindow::closeSerialPort() {
   if (m_serial->isOpen())
     m_serial->close();
-  m_console->setEnabled(false);
+  // m_console->setEnabled(false);
   m_action_connect->setEnabled(true);
   m_action_disconnect->setEnabled(false);
   showStatusMessage(tr("Disconnected"));

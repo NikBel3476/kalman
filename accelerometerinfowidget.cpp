@@ -1,9 +1,9 @@
-#include "accelerometrinfowidget.h"
+#include "accelerometerinfowidget.h"
 
 static const int MIN_LABEL_WIDTH = 50;
 static const int MAX_LABEL_WIDTH = 100;
 
-AccelerometrInfoWidget::AccelerometrInfoWidget(QWidget *parent)
+AccelerometerInfoWidget::AccelerometerInfoWidget(QWidget *parent)
     : QWidget{parent},
       m_layout(new QVBoxLayout(this)),
 
@@ -20,7 +20,7 @@ AccelerometrInfoWidget::AccelerometrInfoWidget(QWidget *parent)
   values_layout->addWidget(m_z_label);
 }
 
-void AccelerometrInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z) {
+void AccelerometerInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z) {
   m_x_label->setText(QString("x: %1").arg(x));
   m_y_label->setText(QString("y: %1").arg(y));
   m_z_label->setText(QString("z: %1").arg(z));

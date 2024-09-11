@@ -4,10 +4,10 @@
 #include <QWidget>
 #include <QVBoxLayout>
 
-#include <mavlink/ardupilotmega/mavlink.h>
+#include "mavlink/ardupilotmega/mavlink.h"
 
-#include "magnetometrinfowidget.h"
-#include "accelerometrinfowidget.h"
+#include "magnetometerinfowidget.h"
+#include "accelerometerinfowidget.h"
 #include "gyroscopeinfowidget.h"
 #include "mcuinfowidget.h"
 
@@ -25,8 +25,8 @@ public slots:
 
 private:
   QVBoxLayout *m_layout = nullptr;
-  MagnetometrInfoWidget *m_magnetometr_info_widget = nullptr;
-  AccelerometrInfoWidget *m_accelerometr_info_widget = nullptr;
+  MagnetometerInfoWidget *m_magnetometr_info_widget = nullptr;
+  AccelerometerInfoWidget *m_accelerometr_info_widget = nullptr;
   GyroscopeInfoWidget *m_gyroscope_info_widget = nullptr;
   McuInfoWidget *m_mcu_info_widget = nullptr;
 };

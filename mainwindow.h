@@ -8,7 +8,7 @@
 #include <QSerialPort>
 #include <QMessageBox>
 
-#include <mavlink/ardupilotmega/mavlink.h>
+#include "mavlink/ardupilotmega/mavlink.h"
 
 #include "authenticationform.h"
 #include "firmwareuploadpage.h"

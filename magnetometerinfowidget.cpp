@@ -1,6 +1,6 @@
-#include "magnetometrinfowidget.h"
+#include "magnetometerinfowidget.h"
 
-MagnetometrInfoWidget::MagnetometrInfoWidget(QWidget *parent) :
+MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent) :
                                                     QWidget{parent},
                                                     m_layout(new QVBoxLayout(this)),
                                                     m_x_label(new QLabel("x: 0")),
@@ -16,7 +16,7 @@ MagnetometrInfoWidget::MagnetometrInfoWidget(QWidget *parent) :
   values_layout->addWidget(m_z_label);
 }
 
-void MagnetometrInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z) {
+void MagnetometerInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z) {
   m_x_label->setText(QString("x: %1").arg(x));
   m_y_label->setText(QString("y: %1").arg(y));
   m_z_label->setText(QString("z: %1").arg(z));

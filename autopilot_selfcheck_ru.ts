@@ -83,14 +83,14 @@
     </message>
 </context>
 <context>
-    <name>MagnetometrInfoWidget</name>
+    <name>MagnetometerInfoWidget</name>
     <message>
         <source>Magnetometr</source>
         <translation>Магнитометр</translation>
     </message>
 </context>
 <context>
-    <name>AccelerometrInfoWidget</name>
+    <name>AccelerometerInfoWidget</name>
     <message>
         <source>Acceletometr</source>
         <translation>Акселерометр</translation>

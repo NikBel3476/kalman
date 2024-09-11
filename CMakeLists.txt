@@ -17,7 +17,6 @@ find_package(Qt6 REQUIRED COMPONENTS
     SerialPort
     LinguistTools
 )
-find_package(MAVLink REQUIRED)
 
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES ru)
 
@@ -28,9 +27,9 @@ qt_add_executable(${PROJECT_NAME}
     AuthenticationForm.qml
     authenticationform.h authenticationform.cpp
     firmwareuploadpage.h firmwareuploadpage.cpp
-    magnetometrinfowidget.h magnetometrinfowidget.cpp
+    magnetometerinfowidget.h magnetometerinfowidget.cpp
     autopilotsettingspage.h autopilotsettingspage.cpp
-    accelerometrinfowidget.h accelerometrinfowidget.cpp
+    accelerometerinfowidget.h accelerometerinfowidget.cpp
     gyroscopeinfowidget.h gyroscopeinfowidget.cpp
     mcuinfowidget.h mcuinfowidget.cpp
 )
@@ -49,8 +48,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Widgets
     Qt6::Qml
     Qt6::Quick
-    MAVLink::mavlink
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/mavlink)
 
 # Resources:
 set(resource_files

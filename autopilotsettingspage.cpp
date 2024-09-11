@@ -6,8 +6,8 @@ static const int MAX_WIDGET_WIDTH = 300;
 AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
     : QWidget{parent},
       m_layout(new QVBoxLayout(this)),
-      m_magnetometr_info_widget(new MagnetometrInfoWidget()),
-      m_accelerometr_info_widget(new AccelerometrInfoWidget()),
+      m_magnetometr_info_widget(new MagnetometerInfoWidget()),
+      m_accelerometr_info_widget(new AccelerometerInfoWidget()),
       m_gyroscope_info_widget(new GyroscopeInfoWidget()),
       m_mcu_info_widget(new McuInfoWidget())
 {
