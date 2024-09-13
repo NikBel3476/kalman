@@ -20,10 +20,10 @@ static constexpr std::chrono::seconds kHeartbeatTimeout =
     std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
-static const uint8_t SYSTEM_ID = 10;
-static const uint8_t COMP_ID = 10;
+static const uint8_t SYSTEM_ID = 255;
+static const uint8_t COMP_ID = MAV_COMP_ID_MISSIONPLANNER;
 static const uint8_t TARGET_SYSTEM_ID = 1;
-static const uint8_t TARGET_COMP_ID = 1;
+static const uint8_t TARGET_COMP_ID = MAV_COMP_ID_AUTOPILOT1;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_toolbar(new QToolBar(this)),
@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
       // m_qml_container(QWidget::createWindowContainer(m_qml_view, this)),
       m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
       m_mavlink_message{}, m_mavlink_status{}, m_port_settings{},
-      m_heartbeat_timer(new QTimer(this)) {
+      m_heartbeat_timer(new QTimer(this)), _msg_cal_box(new QMessageBox(this)) {
   setWindowTitle("Autopilot selfcheck");
   setGeometry(QRect(0, 0, 800, 600));
 
@@ -89,17 +89,25 @@ MainWindow::MainWindow(QWidget *parent)
 
   m_console->setEnabled(false);
 
+  _msg_cal_box->setWindowTitle(tr("Calibration"));
+
+  _msg_cal_box_button = _msg_cal_box->addButton(QMessageBox::Ok);
+
   // status bar content
   m_statusbar->addWidget(m_status);
   m_statusbar->setVisible(false);
   m_status->setText(tr("Disconnected"));
 
+  m_timer->setSingleShot(true);
+
   initActionsConnections();
   initSerialPortEventsConnections();
   initPortsBoxEventsConnections();
 
+  connect(_msg_cal_box_button, &QPushButton::clicked, this,
+          &MainWindow::handleCalibrationDialogButton);
+
   connect(m_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
-  m_timer->setSingleShot(true);
 
   // authentiation form connections
   connect(m_authentication_form, &AuthenticationForm::login, this,
@@ -121,7 +129,9 @@ MainWindow::MainWindow(QWidget *parent)
   connect(this, &MainWindow::mcuStatusUpdated, m_autopilot_settings_page,
           &AutopilotSettingsPage::handleMcuStatusUpdate);
   connect(m_autopilot_settings_page, &AutopilotSettingsPage::startCalibration,
-          this, &MainWindow::handleStartCalibration);
+          this, &MainWindow::handleStartAccelCalibration);
+  connect(m_autopilot_settings_page, &AutopilotSettingsPage::cancelCalibration,
+          this, &MainWindow::handleCancelAccelCalibration);
 
   connect(m_heartbeat_timer, &QTimer::timeout, this,
           &MainWindow::handleHeartbeatTimeout);
@@ -163,6 +173,7 @@ void MainWindow::closeSerialPort() {
   showStatusMessage(tr("Disconnected"));
   m_central_widget->setCurrentWidget(m_firmware_upload_page);
   m_heartbeat_timer->stop();
+  reset();
   emit autopilotDisconnected();
 }
 
@@ -259,17 +270,22 @@ void MainWindow::readData() {
       case MAVLINK_MSG_ID_COMMAND_ACK: {
         mavlink_command_ack_t cmd_ack;
         mavlink_msg_command_ack_decode(&m_mavlink_message, &cmd_ack);
-        auto cmd_ack_str = std::format("COMMAND: {} RESULT: {}\n",
-                                       cmd_ack.command, cmd_ack.result);
+        auto cmd_ack_str =
+            std::format("COMMAND: {} RESULT: {} PROGRESS: {} RES_PRM2: {} "
+                        "TARGET_SYS: {} TARGET_CMP: {}\n",
+                        cmd_ack.command, cmd_ack.result, cmd_ack.progress,
+                        cmd_ack.result_param2, cmd_ack.target_system,
+                        cmd_ack.target_component);
         QByteArray data(cmd_ack_str.c_str(),
                         static_cast<uint32_t>(cmd_ack_str.length()));
         m_console->putData(data);
+        // _handleCommandAck(cmd_ack);
         qDebug() << cmd_ack_str << '\n';
       } break;
       case MAVLINK_MSG_ID_COMMAND_LONG: {
         // const auto cmd = std::make_unique<mavlink_command_long_t>();
-        // mavlink_msg_command_long_decode(&m_mavlink_message, cmd.get());
         mavlink_command_long_t cmd;
+        mavlink_msg_command_long_decode(&m_mavlink_message, &cmd);
         auto cmd_str =
             std::format("COMMAND: {} SYSTEM: {} COMPONENT: {} CONFIMATION: {} "
                         "param1: {} param2: {} param3: {} param4: {} param5: "
@@ -280,6 +296,7 @@ void MainWindow::readData() {
         QByteArray data(cmd_str.c_str(),
                         static_cast<uint32_t>(cmd_str.length()));
         m_console->putData(data);
+        qDebug() << cmd_str << '\n';
         parseCommand(cmd);
       } break;
       case MAVLINK_MSG_ID_PARAM_VALUE: {
@@ -304,6 +321,7 @@ void MainWindow::readData() {
         QByteArray data(statustext_str.c_str(),
                         static_cast<uint32_t>(statustext_str.length()));
         m_console->putData(data);
+        qDebug() << statustext_str << '\n';
       } break;
       default:
         break;
@@ -315,7 +333,9 @@ void MainWindow::readData() {
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
   if (error == QSerialPort::ResourceError) {
     QMessageBox::critical(this, tr("Critical Error"), m_serial->errorString());
-    closeSerialPort();
+    if (m_serial->errorString() != "Resource temporarily unavailable") {
+      closeSerialPort();
+    }
   }
 }
 
@@ -350,21 +370,178 @@ void MainWindow::handleHeartbeatTimeout() {
   closeSerialPort();
 }
 
-void MainWindow::handleStartCalibration() {
+void MainWindow::handleStartAccelCalibration() {
+  mavlink_message_t msg;
+  const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
+  const auto confirmation = 0;
+  const float param1 = 0;
+  const float param2 = 0;
+  const float param3 = 0;
+  const float param4 = 0;
+  const float param5 = 1; // accelerometer calibration
+  const float param6 = 0;
+  const float param7 = 0;
+
+  const auto msg_size = mavlink_msg_command_long_pack(
+      SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID, command,
+      confirmation, param1, param2, param3, param4, param5, param6, param7);
+
+  // auto buf_len = MAVLINK_MAX_PACKET_LEN;
+  uint8_t buf[msg_size];
+  const auto buf_size = mavlink_msg_to_send_buffer(buf, &msg);
+  QByteArray data((char *)buf, buf_size);
+  writeData(data);
+  _cal_state = CalibrationState::InProgress;
+  qDebug("Calibration started\n");
+}
+
+void MainWindow::handleCancelAccelCalibration() {
   mavlink_message_t msg;
   auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
 
   mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
-                                TARGET_COMP_ID, command, 0, 0, 0, 0, 0,
-                                1, // accelerometer calibration
-                                0, 0);
+                                TARGET_COMP_ID, command, 0, 0, 0, 0, 0, 0, 0,
+                                0);
 
   auto buf_len = MAVLINK_MAX_PACKET_LEN;
   uint8_t buf[buf_len];
   mavlink_msg_to_send_buffer(buf, &msg);
   QByteArray data((char *)buf, buf_len);
   writeData(data);
-  qDebug("Calibration msg transmitted\n");
+  qDebug("Calibration cancelled\n");
+  _cal_state = CalibrationState::None;
+}
+
+void MainWindow::handleCalibrationDialogButton() {
+  qDebug() << "CLICKED!!!" << "Calibration state: " << (int)_cal_state
+           << "Cal_acc_state: " << (int)_cal_accel_state << '\n';
+  if (_cal_state == CalibrationState::None) {
+    return;
+  }
+  float vehicle_position_param;
+  switch (_cal_accel_state) {
+  case CalibrationAccelState::Level: {
+    _cal_accel_state = CalibrationAccelState::LeftSide;
+    vehicle_position_param = ACCELCAL_VEHICLE_POS_LEVEL;
+    qDebug() << "LEVEL REQUEST\n";
+  } break;
+  case CalibrationAccelState::LeftSide: {
+    vehicle_position_param = ACCELCAL_VEHICLE_POS_LEFT;
+    qDebug() << "LEFT REQUEST\n";
+  } break;
+  case CalibrationAccelState::RightSide: {
+    vehicle_position_param = ACCELCAL_VEHICLE_POS_RIGHT;
+    qDebug() << "RIGHT REQUEST\n";
+  } break;
+  case CalibrationAccelState::NoseUp: {
+    vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEUP;
+    qDebug() << "NOSEUP REQUEST\n";
+  } break;
+  case CalibrationAccelState::NoseDown: {
+    vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEDOWN;
+    qDebug() << "NOSEDOWN REQUEST\n";
+  } break;
+  case CalibrationAccelState::Back: {
+    vehicle_position_param = ACCELCAL_VEHICLE_POS_BACK;
+    qDebug() << "BACK REQUEST\n";
+  } break;
+  case CalibrationAccelState::None:
+  default:
+    qDebug() << "END REQUEST\n";
+    _msg_cal_box->close();
+    return;
+  }
+  mavlink_message_t msg;
+  auto msg_len = mavlink_msg_command_long_pack(
+      SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
+      MAV_CMD_ACCELCAL_VEHICLE_POS, 0, vehicle_position_param, 0, 0, 0, 0, 0,
+      0);
+  // auto buf_len = MAVLINK_MAX_PACKET_LEN;
+  // mavlink_msg_command_ack_pack(SYSTEM_ID, COMP_ID, &msg, 0, 1, 0, 0,
+  // TARGET_SYSTEM_ID, TARGET_COMP_ID); const auto buf_len =
+  // MAVLINK_MAX_PACKET_LEN; const auto msg_len =
+  // mavlink_msg_command_ack_pack(SYSTEM_ID, COMP_ID, &msg, 0,
+  // MAV_RESULT_TEMPORARILY_REJECTED, 0, 0, 0, 0);
+  uint8_t buf[msg_len];
+  const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
+  QByteArray data((char *)buf, buf_len);
+  writeData(data);
+}
+
+void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
+  switch (cmd.command) {
+  case MAV_CMD_PREFLIGHT_CALIBRATION: {
+    switch (cmd.result) {
+    case MAV_RESULT_ACCEPTED: {
+      _cal_state = CalibrationState::InProgress;
+      _cal_accel_state = CalibrationAccelState::Level;
+      _msg_cal_box->setText(
+          tr("Place vehicle in level position and then press OK"));
+      _msg_cal_box->show();
+    } break;
+    default:
+      break;
+    }
+  } break;
+  case MAV_CMD_ACCELCAL_VEHICLE_POS: {
+    switch (cmd.result) {
+    case MAV_RESULT_ACCEPTED: {
+      switch (_cal_accel_state) {
+      case CalibrationAccelState::None: {
+        _cal_state = CalibrationState::InProgress;
+        _cal_accel_state = CalibrationAccelState::Level;
+        _msg_cal_box->setText(
+            tr("Place vehicle in level position and then press OK"));
+        _msg_cal_box->show();
+      }
+      case CalibrationAccelState::Level: {
+        _cal_accel_state = CalibrationAccelState::LeftSide;
+        _msg_cal_box->setText(
+            tr("Place vehicle on the left side and then press OK"));
+        _msg_cal_box->show();
+      } break;
+      case CalibrationAccelState::LeftSide: {
+        _cal_accel_state = CalibrationAccelState::RightSide;
+        _msg_cal_box->setText(
+            tr("Place vehicle on the right side and then press OK"));
+        _msg_cal_box->show();
+      } break;
+      case CalibrationAccelState::RightSide: {
+        _cal_accel_state = CalibrationAccelState::NoseUp;
+        _msg_cal_box->setText(
+            tr("Place vehicle in noseup position and then press OK"));
+        _msg_cal_box->show();
+      } break;
+      case CalibrationAccelState::NoseUp: {
+        _cal_accel_state = CalibrationAccelState::NoseDown;
+        _msg_cal_box->setText(
+            tr("Place vehicle in nosedown position and then press OK"));
+        _msg_cal_box->show();
+      } break;
+      case CalibrationAccelState::NoseDown: {
+        _cal_accel_state = CalibrationAccelState::Back;
+        _msg_cal_box->setText(
+            tr("Place vehicle on the back side and then press OK"));
+        _msg_cal_box->show();
+      } break;
+      case CalibrationAccelState::Back:
+      default:
+        break;
+      }
+    } break;
+    case MAV_RESULT_FAILED: {
+      _cal_state = CalibrationState::None;
+      _cal_accel_state = CalibrationAccelState::None;
+      _msg_cal_box->setText("Calibration failed");
+      _msg_cal_box->show();
+    } break;
+    default:
+      break;
+    }
+  } break;
+  default:
+    break;
+  }
 }
 
 void MainWindow::initActionsConnections() {
@@ -440,9 +617,76 @@ void MainWindow::fillPortsInfo() {
 void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {
   switch (cmd.command) {
   case MAV_CMD_ACCELCAL_VEHICLE_POS: {
-
+    if (_cal_state == CalibrationState::InProgress) {
+      switch (static_cast<ACCELCAL_VEHICLE_POS>(static_cast<int>(cmd.param1))) {
+      case ACCELCAL_VEHICLE_POS_LEVEL: {
+        _cal_accel_state = CalibrationAccelState::Level;
+        _msg_cal_box->setText(
+            tr("Place vehicle in level position and then press OK"));
+        // _msg_cal_box->show();
+        qDebug() << "LEVEL RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_LEFT: {
+        _cal_accel_state = CalibrationAccelState::LeftSide;
+        _msg_cal_box->setText(
+            tr("Place vehicle on the left side and then press OK"));
+        // _msg_cal_box->show();
+        qDebug() << "LEFT RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_RIGHT: {
+        _cal_accel_state = CalibrationAccelState::RightSide;
+        _msg_cal_box->setText(
+            tr("Place vehicle on the right side and then press OK"));
+        // _msg_cal_box->show();
+        qDebug() << "RIGHT RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_NOSEUP: {
+        _cal_accel_state = CalibrationAccelState::NoseUp;
+        _msg_cal_box->setText(
+            tr("Place vehicle in noseup position and then press OK"));
+        // _msg_cal_box->show();
+        qDebug() << "NOSEUP RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_NOSEDOWN: {
+        _cal_accel_state = CalibrationAccelState::NoseDown;
+        _msg_cal_box->setText(
+            tr("Place vehicle in nosedown position and then press OK"));
+        // _msg_cal_box->show();
+        qDebug() << "NOSEDOWN RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_BACK: {
+        _cal_accel_state = CalibrationAccelState::Back;
+        _msg_cal_box->setText(
+            tr("Place vehicle on the back side and then press OK"));
+        // _msg_cal_box->show();
+        qDebug() << "BACK RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_SUCCESS: {
+        _cal_state = CalibrationState::None;
+        _cal_accel_state = CalibrationAccelState::None;
+        _msg_cal_box->setText(tr("Calibration completed"));
+        reset();
+        qDebug() << "SUCCESS RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_FAILED: {
+        _cal_state = CalibrationState::None;
+        _cal_accel_state = CalibrationAccelState::None;
+        _msg_cal_box->setText(tr("Calibration failed"));
+        reset();
+        qDebug() << "FAIL RESPONSE\n";
+      } break;
+      case ACCELCAL_VEHICLE_POS_ENUM_END:
+        break;
+      }
+      _msg_cal_box->show();
+    }
   } break;
   default:
     break;
   }
+}
+
+void MainWindow::reset() {
+  _cal_state = CalibrationState::None;
+  _cal_accel_state = CalibrationAccelState::None;
 }

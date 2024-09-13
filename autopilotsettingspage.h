@@ -18,12 +18,14 @@ public:
 
 signals:
   void startCalibration();
+  void cancelCalibration();
 
 public slots:
   void handleIMUUpdate(mavlink_raw_imu_t raw_imu);
   void handlePowerStatusUpdate(mavlink_power_status_t power_status);
   void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
   void handleStartCalibration();
+  void handleCancelCalibration();
 
 private:
   QVBoxLayout *m_layout = nullptr;

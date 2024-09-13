@@ -23,6 +23,24 @@ QT_END_NAMESPACE
 
 class Console;
 
+enum class CalibrationState { None, InProgress };
+
+enum class CalibrationAccelState {
+  None,
+  Level,
+  LevelDone,
+  LeftSide,
+  LeftSideDone,
+  RightSide,
+  RightSideDone,
+  NoseUp,
+  NoseUpDone,
+  NoseDown,
+  NoseDownDone,
+  Back,
+  BackDone
+};
+
 class MainWindow : public QMainWindow {
   Q_OBJECT
 
@@ -56,10 +74,12 @@ private slots:
   void handleBytesWritten(qint64 bytes);
   void handleWriteTimeout();
   void handleHeartbeatTimeout();
+  void handleCalibrationDialogButton();
 
   void handleLogin(const QString &username, const QString &password);
   void handleFirmwareUpload();
-  void handleStartCalibration();
+  void handleStartAccelCalibration();
+  void handleCancelAccelCalibration();
 
 private:
   void initActionsConnections();
@@ -72,6 +92,8 @@ private:
   void setPortSettings(int idx);
   void initPortsBoxEventsConnections();
   void parseCommand(const mavlink_command_long_t &cmd);
+  void reset();
+  void _handleCommandAck(mavlink_command_ack_t &cmd);
 
   QToolBar *m_toolbar = nullptr;
   QComboBox *m_ports_box = nullptr;
@@ -94,6 +116,10 @@ private:
   mavlink_status_t m_mavlink_status;
   Settings m_port_settings;
   QTimer *m_heartbeat_timer = nullptr;
+  CalibrationState _cal_state = CalibrationState::None;
+  CalibrationAccelState _cal_accel_state = CalibrationAccelState::None;
+  QMessageBox *_msg_cal_box = nullptr;
+  QPushButton *_msg_cal_box_button = nullptr;
 };
 
 #endif // MAINWINDOW_H

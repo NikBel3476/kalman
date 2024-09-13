@@ -37,6 +37,9 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
   connect(m_accelerometr_info_widget,
           &AccelerometerInfoWidget::startCalibration, this,
           &AutopilotSettingsPage::handleStartCalibration);
+  connect(m_accelerometr_info_widget,
+          &AccelerometerInfoWidget::cancelCalibration, this,
+          &AutopilotSettingsPage::handleCancelCalibration);
 }
 
 void AutopilotSettingsPage::handleIMUUpdate(mavlink_raw_imu_t raw_imu) {
@@ -60,4 +63,8 @@ void AutopilotSettingsPage::handleMcuStatusUpdate(
 
 void AutopilotSettingsPage::handleStartCalibration() {
   emit startCalibration();
+}
+
+void AutopilotSettingsPage::handleCancelCalibration() {
+  emit cancelCalibration();
 }
