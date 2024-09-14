@@ -5,14 +5,10 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-
 find_package(Qt6 REQUIRED COMPONENTS
     Core
     Gui
     Widgets
-    Qml
     Quick
     SerialPort
     LinguistTools
@@ -33,6 +29,8 @@ qt_add_executable(${PROJECT_NAME}
     gyroscopeinfowidget.h gyroscopeinfowidget.cpp
     mcuinfowidget.h mcuinfowidget.cpp
 )
+
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 qt_add_translations(${PROJECT_NAME} TS_FILES autopilot_selfcheck_en.ts autopilot_selfcheck_ru.ts)
 
