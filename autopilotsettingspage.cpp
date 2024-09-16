@@ -1,7 +1,7 @@
 #include "autopilotsettingspage.h"
 
 static const int MIN_WIDGET_WIDTH = 150;
-static const int MAX_WIDGET_WIDTH = 400;
+static const int MAX_WIDGET_WIDTH = 450;
 
 AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
     : QWidget{parent}, m_layout(new QVBoxLayout(this)),

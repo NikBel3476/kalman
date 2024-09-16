@@ -26,7 +26,7 @@ AuthenticationForm::AuthenticationForm(QWidget *parent)
   m_password_input->setMinimumWidth(MIN_FORM_WIDTH);
   m_password_input->setMaximumWidth(MAX_FORM_WIDTH);
 
-  m_login_button->setText("Login");
+  m_login_button->setText(tr("Login"));
   m_login_button->setSizePolicy(
       QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
   m_login_button->setMinimumWidth(MIN_FORM_WIDTH);

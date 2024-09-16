@@ -85,7 +85,7 @@ SYSTEM_ID: 255
 COMPONENT_ID: 190  
 
 For messages GS -> AP  
-SYSTEM_ID: 1
+SYSTEM_ID: 1  
 COMPONENT_ID: 1
 
 param1 (position) value sequence:

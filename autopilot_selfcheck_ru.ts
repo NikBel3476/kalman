@@ -36,12 +36,12 @@
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <source>"Connected to %1"</source>
-        <translation>"Подключено к %1"</translation>
+        <source>Connected to %1</source>
+        <translation>Подключено к %1</translation>
     </message>
     <message>
-        <source>"Failed to write all data to port %1.\n Error: %2"</source>
-        <translation>"Не удалось записать все данные в порт %1.\n Ошибка: %2"</translation>
+        <source>Failed to write all data to port %1.\n Error: %2</source>
+        <translation>Не удалось записать все данные в порт %1.\n Ошибка: %2</translation>
     </message>
     <message>
         <source>Username</source>
@@ -92,7 +92,7 @@
 <context>
     <name>AccelerometerInfoWidget</name>
     <message>
-        <source>Acceletometr</source>
+        <source>Acceletometer</source>
         <translation>Акселерометр</translation>
     </message>
     <message>
@@ -110,16 +110,20 @@
 <context>
     <name>McuInfoWidget</name>
     <message>
-        <source>"Temperature: %1.%2 C"</source>
-        <translation>"Температура: %1.%2 C"</translation>
+        <source>MCU information</source>
+        <translation>Информация об МК</translation>
     </message>
     <message>
-        <source>"Voltage: %1 mV"</source>
-        <translation>"Напряжение: %1 mV"</translation>
+        <source>Temperature: %1.%2 C</source>
+        <translation>Температура: %1.%2 C</translation>
     </message>
     <message>
-        <source>"Rail voltage: %1 mV"</source>
-        <translation>"Напряжение питания: %1 mV"</translation>
+        <source>Voltage: %1 mV</source>
+        <translation>Напряжение: %1 мВ</translation>
+    </message>
+    <message>
+        <source>Rail voltage: %1 mV</source>
+        <translation>Напряжение питания: %1 mV</translation>
     </message>
 </context>
 </TS>

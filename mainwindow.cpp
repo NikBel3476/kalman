@@ -387,9 +387,9 @@ void MainWindow::handleStartAccelCalibration() {
       confirmation, param1, param2, param3, param4, param5, param6, param7);
 
   // auto buf_len = MAVLINK_MAX_PACKET_LEN;
-  uint8_t buf[msg_size];
+  uint8_t buf[44];
   const auto buf_size = mavlink_msg_to_send_buffer(buf, &msg);
-  QByteArray data((char *)buf, buf_size);
+  QByteArray data((char *)buf, static_cast<qsizetype>(buf_size));
   writeData(data);
   _cal_state = CalibrationState::InProgress;
   qDebug("Calibration started\n");
@@ -403,10 +403,10 @@ void MainWindow::handleCancelAccelCalibration() {
                                 TARGET_COMP_ID, command, 0, 0, 0, 0, 0, 0, 0,
                                 0);
 
-  auto buf_len = MAVLINK_MAX_PACKET_LEN;
+  const auto buf_len = MAVLINK_MAX_PACKET_LEN;
   uint8_t buf[buf_len];
   mavlink_msg_to_send_buffer(buf, &msg);
-  QByteArray data((char *)buf, buf_len);
+  QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
   writeData(data);
   qDebug("Calibration cancelled\n");
   _cal_state = CalibrationState::None;
@@ -462,9 +462,9 @@ void MainWindow::handleCalibrationDialogButton() {
   // MAVLINK_MAX_PACKET_LEN; const auto msg_len =
   // mavlink_msg_command_ack_pack(SYSTEM_ID, COMP_ID, &msg, 0,
   // MAV_RESULT_TEMPORARILY_REJECTED, 0, 0, 0, 0);
-  uint8_t buf[msg_len];
+  uint8_t buf[44];
   const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
-  QByteArray data((char *)buf, buf_len);
+  QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
   writeData(data);
 }
 
@@ -570,7 +570,7 @@ void MainWindow::setPortSettings(int index) {
   auto portSettingsMaybe = m_ports_box->itemData(index);
   if (portSettingsMaybe.canConvert<QStringList>()) {
     auto port_settings_list = portSettingsMaybe.value<QStringList>();
-    m_port_settings = Settings{.name = port_settings_list[0],
+    m_port_settings = Settings{.name = port_settings_list.at(0),
                                .baudRate = 57600,
                                .dataBits = QSerialPort::Data8,
                                .parity = QSerialPort::NoParity,
@@ -590,14 +590,14 @@ void MainWindow::showWriteError(const QString &message) {
 
 void MainWindow::fillPortsInfo() {
   m_ports_box->clear();
-  const QString blankString = tr(::blankString);
+  const auto blankString = tr(::blankString);
   const auto infos = QSerialPortInfo::availablePorts();
 
-  for (const QSerialPortInfo &info : infos) {
+  for (const auto &info : infos) {
     QStringList list;
-    const QString description = info.description();
-    const QString manufacturer = info.manufacturer();
-    const QString serialNumber = info.serialNumber();
+    const auto description = info.description();
+    const auto manufacturer = info.manufacturer();
+    const auto serialNumber = info.serialNumber();
     const auto vendorId = info.vendorIdentifier();
     const auto productId = info.productIdentifier();
     list << info.portName()
@@ -610,7 +610,6 @@ void MainWindow::fillPortsInfo() {
 
     m_ports_box->addItem(list.constFirst(), list);
   }
-
   m_ports_box->addItem(tr("Custom"));
 }
 
