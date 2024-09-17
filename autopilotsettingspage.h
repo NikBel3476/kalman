@@ -12,27 +12,35 @@
 #include "mcuinfowidget.h"
 
 class AutopilotSettingsPage : public QWidget {
-  Q_OBJECT
+	Q_OBJECT
 public:
-  explicit AutopilotSettingsPage(QWidget *parent = nullptr);
+	explicit AutopilotSettingsPage(QWidget *parent = nullptr);
 
 signals:
-  void startCalibration();
-  void cancelCalibration();
+	void startCalibration();
+	void startMagCalibration();
+	void cancelMagCalibration();
+	void magCalProgressUpdated(mavlink_mag_cal_progress_t mag_cal_progress);
+	void magCalReportUpdated(mavlink_mag_cal_report_t mag_cal_report);
 
 public slots:
-  void handleIMUUpdate(mavlink_raw_imu_t raw_imu);
-  void handlePowerStatusUpdate(mavlink_power_status_t power_status);
-  void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
-  void handleStartCalibration();
-  void handleCancelCalibration();
+	void handleIMUUpdate(mavlink_raw_imu_t raw_imu);
+	void handlePowerStatusUpdate(mavlink_power_status_t power_status);
+	void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
+	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t mag_cal_progress);
+	void handleMagCalReportUpdate(mavlink_mag_cal_report_t mag_cal_report);
+
+private slots:
+	void _handleStartMagCalibration();
+	void _handleStartCalibration();
+	void _handleCancelMagCalibration();
 
 private:
-  QVBoxLayout *m_layout = nullptr;
-  MagnetometerInfoWidget *m_magnetometr_info_widget = nullptr;
-  AccelerometerInfoWidget *m_accelerometr_info_widget = nullptr;
-  GyroscopeInfoWidget *m_gyroscope_info_widget = nullptr;
-  McuInfoWidget *m_mcu_info_widget = nullptr;
+	QVBoxLayout *_layout = nullptr;
+	MagnetometerInfoWidget *_magnetometer_info_widget = nullptr;
+	AccelerometerInfoWidget *_accelerometer_info_widget = nullptr;
+	GyroscopeInfoWidget *_gyroscope_info_widget = nullptr;
+	McuInfoWidget *_mcu_info_widget = nullptr;
 };
 
 #endif // AUTOPILOTSETTINGSPAGE_H

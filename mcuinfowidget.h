@@ -9,21 +9,21 @@
 #include "mavlink/ardupilotmega/mavlink.h"
 
 class McuInfoWidget : public QWidget {
-  Q_OBJECT
+	Q_OBJECT
 public:
-  explicit McuInfoWidget(QWidget *parent = nullptr);
+	explicit McuInfoWidget(QWidget *parent = nullptr);
 
 signals:
 
 public slots:
-  void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
-  void handlePowerStatusUpdate(uint16_t rail_voltage);
+	void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
+	void handlePowerStatusUpdate(uint16_t rail_voltage);
 
 private:
-  QVBoxLayout *m_layout = nullptr;
-  QLabel *m_temperature_label = nullptr;
-  QLabel *m_voltage_label = nullptr;
-  QLabel *m_rail_voltage_label = nullptr;
+	QVBoxLayout *m_layout = nullptr;
+	QLabel *m_temperature_label = nullptr;
+	QLabel *m_voltage_label = nullptr;
+	QLabel *m_rail_voltage_label = nullptr;
 };
 
 #endif // MCUINFOWIDGET_H

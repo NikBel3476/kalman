@@ -7,25 +7,25 @@
 #include <QWidget>
 
 class FirmwareUploadPage : public QWidget {
-  Q_OBJECT
+	Q_OBJECT
 public:
-  explicit FirmwareUploadPage(QWidget *parent = nullptr);
+	explicit FirmwareUploadPage(QWidget *parent = nullptr);
 
 signals:
-  void firmwareUploaded();
+	void firmwareUploaded();
 
 public slots:
-  void handleAutopilotConnection();
-  void handleAutopilotDisconnection();
-  void handleDroneTypeBoxChange(int index);
-  void handleUploadButtonPress();
+	void handleAutopilotConnection();
+	void handleAutopilotDisconnection();
+	void handleDroneTypeBoxChange(int index);
+	void handleUploadButtonPress();
 
 private:
-  QVBoxLayout *m_layout = nullptr;
-  QComboBox *m_drone_type_box = nullptr;
-  QPushButton *m_firmware_upload_button = nullptr;
+	QVBoxLayout *m_layout = nullptr;
+	QComboBox *m_drone_type_box = nullptr;
+	QPushButton *m_firmware_upload_button = nullptr;
 
-  QString m_drone_type;
+	QString m_drone_type;
 };
 
 #endif // FIRMWAREUPLOADPAGE_H
