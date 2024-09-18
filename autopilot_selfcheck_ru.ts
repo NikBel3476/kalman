@@ -107,13 +107,6 @@
     </message>
 </context>
 <context>
-    <name>MagnetometerInfoWidget</name>
-    <message>
-        <source>Magnetometr</source>
-        <translation>Магнитометр</translation>
-    </message>
-</context>
-<context>
     <name>AccelerometerInfoWidget</name>
     <message>
         <source>Acceletometer</source>
