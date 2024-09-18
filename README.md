@@ -8,8 +8,9 @@
 * cmake 3.18 or above
 * microsoft visual studio 2022 (for windows)
 
-### To launch the project
+### Project building
 
+#### Cmake
 1. clone the repository - `git clone --recursive <repository_url>`
 2. configure cmake - `cmake -B build`
 3. build - `cmake --build build`
@@ -18,6 +19,10 @@
 Note: on windows qt must be in the PATH variable or passed with `-DCMAKE_PREFIX_PATH=<path_to_qt>` on configuration step
 
 > Tested only on linux at this moment
+
+#### Docker (use for build with older glibc)
+1. Build docker image - `docker build -t autopilot_selfcheck/autopilotselfcheck:0.1 .`
+2. Start building inside container - WIP
 
 ### Code formatting command
 `clang-format -i -style=file *.cpp *.h`
@@ -31,7 +36,7 @@ GS - ground station, AP - autopilot
 
 ### Accelerometer calibration description
 Accelerometer calibration begins with calibration request from ground station
-1. Preflight calibration request | GS -> AP
+1. Preflight calibration request GS -> AP
 ```
    msg: COMMAND_LONG (76)  
    target_system: 1
@@ -48,14 +53,15 @@ Accelerometer calibration begins with calibration request from ground station
 ```
 
 2. After calibration start begins the seqence of messages that tells in what position to 
-put the vehicle in. After each such message, you need to send a reply message after 
+put the vehicle in.  
+After each such message, you need to send a reply message after 
 setting the autopilot to the required position. I hadn't found the certain message, it 
 seems to be works with different types of them, for example QGroundControl sends 
 following:  
-COMMAND_ACK (77)  
+```
+msg: COMMAND_ACK (77)  
 system_id: 255  
 component_id: MAV_COMP_ID_MISSIONPLANNER (190)
-```
 command: 0
 result: MAV_RESULT_TEMPORARILY_REJECTED
 progress: 0
@@ -97,5 +103,47 @@ param1 (position) value sequence:
 6. ACCELCAL_VEHICLE_POS_BACK (6)
 7. ACCELCAL_VEHICLE_POS_SUCCESS (16777215) - if calibration process completed  
    ACCELCAL_VEHICLE_POS_FAILED (16777216) - if something went wrong during calibration  
+
+After successful calibration the autopilot must be restarted
+
+### Magnetometer calibration description
+Magnetometer calibration begins with calibration request from ground station
+1. Magnetometer calibration request GS -> AP
+```
+msg: COMMAND_LONG (76)
+target_sytem: 1
+target_component: 1
+command: MAV_CMD_DO_START_MAG_CAL
+confirmation: 0
+param1 = 0; // Bitmask (all)
+param2 = 1; // Retry on failure
+param3 = 1; // Autosave
+param4 = 0; // Delay
+param5 = 0; // Autoreboot
+param6 = 0;
+param7 = 0;
+```
+
+2. After calibration start begins the sequence of messages that shows 
+the progress of calibration
+AP -> GS
+```
+msg: MAG_CAL_PROGRESS (191)
+compass_id: 0 (all)
+cal_status: MAG_CAL_STATUS
+completion_pct: <completion percentage>
+...
+```
+
+> MAG_CAL_STATUS = MAG_CAL_RUNNING_STEP_ONE or MAG_CAL_RUNNING_STEP_TWO
+
+3. If calibration completed succesfully then autopilot send following message  
+AP -> GS
+```
+msg: MAG_CAL_REPORT (192)
+compass_id: 0 (all)
+cal_status: MAG_CAL_SUCCESS
+...
+```
 
 After successful calibration the autopilot must be restarted

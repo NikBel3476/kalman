@@ -51,6 +51,30 @@
         <source>Password</source>
         <translation>Пароль</translation>
     </message>
+	<message>
+	    <source>Place vehicle in level position and then press OK</source>
+		<translation>Поставьте автопилот в уроверь с полом и нажмите ОК</translation>
+	</message>
+	<message>
+	    <source>Place vehicle on the left side and then press OK</source>
+		<translation>Поставьте автопилот левой стороной вниз и нажмите ОК</translation>
+	</message>
+	<message>
+	    <source>Place vehicle on the right side and then press OK</source>
+		<translation>Поставьте автопилот правой стороной вниз и нажмите ОК</translation>
+	</message>
+	<message>
+	    <source>Place vehicle in noseup position and then press OK</source>
+		<translation>Поставьте автопилот носом вверх и нажмите ОК</translation>
+	</message>
+	<message>
+	    <source>Place vehicle in nosedown position and then press OK</source>
+		<translation>Поставьте автопилот носом вниз и нажмите ОК</translation>
+	</message>
+	<message>
+	    <source>Place vehicle on the back side and then press OK</source>
+		<translation>Поставьте автопилот вниз головой и нажмите ОК</translation>
+	</message>
 </context>
 <context>
     <name>AuthenticationForm</name>
@@ -98,6 +122,37 @@
     <message>
         <source>Calibration</source>
         <translation>Калибровка</translation>
+    </message>
+</context>
+<context>
+    <name>MagnetometerInfoWidget</name>
+    <message>
+        <source>Magnetometr</source>
+        <translation>Магнитометр</translation>
+    </message>
+    <message>
+        <source>Calibration</source>
+        <translation>Калибровка</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Завершить</translation>
+    </message>
+    <message>
+        <source>Attempt: %1</source>
+        <translation>Попытка: %1</translation>
+    </message>
+    <message>
+        <source>Step: %1</source>
+        <translation>Шаг: %1</translation>
+    </message>
+    <message>
+        <source>Success</source>
+        <translation>Успешно</translation>
+    </message>
+    <message>
+        <source>Failed</source>
+        <translation>Неудачно</translation>
     </message>
 </context>
 <context>

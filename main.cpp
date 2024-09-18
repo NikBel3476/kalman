@@ -4,6 +4,7 @@
 #include <QTranslator>
 
 int main(int argc, char *argv[]) {
+	QCoreApplication::addLibraryPath("/lib");
 	QApplication a(argc, argv);
 
 	QTranslator translator;

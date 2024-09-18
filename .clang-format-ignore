@@ -5,3 +5,4 @@ images/*
 *.md
 *.ui
 *.user
+*.ts

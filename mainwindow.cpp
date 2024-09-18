@@ -530,19 +530,19 @@ void MainWindow::handleCalibrationDialogButton() {
 
 void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 	switch (cmd.command) {
-	case MAV_CMD_PREFLIGHT_CALIBRATION: {
-		switch (cmd.result) {
-		case MAV_RESULT_ACCEPTED: {
-			_cal_state = CalibrationState::InProgress;
-			_cal_accel_state = CalibrationAccelState::Level;
-			_msg_cal_box->setText(
-					tr("Place vehicle in level position and then press OK"));
-			_msg_cal_box->show();
-		} break;
-		default:
-			break;
-		}
-	} break;
+	// case MAV_CMD_PREFLIGHT_CALIBRATION: {
+		// switch (cmd.result) {
+		// case MAV_RESULT_ACCEPTED: {
+			// _cal_state = CalibrationState::InProgress;
+			// _cal_accel_state = CalibrationAccelState::Level;
+			// _msg_cal_box->setText(
+					// tr("Place vehicle in level position and then press OK"));
+			// _msg_cal_box->show();
+		// } break;
+		// default:
+			// break;
+		// }
+	// } break;
 	case MAV_CMD_ACCELCAL_VEHICLE_POS: {
 		switch (cmd.result) {
 		case MAV_RESULT_ACCEPTED: {

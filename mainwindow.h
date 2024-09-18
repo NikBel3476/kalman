@@ -7,6 +7,7 @@
 #include <QSerialPort>
 #include <QStackedWidget>
 #include <QtQuick/QQuickView>
+#include <format>
 
 #include "mavlink/ardupilotmega/mavlink.h"
 

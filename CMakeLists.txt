@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(autopilot_selfcheck LANGUAGES CXX)
+project(autopilot_selfcheck VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -30,7 +30,7 @@ qt_add_executable(${PROJECT_NAME}
     mcuinfowidget.h mcuinfowidget.cpp
 )
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 qt_add_translations(${PROJECT_NAME} TS_FILES autopilot_selfcheck_en.ts autopilot_selfcheck_ru.ts)
 
@@ -68,7 +68,14 @@ qt_add_resources(${PROJECT_NAME} "autopilot_selfcheck"
 )
 
 install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION "${INSTALL_EXAMPLEDIR}"
-    BUNDLE DESTINATION "${INSTALL_EXAMPLEDIR}"
-    LIBRARY DESTINATION "${INSTALL_EXAMPLEDIR}"
+    RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/install"
+    BUNDLE DESTINATION "${CMAKE_SOURCE_DIR}/install"
+    LIBRARY DESTINATION "${CMAKE_SOURCE_DIR}/install"
 )
+
+qt_generate_deploy_app_script(
+    TARGET ${PROJECT_NAME}
+    OUTPUT_SCRIPT deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${deploy_script})
