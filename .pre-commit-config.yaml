@@ -3,4 +3,5 @@ repos:
   rev: v18.1.8
   hooks:
   - id: clang-format
-    args: ['-i', '-style=file', '*.cpp', '*.h']
+    types_or: [c++, c]
+    args: ['-i', '-style=file']

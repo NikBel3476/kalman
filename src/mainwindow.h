@@ -42,15 +42,9 @@ enum class CalibrationAccelState {
 	BackDone
 };
 
-enum class CalibrationLevelState {
-	None,
-	InProgress
-};
+enum class CalibrationLevelState { None, InProgress };
 
-enum class CalibrationMagState {
-	None,
-	InProgress
-};
+enum class CalibrationMagState { None, InProgress };
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT

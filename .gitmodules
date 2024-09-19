@@ -1,4 +1,4 @@
 [submodule "mavlink"]
-	path = mavlink
+	path = src/mavlink
 	url = https://github.com/mavlink/c_library_v2.git
     branch = master

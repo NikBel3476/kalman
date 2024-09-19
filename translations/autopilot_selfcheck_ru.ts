@@ -120,10 +120,14 @@
 		<source>Calibration</source>
 		<translation>Калибровка</translation>
 	</message>
-		<message>
-			<source>Level calibration</source>
-			<translation>Калибровка уровня</translation>
-		</message>
+	<message>
+	    <source>Level calibration</source>
+		<translation>Калибровка уровня</translation>
+	</message>
+	<message>
+	    <source>Success</source>
+		<translation>Успешно</translation>
+	</message>
 </context>
 <context>
 	<name>MagnetometerInfoWidget</name>

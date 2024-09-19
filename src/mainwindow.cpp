@@ -131,15 +131,19 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_autopilot_settings_page, &AutopilotSettingsPage::startCalibration,
 					this, &MainWindow::_handleStartAccelCalibration);
 	connect(this, &MainWindow::accelerometerCalibrationCompleted,
-					_autopilot_settings_page, &AutopilotSettingsPage::handleCompleteAccelerometerCalibration);
-	connect(_autopilot_settings_page, &AutopilotSettingsPage::startLevelCalibration,
-					this, &MainWindow::_handleStartLevelCalibration);
+					_autopilot_settings_page,
+					&AutopilotSettingsPage::handleCompleteAccelerometerCalibration);
+	connect(_autopilot_settings_page,
+					&AutopilotSettingsPage::startLevelCalibration, this,
+					&MainWindow::_handleStartLevelCalibration);
 	connect(this, &MainWindow::levelCalibrationCompleted,
-					_autopilot_settings_page, &AutopilotSettingsPage::handleCompleteLevelCalibration);
+					_autopilot_settings_page,
+					&AutopilotSettingsPage::handleCompleteLevelCalibration);
 	connect(_autopilot_settings_page, &AutopilotSettingsPage::startMagCalibration,
 					this, &MainWindow::_handleStartMagCalibration);
-	connect(_autopilot_settings_page, &AutopilotSettingsPage::cancelMagCalibration,
-					this, &MainWindow::_handleCancelMagCalibration);
+	connect(_autopilot_settings_page,
+					&AutopilotSettingsPage::cancelMagCalibration, this,
+					&MainWindow::_handleCancelMagCalibration);
 	connect(this, &MainWindow::magCalProgressUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleMagCalProgressUpdate);
 	connect(this, &MainWindow::magCalReportUpdated, _autopilot_settings_page,
@@ -444,9 +448,9 @@ void MainWindow::_handleStartLevelCalibration() {
 	const float param5 = 2; // level calibration
 	const float param6 = 0;
 	const float param7 = 0;
-	const auto msg_len = mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
-																TARGET_COMP_ID, command, confirmation, param1,
-																param2, param3, param4, param5, param6, param7);
+	const auto msg_len = mavlink_msg_command_long_pack(
+			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID, command,
+			confirmation, param1, param2, param3, param4, param5, param6, param7);
 
 	qDebug() << "Msg len: " << msg_len << '\n';
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];

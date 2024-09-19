@@ -34,15 +34,16 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 	_mcu_info_widget->setMinimumWidth(MIN_WIDGET_WIDTH);
 	_mcu_info_widget->setMaximumWidth(MAX_WIDGET_WIDTH);
 
-	connect(_accelerometer_info_widget,
-					&AccelerometerInfoWidget::startAccelCal, this,
-					&AutopilotSettingsPage::_handleStartCalibration);
+	connect(_accelerometer_info_widget, &AccelerometerInfoWidget::startAccelCal,
+					this, &AutopilotSettingsPage::_handleStartCalibration);
 	connect(this, &AutopilotSettingsPage::accelerometerCalibrationCompleted,
-					_accelerometer_info_widget, &AccelerometerInfoWidget::handleAccelCalComplete);
+					_accelerometer_info_widget,
+					&AccelerometerInfoWidget::handleAccelCalComplete);
 	connect(_accelerometer_info_widget, &AccelerometerInfoWidget::startLevelCal,
 					this, &AutopilotSettingsPage::_handleStartLevelCalibration);
 	connect(this, &AutopilotSettingsPage::levelCalibrationCompleted,
-					_accelerometer_info_widget, &AccelerometerInfoWidget::handleLvlCalComplete);
+					_accelerometer_info_widget,
+					&AccelerometerInfoWidget::handleLvlCalComplete);
 
 	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::startCalibration,
 					this, &AutopilotSettingsPage::_handleStartMagCalibration);
