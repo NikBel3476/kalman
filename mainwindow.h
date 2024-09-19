@@ -42,7 +42,15 @@ enum class CalibrationAccelState {
 	BackDone
 };
 
-enum class CalibrationMagState { None, InProgress };
+enum class CalibrationLevelState {
+	None,
+	InProgress
+};
+
+enum class CalibrationMagState {
+	None,
+	InProgress
+};
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -66,6 +74,8 @@ signals:
 	void IMUUpdated(mavlink_raw_imu_t raw_imu);
 	void powerStatusUpdated(mavlink_power_status_t power_status);
 	void mcuStatusUpdated(mavlink_mcu_status_t mcu_status);
+	void accelerometerCalibrationCompleted();
+	void levelCalibrationCompleted();
 	void magCalProgressUpdated(mavlink_mag_cal_progress_t mag_cal_progress);
 	void magCalReportUpdated(mavlink_mag_cal_report_t mag_cal_report);
 
@@ -84,6 +94,7 @@ private slots:
 	void handleLogin(const QString &username, const QString &password);
 	void handleFirmwareUpload();
 	void _handleStartAccelCalibration();
+	void _handleStartLevelCalibration();
 	void _handleStartMagCalibration();
 	void _handleCancelMagCalibration();
 
@@ -123,6 +134,7 @@ private:
 	Settings m_port_settings;
 	QTimer *m_heartbeat_timer = nullptr;
 	CalibrationState _cal_state = CalibrationState::None;
+	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;
 	CalibrationAccelState _cal_accel_state = CalibrationAccelState::None;
 	CalibrationMagState _cal_mag_state = CalibrationMagState::None;
 	QMessageBox *_msg_cal_box = nullptr;

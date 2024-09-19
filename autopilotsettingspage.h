@@ -18,6 +18,9 @@ public:
 
 signals:
 	void startCalibration();
+	void accelerometerCalibrationCompleted();
+	void startLevelCalibration();
+	void levelCalibrationCompleted();
 	void startMagCalibration();
 	void cancelMagCalibration();
 	void magCalProgressUpdated(mavlink_mag_cal_progress_t mag_cal_progress);
@@ -27,12 +30,15 @@ public slots:
 	void handleIMUUpdate(mavlink_raw_imu_t raw_imu);
 	void handlePowerStatusUpdate(mavlink_power_status_t power_status);
 	void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
+	void handleCompleteAccelerometerCalibration();
+	void handleCompleteLevelCalibration();
 	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t mag_cal_progress);
 	void handleMagCalReportUpdate(mavlink_mag_cal_report_t mag_cal_report);
 
 private slots:
-	void _handleStartMagCalibration();
 	void _handleStartCalibration();
+	void _handleStartLevelCalibration();
+	void _handleStartMagCalibration();
 	void _handleCancelMagCalibration();
 
 private:

@@ -15,20 +15,26 @@ public:
 	explicit AccelerometerInfoWidget(QWidget *parent = nullptr);
 
 signals:
-	void startCalibration();
+	void startAccelCal();
+	void startLevelCal();
 
 public slots:
 	void handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z);
+	void handleAccelCalComplete();
+	void handleLvlCalComplete();
 
 private slots:
-	void handleCalibrationButtonPress();
+	void _handleAccelCalBtnPress();
+	void _handleLvlCalBtnPress();
 
 private:
-	QVBoxLayout *m_layout = nullptr;
-	QLabel *m_x_label = nullptr;
-	QLabel *m_y_label = nullptr;
-	QLabel *m_z_label = nullptr;
-	QPushButton *m_calibration_button = nullptr;
+	QVBoxLayout *_layout = nullptr;
+	QLabel *_x_label = nullptr;
+	QLabel *_y_label = nullptr;
+	QLabel *_z_label = nullptr;
+	QPushButton *_accel_cal_btn = nullptr;
+	QPushButton *_lvl_cal_btn = nullptr;
+	QLabel *_cal_result_label = nullptr;
 };
 
 #endif // ACCELEROMETERINFOWIDGET_H
