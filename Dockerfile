@@ -1,16 +1,11 @@
 FROM ubuntu:18.04
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get -y install \
     build-essential \
-    libssl-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    libncursesw5-dev \
-    xz-utils \
-    tk-dev \
-    libffi-dev \
+    python3 \
+    python3-pip \
     git \
     wget \
     curl \
@@ -41,12 +36,12 @@ RUN mv cmake-3.30.3-linux-x86_64/* /usr/local/cmake
 ENV PATH="/usr/local/cmake/bin:$PATH"
 RUN cmake --version
 
-WORKDIR /usr/local/pyenv
-RUN git clone --branch v2.4.13 https://github.com/pyenv/pyenv.git .
-ENV PYENV_ROOT="/usr/local/pyenv"
-ENV PATH="$PYENV_ROOT/bin:$PATH"
-RUN eval "$(pyenv init -)"
-RUN pyenv install 3.12.5
+# WORKDIR /usr/local/pyenv
+# RUN git clone --branch v2.4.13 https://github.com/pyenv/pyenv.git .
+# ENV PYENV_ROOT="/usr/local/pyenv"
+# ENV PATH="$PYENV_ROOT/bin:$PATH"
+# RUN eval "$(pyenv init -)"
+# RUN pyenv install 3.12.5
 
 WORKDIR /usr/local/clang_build
 RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-linux-gnu-ubuntu-18.04.tar.xz -O clang_18.1.8.tar.xz
@@ -59,12 +54,16 @@ RUN clang++ --version
 
 WORKDIR /usr/local/qt6.8_build
 RUN git clone --branch 6.8 git://code.qt.io/qt/qt5.git .
-RUN pyenv local 3.12.5
-RUN python -m venv venv
-RUN source venv/bin/activate
+# RUN pyenv local 3.12.5
+# RUN python -m venv venv
+# RUN source venv/bin/activate
 RUN ./init-repository
 ENV CC="clang"
 ENV CXX="clang++"
+RUN apt-get -y install freeglut3-dev
+RUN apt-get -y install zlib1g-dev
+RUN apt-get -y install libtinfo5
+RUN apt-get -y install terminator
 RUN ./configure -release -prefix /usr/local/qt6.8 -submodules qtbase,qtserialport,qttranslations
 RUN cmake --build . --parallel
 RUN cmake --install .
