@@ -1,8 +1,10 @@
 build/
 .vs/
 .cache/
+venv/
 cmake/
 
 *.user*
 CMakePresets.json
 CMakeUserPresets.json
+.python-version
