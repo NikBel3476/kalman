@@ -10,6 +10,7 @@
 #include "gyroscopeinfowidget.h"
 #include "magnetometerinfowidget.h"
 #include "mcuinfowidget.h"
+#include "sensor.h"
 
 class AutopilotSettingsPage : public QWidget {
 	Q_OBJECT
@@ -17,7 +18,10 @@ public:
 	explicit AutopilotSettingsPage(QWidget *parent = nullptr);
 
 signals:
-	void startCalibration();
+	void gyroStatusUpdated(SensorStatus);
+	void accelStatusUpdated(SensorStatus);
+	void magStatusUpdated(SensorStatus);
+	void startAccelCalibration();
 	void accelerometerCalibrationCompleted();
 	void startLevelCalibration();
 	void levelCalibrationCompleted();
@@ -25,21 +29,28 @@ signals:
 	void cancelMagCalibration();
 	void magCalProgressUpdated(mavlink_mag_cal_progress_t mag_cal_progress);
 	void magCalReportUpdated(mavlink_mag_cal_report_t mag_cal_report);
+	void startGyroCalibration();
+	void gyroCalibrationCompleted();
 
 public slots:
 	void handleIMUUpdate(mavlink_raw_imu_t raw_imu);
 	void handlePowerStatusUpdate(mavlink_power_status_t power_status);
 	void handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status);
+	void handleGyroStatusUpdate(SensorStatus status);
+	void handleAccelStatusUpdate(SensorStatus status);
+	void handleMagStatusUpdate(SensorStatus status);
 	void handleCompleteAccelerometerCalibration();
 	void handleCompleteLevelCalibration();
 	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t mag_cal_progress);
 	void handleMagCalReportUpdate(mavlink_mag_cal_report_t mag_cal_report);
+	void handleGyroCalibrationComplete();
 
 private slots:
-	void _handleStartCalibration();
+	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
 	void _handleStartMagCalibration();
 	void _handleCancelMagCalibration();
+	void _handleStartGyroCalibration();
 
 private:
 	QVBoxLayout *_layout = nullptr;

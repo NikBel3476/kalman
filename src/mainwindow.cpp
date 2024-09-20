@@ -128,17 +128,27 @@ MainWindow::MainWindow(QWidget *parent)
 					&AutopilotSettingsPage::handlePowerStatusUpdate);
 	connect(this, &MainWindow::mcuStatusUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleMcuStatusUpdate);
-	connect(_autopilot_settings_page, &AutopilotSettingsPage::startCalibration,
-					this, &MainWindow::_handleStartAccelCalibration);
+	connect(this, &MainWindow::gyroStatusUpdated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleGyroStatusUpdate);
+	connect(this, &MainWindow::accelStatusUpdated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleAccelStatusUpdate);
+	connect(this, &MainWindow::magStatusUpdated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleMagStatusUpdate);
+
+	connect(_autopilot_settings_page,
+					&AutopilotSettingsPage::startAccelCalibration, this,
+					&MainWindow::_handleStartAccelCalibration);
 	connect(this, &MainWindow::accelerometerCalibrationCompleted,
 					_autopilot_settings_page,
 					&AutopilotSettingsPage::handleCompleteAccelerometerCalibration);
+
 	connect(_autopilot_settings_page,
 					&AutopilotSettingsPage::startLevelCalibration, this,
 					&MainWindow::_handleStartLevelCalibration);
 	connect(this, &MainWindow::levelCalibrationCompleted,
 					_autopilot_settings_page,
 					&AutopilotSettingsPage::handleCompleteLevelCalibration);
+
 	connect(_autopilot_settings_page, &AutopilotSettingsPage::startMagCalibration,
 					this, &MainWindow::_handleStartMagCalibration);
 	connect(_autopilot_settings_page,
@@ -148,6 +158,12 @@ MainWindow::MainWindow(QWidget *parent)
 					&AutopilotSettingsPage::handleMagCalProgressUpdate);
 	connect(this, &MainWindow::magCalReportUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleMagCalReportUpdate);
+
+	connect(_autopilot_settings_page,
+					&AutopilotSettingsPage::startGyroCalibration, this,
+					&MainWindow::_handleStartGyroCalibration);
+	connect(this, &MainWindow::gyroCalibrationCompleted, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleGyroCalibrationComplete);
 
 	connect(m_heartbeat_timer, &QTimer::timeout, this,
 					&MainWindow::handleHeartbeatTimeout);
@@ -230,15 +246,16 @@ void MainWindow::readData() {
 				mavlink_sys_status_t sys_status;
 				mavlink_msg_sys_status_decode(&m_mavlink_message, &sys_status);
 				const auto status_str = std::format(
-						"sensors present: {} sensors enabled: {} load: {} errors_comm: "
+						"sensors present: {:b} sensors enabled: {:b} load: {} errors_comm: "
 						"{}\n",
-						std::to_string(sys_status.onboard_control_sensors_present),
-						std::to_string(sys_status.onboard_control_sensors_enabled),
+						static_cast<uint32_t>(sys_status.onboard_control_sensors_present),
+						static_cast<uint32_t>(sys_status.onboard_control_sensors_enabled),
 						std::to_string(sys_status.voltage_battery),
 						std::to_string(sys_status.errors_comm));
 				QByteArray data(status_str.c_str(),
 												static_cast<uint32_t>(status_str.length()));
 				m_console->putData(data);
+				_updateSensorsStatus(sys_status);
 			} break;
 			case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: {
 				mavlink_global_position_int_t global_position;
@@ -507,6 +524,30 @@ void MainWindow::_handleCancelMagCalibration() {
 	qDebug() << "Cancel mag calibration" << '\n';
 }
 
+void MainWindow::_handleStartGyroCalibration() {
+	mavlink_message_t msg;
+	const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
+	const uint8_t confirmation = 0;
+	const float param1 = 1; // gyroscope calibration
+	const float param2 = 0;
+	const float param3 = 0;
+	const float param4 = 0;
+	const float param5 = 0;
+	const float param6 = 0;
+	const float param7 = 0;
+	mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
+																TARGET_COMP_ID, command, confirmation, param1,
+																param2, param3, param4, param5, param6, param7);
+
+	uint8_t buf[44];
+	const auto buf_size = mavlink_msg_to_send_buffer(buf, &msg);
+	QByteArray data((char *)buf, static_cast<qsizetype>(buf_size));
+	writeData(data);
+	_cal_state = CalibrationState::InProgress;
+	_cal_gyro_state = CalibrationState::InProgress;
+	qDebug("Gyro calibration started\n");
+}
+
 void MainWindow::handleCalibrationDialogButton() {
 	if (_cal_state == CalibrationState::None) {
 		return;
@@ -569,6 +610,10 @@ void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 			if (_cal_lvl_state == CalibrationLevelState::InProgress) {
 				_cal_lvl_state = CalibrationLevelState::None;
 				emit levelCalibrationCompleted();
+			}
+			if (_cal_gyro_state == CalibrationState::InProgress) {
+				_cal_gyro_state = CalibrationState::None;
+				emit gyroCalibrationCompleted();
 			}
 		} break;
 		default:
@@ -725,4 +770,66 @@ void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {
 void MainWindow::reset() {
 	_cal_state = CalibrationState::None;
 	_cal_accel_state = CalibrationAccelState::None;
+}
+
+void MainWindow::_updateSensorsStatus(mavlink_sys_status_t sys_status) {
+	auto current_gyro_status = SensorStatus::NotFound;
+	if (sys_status.onboard_control_sensors_present &
+			MAV_SYS_STATUS_SENSOR_3D_GYRO) {
+		if (sys_status.onboard_control_sensors_enabled &
+				MAV_SYS_STATUS_SENSOR_3D_GYRO) {
+			if (sys_status.onboard_control_sensors_health &
+					MAV_SYS_STATUS_SENSOR_3D_GYRO) {
+				current_gyro_status = SensorStatus::Enabled;
+			} else {
+				current_gyro_status = SensorStatus::Error;
+			}
+		} else {
+			current_gyro_status = SensorStatus::Disabled;
+		}
+	}
+	if (current_gyro_status != _gyro_status) {
+		_gyro_status = current_gyro_status;
+		emit gyroStatusUpdated(_gyro_status);
+	}
+
+	auto current_accel_status = SensorStatus::NotFound;
+	if (sys_status.onboard_control_sensors_present &
+			MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
+		if (sys_status.onboard_control_sensors_enabled &
+				MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
+			if (sys_status.onboard_control_sensors_health &
+					MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
+				current_accel_status = SensorStatus::Enabled;
+			} else {
+				current_accel_status = SensorStatus::Error;
+			}
+		} else {
+			current_accel_status = SensorStatus::Disabled;
+		}
+	}
+	if (current_accel_status != _accel_status) {
+		_accel_status = current_accel_status;
+		emit accelStatusUpdated(_accel_status);
+	}
+
+	auto current_mag_status = SensorStatus::NotFound;
+	if (sys_status.onboard_control_sensors_present &
+			MAV_SYS_STATUS_SENSOR_3D_MAG) {
+		if (sys_status.onboard_control_sensors_enabled &
+				MAV_SYS_STATUS_SENSOR_3D_MAG) {
+			if (sys_status.onboard_control_sensors_health &
+					MAV_SYS_STATUS_SENSOR_3D_MAG) {
+				current_mag_status = SensorStatus::Enabled;
+			} else {
+				current_mag_status = SensorStatus::Error;
+			}
+		} else {
+			current_mag_status = SensorStatus::Disabled;
+		}
+	}
+	if (current_mag_status != _mag_status) {
+		_mag_status = current_accel_status;
+		emit magStatusUpdated(_mag_status);
+	}
 }

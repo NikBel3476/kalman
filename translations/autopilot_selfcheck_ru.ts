@@ -128,6 +128,22 @@
 	    <source>Success</source>
 		<translation>Успешно</translation>
 	</message>
+	<message>
+	    <source>Status: not found</source>
+		<translation>Статус: не найден</translation>
+	</message>
+	<message>
+	    <source>Status: disabled</source>
+		<translation>Статус: выключен</translation>
+	</message>
+	<message>
+	    <source>Status: enabled</source>
+		<translation>Статус: включён</translation>
+	</message>
+	<message>
+	    <source>Status: error</source>
+		<translation>Статус: ошибка</translation>
+	</message>
 </context>
 <context>
 	<name>MagnetometerInfoWidget</name>
@@ -165,6 +181,30 @@
 	<message>
 		<source>Gyroscope</source>
 		<translation>Гироскоп</translation>
+	</message>
+    <message>
+		<source>Calibration</source>
+		<translation>Калибровка</translation>
+	</message>
+	<message>
+	    <source>Success</source>
+		<translation>Успешно</translation>
+	</message>
+	<message>
+	    <source>Status: not found</source>
+		<translation>Статус: не найден</translation>
+	</message>
+	<message>
+	    <source>Status: disabled</source>
+		<translation>Статус: выключен</translation>
+	</message>
+	<message>
+	    <source>Status: enabled</source>
+		<translation>Статус: включён</translation>
+	</message>
+	<message>
+	    <source>Status: error</source>
+		<translation>Статус: ошибка</translation>
 	</message>
 </context>
 <context>

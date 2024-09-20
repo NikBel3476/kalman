@@ -68,3 +68,4 @@ RUN ./configure -release -prefix /usr/local/qt6.8 -submodules qtbase,qtserialpor
 RUN cmake --build . --parallel
 RUN cmake --install .
 ENV PATH="/usr/local/qt6.8/bin:$PATH"
+

@@ -2,6 +2,7 @@
 
 MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent)
 		: QWidget{parent}, _layout(new QVBoxLayout(this)),
+			_title_label(new QLabel()), _status_label(new QLabel()),
 			_x_label(new QLabel("x: 0")), _y_label(new QLabel("y: 0")),
 			_z_label(new QLabel("z: 0")),
 			_start_calibration_button(new QPushButton()),
@@ -9,11 +10,19 @@ MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent)
 			_cal_progress_container(new QWidget()), _cal_attempt_label(new QLabel()),
 			_cal_step_label(new QLabel()), _mag_cal_progress_bar(new QProgressBar()),
 			_cal_result_label(new QLabel()) {
+	auto title_layout = new QHBoxLayout();
 	auto values_layout = new QHBoxLayout();
-	_layout->addWidget(new QLabel(tr("Magnetometr")));
+	_layout->addLayout(title_layout);
 	_layout->addLayout(values_layout);
 	_layout->addWidget(_cal_progress_container);
 	_layout->addWidget(_cal_result_label);
+
+	// Title section
+	title_layout->addWidget(_title_label);
+	title_layout->addWidget(_status_label);
+
+	_title_label->setText(tr("Magnetometer"));
+	_status_label->setText(tr("Stats: not found"));
 
 	// Values section
 	values_layout->addWidget(_x_label);
@@ -57,6 +66,23 @@ void MagnetometerInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y,
 	_x_label->setText(QString("x: %1").arg(x));
 	_y_label->setText(QString("y: %1").arg(y));
 	_z_label->setText(QString("z: %1").arg(z));
+}
+
+void MagnetometerInfoWidget::handleMagStatusUpdate(SensorStatus status) {
+	switch (status) {
+	case SensorStatus::NotFound: {
+		_status_label->setText(tr("Status: Not found"));
+	} break;
+	case SensorStatus::Disabled: {
+		_status_label->setText(tr("Status: disabled"));
+	} break;
+	case SensorStatus::Enabled: {
+		_status_label->setText(tr("Status: enabled"));
+	} break;
+	case SensorStatus::Error: {
+		_status_label->setText(tr("Status: error"));
+	} break;
+	}
 }
 
 void MagnetometerInfoWidget::handleMagCalProgressUpdate(

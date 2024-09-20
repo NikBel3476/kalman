@@ -34,8 +34,11 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 	_mcu_info_widget->setMinimumWidth(MIN_WIDGET_WIDTH);
 	_mcu_info_widget->setMaximumWidth(MAX_WIDGET_WIDTH);
 
+	connect(this, &AutopilotSettingsPage::accelStatusUpdated,
+					_accelerometer_info_widget,
+					&AccelerometerInfoWidget::handleAccelStatusUpdate);
 	connect(_accelerometer_info_widget, &AccelerometerInfoWidget::startAccelCal,
-					this, &AutopilotSettingsPage::_handleStartCalibration);
+					this, &AutopilotSettingsPage::_handleStartAccelCalibration);
 	connect(this, &AutopilotSettingsPage::accelerometerCalibrationCompleted,
 					_accelerometer_info_widget,
 					&AccelerometerInfoWidget::handleAccelCalComplete);
@@ -45,6 +48,9 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 					_accelerometer_info_widget,
 					&AccelerometerInfoWidget::handleLvlCalComplete);
 
+	connect(this, &AutopilotSettingsPage::magStatusUpdated,
+					_magnetometer_info_widget,
+					&MagnetometerInfoWidget::handleMagStatusUpdate);
 	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::startCalibration,
 					this, &AutopilotSettingsPage::_handleStartMagCalibration);
 	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::cancelCalibration,
@@ -55,6 +61,14 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 	connect(this, &AutopilotSettingsPage::magCalReportUpdated,
 					_magnetometer_info_widget,
 					&MagnetometerInfoWidget::handleMagCalReportUpdate);
+
+	connect(this, &AutopilotSettingsPage::gyroStatusUpdated,
+					_gyroscope_info_widget, &GyroscopeInfoWidget::handleGyroStatusUpdate);
+	connect(_gyroscope_info_widget, &GyroscopeInfoWidget::startCalibration, this,
+					&AutopilotSettingsPage::_handleStartGyroCalibration);
+	connect(this, &AutopilotSettingsPage::gyroCalibrationCompleted,
+					_gyroscope_info_widget,
+					&GyroscopeInfoWidget::handleGyroCalibrationComplete);
 }
 
 void AutopilotSettingsPage::handleIMUUpdate(mavlink_raw_imu_t raw_imu) {
@@ -76,6 +90,18 @@ void AutopilotSettingsPage::handleMcuStatusUpdate(
 	_mcu_info_widget->handleMcuStatusUpdate(mcu_status);
 }
 
+void AutopilotSettingsPage::handleGyroStatusUpdate(SensorStatus status) {
+	emit gyroStatusUpdated(status);
+}
+
+void AutopilotSettingsPage::handleAccelStatusUpdate(SensorStatus status) {
+	emit accelStatusUpdated(status);
+}
+
+void AutopilotSettingsPage::handleMagStatusUpdate(SensorStatus status) {
+	emit magStatusUpdated(status);
+}
+
 void AutopilotSettingsPage::handleCompleteAccelerometerCalibration() {
 	emit accelerometerCalibrationCompleted();
 }
@@ -90,8 +116,12 @@ void AutopilotSettingsPage::handleMagCalReportUpdate(
 	emit magCalReportUpdated(mag_cal_report);
 }
 
-void AutopilotSettingsPage::_handleStartCalibration() {
-	emit startCalibration();
+void AutopilotSettingsPage::handleGyroCalibrationComplete() {
+	emit gyroCalibrationCompleted();
+}
+
+void AutopilotSettingsPage::_handleStartAccelCalibration() {
+	emit startAccelCalibration();
 }
 
 void AutopilotSettingsPage::_handleStartLevelCalibration() {
@@ -108,4 +138,8 @@ void AutopilotSettingsPage::_handleStartMagCalibration() {
 
 void AutopilotSettingsPage::_handleCancelMagCalibration() {
 	emit cancelMagCalibration();
+}
+
+void AutopilotSettingsPage::_handleStartGyroCalibration() {
+	emit startGyroCalibration();
 }

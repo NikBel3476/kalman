@@ -1,4 +1,68 @@
 FROM ubuntu:18.04
 
-# RUN apt-get update && apt-get -y install build-essential
-RUN ldd --version
+RUN apt-get update && apt-get -y install \
+    build-essential \
+    software-properties-common \
+    python3 \
+    python3-pip \
+    git \
+    wget \
+    curl \
+    ninja-build \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libx11-dev \
+    libx11-xcb-dev \
+    libxext-dev \
+    libxfixes-dev \
+    libxi-dev \
+    libxrender-dev \
+    libxcb1-dev \
+    libxcb-cursor-dev \
+    libxcb-glx0-dev \
+    libxcb-keysyms1-dev \
+    libxcb-image0-dev \
+    libxcb-shm0-dev \
+    libxcb-icccm4-dev \
+    libxcb-sync-dev \
+    libxcb-xfixes0-dev \
+    libxcb-shape0-dev \
+    libxcb-randr0-dev \
+    libxcb-render-util0-dev \
+    libxcb-util-dev \
+    libxcb-xinerama0-dev \
+    libxcb-xkb-dev \
+    libxkbcommon-dev \
+    libxkbcommon-x11-dev 
+
+# RUN apt-get -y install freeglut3-dev
+# RUN apt-get -y install zlib1g-dev
+# RUN apt-get -y install libtinfo5
+# RUN apt-get -y install terminator
+
+RUN apt-get dist-upgrade -y && \
+    add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+    apt-get update -y &&\
+    apt-get install gcc-13 g++-13 -y
+
+RUN apt-get clean all && \
+    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
+    | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+RUN apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" && \
+    apt-get update && \
+    apt-get -y install kitware-archive-keyring && \
+    rm /etc/apt/trusted.gpg.d/kitware.gpg && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6AF7F09730B3F0A4 && \
+    apt-get update && \
+    apt-get -y install cmake
+
+WORKDIR /usr/local/qt6.8_build
+RUN git clone --branch 6.8 git://code.qt.io/qt/qt5.git .
+ENV CC="gcc-13"
+ENV CXX="g++-13"
+RUN apt-get -y install freeglut3-dev
+RUN ./configure -release -prefix /usr/local/qt6.8 -init-submodules -submodules qtbase,qtserialport,qttranslations,qtdeclarative
+# RUN ./configure -release -prefix /usr/local/qt6.8 -submodules qtbase,qtserialport,qttranslations,qtdeclarative
+RUN cmake --build . --parallel
+RUN cmake --install .
+ENV PATH="/usr/local/qt6.8/bin:$PATH"

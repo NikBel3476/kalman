@@ -8,6 +8,7 @@
 #include <QWidget>
 
 #include "mavlink/ardupilotmega/mavlink.h"
+#include "sensor.h"
 
 class AccelerometerInfoWidget : public QWidget {
 	Q_OBJECT
@@ -19,7 +20,8 @@ signals:
 	void startLevelCal();
 
 public slots:
-	void handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z);
+	void handleIMUUpdate(uint16_t, uint16_t, uint16_t);
+	void handleAccelStatusUpdate(SensorStatus);
 	void handleAccelCalComplete();
 	void handleLvlCalComplete();
 
@@ -29,6 +31,8 @@ private slots:
 
 private:
 	QVBoxLayout *_layout = nullptr;
+	QLabel *_title_label = nullptr;
+	QLabel *_status_label = nullptr;
 	QLabel *_x_label = nullptr;
 	QLabel *_y_label = nullptr;
 	QLabel *_z_label = nullptr;

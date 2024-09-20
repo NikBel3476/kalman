@@ -9,6 +9,7 @@
 #include <QWidget>
 
 #include "mavlink/ardupilotmega/mavlink.h"
+#include "sensor.h"
 
 class MagnetometerInfoWidget : public QWidget {
 	Q_OBJECT
@@ -20,9 +21,10 @@ signals:
 	void cancelCalibration();
 
 public slots:
-	void handleIMUUpdate(uint16_t x, uint16_t y, uint16_t z);
-	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t mag_cal_progress);
-	void handleMagCalReportUpdate(mavlink_mag_cal_report_t mag_cal_report);
+	void handleIMUUpdate(uint16_t, uint16_t, uint16_t);
+	void handleMagStatusUpdate(SensorStatus);
+	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t);
+	void handleMagCalReportUpdate(mavlink_mag_cal_report_t);
 
 private slots:
 	void _handleCalCancelButtonPress();
@@ -30,6 +32,8 @@ private slots:
 
 private:
 	QVBoxLayout *_layout = nullptr;
+	QLabel *_title_label = nullptr;
+	QLabel *_status_label = nullptr;
 	QLabel *_x_label = nullptr;
 	QLabel *_y_label = nullptr;
 	QLabel *_z_label = nullptr;
