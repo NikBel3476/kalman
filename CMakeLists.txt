@@ -18,13 +18,14 @@ find_package(Qt6 REQUIRED COMPONENTS
 	Quick
 	SerialPort
 	LinguistTools
+    SvgWidgets
 )
 
 qt_standard_project_setup(
 	I18N_TRANSLATED_LANGUAGES en ru
 )
 
-file(GLOB_RECURSE source_files
+file(GLOB source_files
 	${PROJECT_SOURCE_DIR}/src/*.cpp
 	${PROJECT_SOURCE_DIR}/src/*.h
 	${PROJECT_SOURCE_DIR}/qml/*.qml
@@ -32,17 +33,6 @@ file(GLOB_RECURSE source_files
 
 qt_add_executable(${PROJECT_NAME}
 	${source_files}
-	# main.cpp
-	# mainwindow.cpp mainwindow.h
-	# console.cpp console.h
-	# AuthenticationForm.qml
-	# authenticationform.h authenticationform.cpp
-	# firmwareuploadpage.h firmwareuploadpage.cpp
-	# magnetometerinfowidget.h magnetometerinfowidget.cpp
-	# autopilotsettingspage.h autopilotsettingspage.cpp
-	# accelerometerinfowidget.h accelerometerinfowidget.cpp
-	# gyroscopeinfowidget.h gyroscopeinfowidget.cpp
-	# mcuinfowidget.h mcuinfowidget.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
@@ -56,6 +46,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	MACOSX_BUNDLE TRUE
 )
 
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Core
 	Qt6::Gui
@@ -64,11 +55,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Qml
 	Qt6::Quick
 	Qt6::Platform
+    Qt6::SvgWidgets
+    qflightinstruments
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/mavlink
+	${PROJECT_SOURCE_DIR}/src/mavlink
 )
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/qflightinstruments)
 
 # Resources:
 set(resource_files
