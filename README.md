@@ -147,3 +147,33 @@ cal_status: MAG_CAL_SUCCESS
 ```
 
 After successful calibration the autopilot must be restarted
+
+### Gyroscope calibration description
+Gyroscope calibration begins with calibration request from ground station
+1. Preflight calibration request GS -> AP
+```
+   msg: COMMAND_LONG (76)  
+   target_system: 1
+   target_component: 1	
+   command: MAV_CMD_PREFLIGHT_CALIBRATION (241)
+   confirmation: 0
+   param1: 1
+   param2: 0
+   param3: 0
+   param4: 0
+   param5: 0
+   param6: 0
+   param7: 0
+```
+2. Wait for COMMAND_ACK message with calibration result
+```
+msg: COMMAND_ACK (77)
+system_id: 1 
+component_id: 1
+command: MAV_CMD_PREFLIGHT_CALIBRATION (241)
+result: MAV_RESULT_ACCEPTED
+progress: 0
+result_param: 0
+target_system: 255
+target_component: 190
+```
