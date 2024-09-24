@@ -1,9 +1,10 @@
 #include "avionicswidget.h"
 
-static constexpr auto kRedrawTimeout = std::chrono::milliseconds{100};
+static constexpr auto kRedrawTimeout = std::chrono::milliseconds{100}; // 10 FPS
 
 AvionicsWidget::AvionicsWidget(QWidget *parent)
-		: QWidget{parent}, _layout(new QGridLayout(this)), _eadi(new qfi_EADI()) {
+		: QWidget{parent}, _layout(new QGridLayout(this)), _eadi(new qfi_EADI()),
+			_eadi_redraw_timer(new QTimer()) {
 	_layout->addWidget(_eadi);
 
 	_eadi->setMaximumSize(300, 300);
@@ -12,6 +13,10 @@ AvionicsWidget::AvionicsWidget(QWidget *parent)
 	_eadi->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	_eadi->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	_eadi->setInteractive(false);
+
+	connect(_eadi_redraw_timer, &QTimer::timeout, this, &AvionicsWidget::update);
+
+	_eadi_redraw_timer->start(kRedrawTimeout);
 }
 
 void AvionicsWidget::update() { _eadi->redraw(); }
@@ -24,11 +29,13 @@ void AvionicsWidget::handleAttitudeUpdate(mavlink_attitude_t attitude) {
 	_eadi->setFD(roll_in_deg, pitch_in_deg);
 	_eadi->setRoll(roll_in_deg);
 	_eadi->setPitch(pitch_in_deg);
-	update();
 }
 
 void AvionicsWidget::handleGlobalPositionIntUpdate(
 		mavlink_global_position_int_t global_position) {
 	_eadi->setHeading(global_position.hdg / 100.0);
-	update();
+}
+
+void AvionicsWidget::handleVfrHudUpdate(mavlink_vfr_hud_t vfr_hud) {
+	_eadi->setAirspeed(vfr_hud.airspeed);
 }

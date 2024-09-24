@@ -78,6 +78,8 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 					&AvionicsWidget::handleAttitudeUpdate);
 	connect(this, &AutopilotSettingsPage::globalPositionIntUpdated,
 					_avionics_widget, &AvionicsWidget::handleGlobalPositionIntUpdate);
+	connect(this, &AutopilotSettingsPage::vfrHudUpdated, _avionics_widget,
+					&AvionicsWidget::handleVfrHudUpdate);
 }
 
 void AutopilotSettingsPage::handleIMUUpdate(mavlink_raw_imu_t raw_imu) {
@@ -110,6 +112,10 @@ void AutopilotSettingsPage::handleAttitudeUpdate(mavlink_attitude_t attitude) {
 void AutopilotSettingsPage::handleGlobalPositionIntUpdate(
 		mavlink_global_position_int_t global_position) {
 	emit globalPositionIntUpdated(global_position);
+}
+
+void AutopilotSettingsPage::handleVfrHudUpdate(mavlink_vfr_hud_t vfr_hud) {
+	emit vfrHudUpdated(vfr_hud);
 }
 
 void AutopilotSettingsPage::handleGyroStatusUpdate(SensorStatus status) {

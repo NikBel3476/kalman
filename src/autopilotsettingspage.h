@@ -22,6 +22,7 @@ signals:
 	void imu2Updated(mavlink_scaled_imu2_t);
 	void attitudeUpdated(mavlink_attitude_t);
 	void globalPositionIntUpdated(mavlink_global_position_int_t);
+	void vfrHudUpdated(mavlink_vfr_hud_t);
 	void gyroStatusUpdated(SensorStatus);
 	void accelStatusUpdated(SensorStatus);
 	void magStatusUpdated(SensorStatus);
@@ -41,6 +42,7 @@ public slots:
 	void handleImu2Update(mavlink_scaled_imu2_t);
 	void handleAttitudeUpdate(mavlink_attitude_t);
 	void handleGlobalPositionIntUpdate(mavlink_global_position_int_t);
+	void handleVfrHudUpdate(mavlink_vfr_hud_t);
 	void handlePowerStatusUpdate(mavlink_power_status_t);
 	void handleMcuStatusUpdate(mavlink_mcu_status_t);
 	void handleGyroStatusUpdate(SensorStatus);

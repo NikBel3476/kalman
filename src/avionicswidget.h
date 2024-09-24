@@ -20,11 +20,13 @@ public slots:
 	void handleImu2Update(mavlink_scaled_imu2_t);
 	void handleAttitudeUpdate(mavlink_attitude_t);
 	void handleGlobalPositionIntUpdate(mavlink_global_position_int_t);
+	void handleVfrHudUpdate(mavlink_vfr_hud_t);
 	void update();
 
 private:
 	QGridLayout *_layout = nullptr;
 	qfi_EADI *_eadi = nullptr;
+	QTimer *_eadi_redraw_timer = nullptr;
 };
 
 #endif // AVIONICSWIDGET_H

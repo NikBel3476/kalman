@@ -134,6 +134,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&AutopilotSettingsPage::handleAttitudeUpdate);
 	connect(this, &MainWindow::globalPositionIntUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleGlobalPositionIntUpdate);
+	connect(this, &MainWindow::vfrHudUpdated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleVfrHudUpdate);
 
 	connect(this, &MainWindow::gyroStatusUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleGyroStatusUpdate);
@@ -453,6 +455,19 @@ void MainWindow::readData() {
 												static_cast<uint32_t>(attitude_str.length()));
 				m_console->putData(data);
 				emit attitudeUpdated(attitude);
+			} break;
+			case MAVLINK_MSG_ID_VFR_HUD: {
+				mavlink_vfr_hud_t vfr_hud;
+				mavlink_msg_vfr_hud_decode(&m_mavlink_message, &vfr_hud);
+				auto vfr_hud_str =
+						std::format("VFR_HUD airspeed: {} groundspeed: {} heading: {} "
+												"throttle: {} alt: {} climb: {}",
+												vfr_hud.airspeed, vfr_hud.groundspeed, vfr_hud.heading,
+												vfr_hud.throttle, vfr_hud.alt, vfr_hud.climb);
+				QByteArray data(vfr_hud_str.c_str(),
+												static_cast<uint32_t>(vfr_hud_str.length()));
+				m_console->putData(data);
+				emit vfrHudUpdated(vfr_hud);
 			} break;
 			default:
 				break;

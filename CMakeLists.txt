@@ -7,8 +7,6 @@ set(CMAKE_AUTORCC ON)
 
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
-else()
-	set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS
