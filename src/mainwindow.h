@@ -67,16 +67,19 @@ public:
 signals:
 	void autopilotConnected();
 	void autopilotDisconnected();
-	void IMUUpdated(mavlink_raw_imu_t raw_imu);
-	void powerStatusUpdated(mavlink_power_status_t power_status);
-	void mcuStatusUpdated(mavlink_mcu_status_t mcu_status);
+	void IMUUpdated(mavlink_raw_imu_t);
+	void imu2Updated(mavlink_scaled_imu2_t);
+	void attitudeUpdated(mavlink_attitude_t);
+	void globalPositionIntUpdated(mavlink_global_position_int_t);
+	void powerStatusUpdated(mavlink_power_status_t);
+	void mcuStatusUpdated(mavlink_mcu_status_t);
 	void accelerometerCalibrationCompleted();
 	void levelCalibrationCompleted();
-	void magCalProgressUpdated(mavlink_mag_cal_progress_t mag_cal_progress);
-	void magCalReportUpdated(mavlink_mag_cal_report_t mag_cal_report);
-	void gyroStatusUpdated(SensorStatus status);
-	void accelStatusUpdated(SensorStatus status);
-	void magStatusUpdated(SensorStatus status);
+	void magCalProgressUpdated(mavlink_mag_cal_progress_t);
+	void magCalReportUpdated(mavlink_mag_cal_report_t);
+	void gyroStatusUpdated(SensorStatus);
+	void accelStatusUpdated(SensorStatus);
+	void magStatusUpdated(SensorStatus);
 	void gyroCalibrationCompleted();
 
 private slots:

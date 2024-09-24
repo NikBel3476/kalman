@@ -128,6 +128,13 @@ MainWindow::MainWindow(QWidget *parent)
 					&AutopilotSettingsPage::handlePowerStatusUpdate);
 	connect(this, &MainWindow::mcuStatusUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleMcuStatusUpdate);
+	connect(this, &MainWindow::imu2Updated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleImu2Update);
+	connect(this, &MainWindow::attitudeUpdated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleAttitudeUpdate);
+	connect(this, &MainWindow::globalPositionIntUpdated, _autopilot_settings_page,
+					&AutopilotSettingsPage::handleGlobalPositionIntUpdate);
+
 	connect(this, &MainWindow::gyroStatusUpdated, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleGyroStatusUpdate);
 	connect(this, &MainWindow::accelStatusUpdated, _autopilot_settings_page,
@@ -261,12 +268,15 @@ void MainWindow::readData() {
 				mavlink_global_position_int_t global_position;
 				mavlink_msg_global_position_int_decode(&m_mavlink_message,
 																							 &global_position);
-				const auto coords_str =
-						std::format("lon: {} lat: {} alt: {}\n", global_position.lon,
-												global_position.lat, global_position.alt);
+				const auto coords_str = std::format(
+						"lon: {} lat: {} alt: {} vx: {} vy: {} vz: {} hdg: {}\n",
+						global_position.lon, global_position.lat, global_position.alt,
+						global_position.vx, global_position.vy, global_position.vz,
+						global_position.hdg);
 				QByteArray data(coords_str.c_str(),
 												static_cast<uint32_t>(coords_str.length()));
 				m_console->putData(data);
+				emit globalPositionIntUpdated(global_position);
 			} break;
 			case MAVLINK_MSG_ID_POWER_STATUS: {
 				mavlink_power_status_t power_status;
@@ -298,6 +308,13 @@ void MainWindow::readData() {
 			case MAVLINK_MSG_ID_MCU_STATUS: {
 				mavlink_mcu_status_t mcu_status;
 				mavlink_msg_mcu_status_decode(&m_mavlink_message, &mcu_status);
+				auto mcu_status_str =
+						std::format("MCU_STATUS temp: {} voltage: {} v_min: {} v_max: {}\n",
+												mcu_status.MCU_temperature, mcu_status.MCU_voltage,
+												mcu_status.MCU_voltage_min, mcu_status.MCU_voltage_max);
+				QByteArray data(mcu_status_str.c_str(),
+												static_cast<uint32_t>(mcu_status_str.length()));
+				m_console->putData(data);
 				emit mcuStatusUpdated(mcu_status);
 			} break;
 			case MAVLINK_MSG_ID_COMMAND_ACK: {
@@ -361,7 +378,7 @@ void MainWindow::readData() {
 				mavlink_msg_mag_cal_progress_decode(&m_mavlink_message,
 																						&mag_cal_progress);
 				auto mag_cal_progress_str = std::format(
-						"MAG_CAL_PROGRESS ATTEMPT: {} PCT: {} STATUS: {}",
+						"MAG_CAL_PROGRESS ATTEMPT: {} PCT: {} STATUS: {}\n",
 						mag_cal_progress.attempt, mag_cal_progress.completion_pct,
 						mag_cal_progress.cal_status);
 				QByteArray data(mag_cal_progress_str.c_str(),
@@ -383,6 +400,59 @@ void MainWindow::readData() {
 					_cal_mag_state = CalibrationMagState::None;
 				}
 				qDebug() << mag_cal_report_str << '\n';
+			} break;
+			case MAVLINK_MSG_ID_SCALED_IMU: {
+				mavlink_scaled_imu_t scaled_imu;
+				mavlink_msg_scaled_imu_decode(&m_mavlink_message, &scaled_imu);
+				auto scaled_imu_str =
+						std::format("SCALED_IMU xacc: {} yacc: {} zacc: {} xgyro: {} "
+												"ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {}\n",
+												scaled_imu.xacc, scaled_imu.yacc, scaled_imu.zacc,
+												scaled_imu.xgyro, scaled_imu.ygyro, scaled_imu.zgyro,
+												scaled_imu.xmag, scaled_imu.ymag, scaled_imu.zmag);
+				QByteArray data(scaled_imu_str.c_str(),
+												static_cast<uint32_t>(scaled_imu_str.length()));
+				m_console->putData(data);
+			} break;
+			case MAVLINK_MSG_ID_SCALED_IMU2: {
+				mavlink_scaled_imu2_t scaled_imu;
+				mavlink_msg_scaled_imu2_decode(&m_mavlink_message, &scaled_imu);
+				auto scaled_imu_str =
+						std::format("SCALED_IMU2 xacc: {} yacc: {} zacc: {} xgyro: {} "
+												"ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {}\n",
+												scaled_imu.xacc, scaled_imu.yacc, scaled_imu.zacc,
+												scaled_imu.xgyro, scaled_imu.ygyro, scaled_imu.zgyro,
+												scaled_imu.xmag, scaled_imu.ymag, scaled_imu.zmag);
+				QByteArray data(scaled_imu_str.c_str(),
+												static_cast<uint32_t>(scaled_imu_str.length()));
+				emit imu2Updated(scaled_imu);
+				m_console->putData(data);
+			} break;
+			case MAVLINK_MSG_ID_SCALED_IMU3: {
+				mavlink_scaled_imu3_t scaled_imu;
+				mavlink_msg_scaled_imu3_decode(&m_mavlink_message, &scaled_imu);
+				auto scaled_imu_str =
+						std::format("SCALED_IMU3 xacc: {} yacc: {} zacc: {} xgyro: {} "
+												"ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {}\n",
+												scaled_imu.xacc, scaled_imu.yacc, scaled_imu.zacc,
+												scaled_imu.xgyro, scaled_imu.ygyro, scaled_imu.zgyro,
+												scaled_imu.xmag, scaled_imu.ymag, scaled_imu.zmag);
+				QByteArray data(scaled_imu_str.c_str(),
+												static_cast<uint32_t>(scaled_imu_str.length()));
+				m_console->putData(data);
+			} break;
+			case MAVLINK_MSG_ID_ATTITUDE: {
+				mavlink_attitude_t attitude;
+				mavlink_msg_attitude_decode(&m_mavlink_message, &attitude);
+				auto attitude_str = std::format(
+						"ATTITUDE roll: {} pitch: {} yaw: {} rollspeed: {} pitchspeed: {} "
+						"yawspeed: {}\n",
+						attitude.roll, attitude.pitch, attitude.yaw, attitude.rollspeed,
+						attitude.pitchspeed, attitude.yawspeed);
+				QByteArray data(attitude_str.c_str(),
+												static_cast<uint32_t>(attitude_str.length()));
+				m_console->putData(data);
+				emit attitudeUpdated(attitude);
 			} break;
 			default:
 				break;

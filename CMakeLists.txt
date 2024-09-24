@@ -18,7 +18,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 	Quick
 	SerialPort
 	LinguistTools
-    SvgWidgets
+	SvgWidgets
 )
 
 qt_standard_project_setup(
@@ -55,8 +55,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Qml
 	Qt6::Quick
 	Qt6::Platform
-    Qt6::SvgWidgets
-    qflightinstruments
+	Qt6::SvgWidgets
+	qflightinstruments
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

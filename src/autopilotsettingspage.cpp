@@ -8,11 +8,13 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 			_magnetometer_info_widget(new MagnetometerInfoWidget()),
 			_accelerometer_info_widget(new AccelerometerInfoWidget()),
 			_gyroscope_info_widget(new GyroscopeInfoWidget()),
-			_mcu_info_widget(new McuInfoWidget()) {
+			_mcu_info_widget(new McuInfoWidget()),
+			_avionics_widget(new AvionicsWidget()) {
 	_layout->addWidget(_magnetometer_info_widget);
 	_layout->addWidget(_accelerometer_info_widget);
 	_layout->addWidget(_gyroscope_info_widget);
 	_layout->addWidget(_mcu_info_widget);
+	_layout->addWidget(_avionics_widget);
 
 	_magnetometer_info_widget->setSizePolicy(
 			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
@@ -69,6 +71,13 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 	connect(this, &AutopilotSettingsPage::gyroCalibrationCompleted,
 					_gyroscope_info_widget,
 					&GyroscopeInfoWidget::handleGyroCalibrationComplete);
+
+	connect(this, &AutopilotSettingsPage::imu2Updated, _avionics_widget,
+					&AvionicsWidget::handleImu2Update);
+	connect(this, &AutopilotSettingsPage::attitudeUpdated, _avionics_widget,
+					&AvionicsWidget::handleAttitudeUpdate);
+	connect(this, &AutopilotSettingsPage::globalPositionIntUpdated,
+					_avionics_widget, &AvionicsWidget::handleGlobalPositionIntUpdate);
 }
 
 void AutopilotSettingsPage::handleIMUUpdate(mavlink_raw_imu_t raw_imu) {
@@ -80,6 +89,10 @@ void AutopilotSettingsPage::handleIMUUpdate(mavlink_raw_imu_t raw_imu) {
 																					raw_imu.zgyro);
 }
 
+void AutopilotSettingsPage::handleImu2Update(mavlink_scaled_imu2_t imu) {
+	emit imu2Updated(imu);
+}
+
 void AutopilotSettingsPage::handlePowerStatusUpdate(
 		mavlink_power_status_t power_status) {
 	_mcu_info_widget->handlePowerStatusUpdate(power_status.Vcc);
@@ -88,6 +101,15 @@ void AutopilotSettingsPage::handlePowerStatusUpdate(
 void AutopilotSettingsPage::handleMcuStatusUpdate(
 		mavlink_mcu_status_t mcu_status) {
 	_mcu_info_widget->handleMcuStatusUpdate(mcu_status);
+}
+
+void AutopilotSettingsPage::handleAttitudeUpdate(mavlink_attitude_t attitude) {
+	emit attitudeUpdated(attitude);
+}
+
+void AutopilotSettingsPage::handleGlobalPositionIntUpdate(
+		mavlink_global_position_int_t global_position) {
+	emit globalPositionIntUpdated(global_position);
 }
 
 void AutopilotSettingsPage::handleGyroStatusUpdate(SensorStatus status) {

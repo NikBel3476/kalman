@@ -64,7 +64,7 @@ void AccelerometerInfoWidget::handleAccelStatusUpdate(SensorStatus status) {
 
 void AccelerometerInfoWidget::handleAccelCalComplete() {
 	_accel_cal_btn->setEnabled(true);
-	_lvl_cal_btn->setEnabled(false);
+	_lvl_cal_btn->setEnabled(true);
 	_cal_result_label->setText(tr("Success"));
 	_cal_result_label->setVisible(true);
 }
