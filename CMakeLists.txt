@@ -9,12 +9,6 @@ if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if (MSVC)
-	add_compile_options(/W4)
-else()
-	add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
 	Gui
@@ -24,6 +18,22 @@ find_package(Qt6 REQUIRED COMPONENTS
 	LinguistTools
 	SvgWidgets
 )
+
+file(GLOB_RECURSE mavlink_sources
+	${PROJECT_SOURCE_DIR}/src/mavlink/*.h
+)
+
+set(mavlink_lib_name mavlink)
+
+add_library(${mavlink_lib_name} STATIC
+	${mavlink_sources}
+)
+
+if (MSVC)
+	target_compile_options(${mavlink_lib_name} PRIVATE /w)
+else()
+	target_compile_options(${mavlink_lib_name} PRIVATE -w)
+endif()
 
 qt_standard_project_setup(
 	I18N_TRANSLATED_LANGUAGES en ru
@@ -39,7 +49,13 @@ qt_add_executable(${PROJECT_NAME}
 	${source_files}
 )
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+if (MSVC)
+	target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 qt_add_translations(${PROJECT_NAME}
 	TS_FILE_DIR translations
@@ -50,7 +66,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	MACOSX_BUNDLE TRUE
 )
 
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Core
 	Qt6::Gui
@@ -60,11 +75,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Quick
 	Qt6::Platform
 	Qt6::SvgWidgets
+	mavlink
 	qflightinstruments
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-	${PROJECT_SOURCE_DIR}/src/mavlink
 )
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/qflightinstruments)
