@@ -10,31 +10,13 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 			_gyroscope_info_widget(new GyroscopeInfoWidget()),
 			_mcu_info_widget(new McuInfoWidget()),
 			_avionics_widget(new AvionicsWidget()) {
-	_layout->addWidget(_magnetometer_info_widget);
-	_layout->addWidget(_accelerometer_info_widget);
-	_layout->addWidget(_gyroscope_info_widget);
-	_layout->addWidget(_mcu_info_widget);
-	_layout->addWidget(_avionics_widget);
-
-	_magnetometer_info_widget->setSizePolicy(
-			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
-	_magnetometer_info_widget->setMinimumWidth(MIN_WIDGET_WIDTH);
-	_magnetometer_info_widget->setMaximumWidth(MAX_WIDGET_WIDTH);
-
-	_accelerometer_info_widget->setSizePolicy(
-			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
-	_accelerometer_info_widget->setMinimumWidth(MIN_WIDGET_WIDTH);
-	_accelerometer_info_widget->setMaximumWidth(MAX_WIDGET_WIDTH);
-
-	_gyroscope_info_widget->setSizePolicy(
-			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
-	_gyroscope_info_widget->setMinimumWidth(MIN_WIDGET_WIDTH);
-	_gyroscope_info_widget->setMaximumWidth(MAX_WIDGET_WIDTH);
-
-	_mcu_info_widget->setSizePolicy(
-			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
-	_mcu_info_widget->setMinimumWidth(MIN_WIDGET_WIDTH);
-	_mcu_info_widget->setMaximumWidth(MAX_WIDGET_WIDTH);
+	_layout->setAlignment(Qt::AlignTop);
+	_layout->addWidget(_magnetometer_info_widget, 0, Qt::AlignLeft);
+	_layout->addWidget(_accelerometer_info_widget, 0, Qt::AlignLeft);
+	_layout->addWidget(_gyroscope_info_widget, 0, Qt::AlignLeft);
+	_layout->addWidget(_mcu_info_widget, 0, Qt::AlignLeft);
+	_layout->addWidget(_avionics_widget, 0, Qt::AlignCenter);
+	_layout->addStretch();
 
 	connect(this, &AutopilotSettingsPage::accelStatusUpdated,
 					_accelerometer_info_widget,

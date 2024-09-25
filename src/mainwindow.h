@@ -7,7 +7,6 @@
 #include <QSerialPort>
 #include <QStackedWidget>
 #include <QtQuick/QQuickView>
-#include <bitset>
 #include <format>
 
 #include "mavlink/ardupilotmega/mavlink.h"
@@ -25,6 +24,8 @@ class QTimer;
 QT_END_NAMESPACE
 
 class Console;
+
+enum class SerialPortState { Connected, Disconnected };
 
 enum class CalibrationState { None, InProgress };
 
@@ -84,6 +85,7 @@ signals:
 	void gyroCalibrationCompleted();
 
 private slots:
+	void fillPortsInfo();
 	void openSerialPort();
 	void closeSerialPort();
 	void writeData(const QByteArray &data);
@@ -108,10 +110,8 @@ private:
 	void initActionsConnections();
 	void initSerialPortEventsConnections();
 
-private:
 	void showStatusMessage(const QString &message);
 	void showWriteError(const QString &message);
-	void fillPortsInfo();
 	void setPortSettings(int idx);
 	void initPortsBoxEventsConnections();
 	void parseCommand(const mavlink_command_long_t &cmd);
@@ -119,27 +119,28 @@ private:
 	void _handleCommandAck(mavlink_command_ack_t &cmd);
 	void _updateSensorsStatus(mavlink_sys_status_t sys_status);
 
-	QToolBar *m_toolbar = nullptr;
-	QComboBox *m_ports_box = nullptr;
-	QAction *m_action_connect = nullptr;
-	QAction *m_action_disconnect = nullptr;
-	QAction *m_action_clear = nullptr;
-	QStackedWidget *m_central_widget = nullptr;
-	QStatusBar *m_statusbar = nullptr;
-	QLabel *m_status = nullptr;
-	Console *m_console = nullptr;
-	AuthenticationForm *m_authentication_form = nullptr;
-	FirmwareUploadPage *m_firmware_upload_page = nullptr;
+	QToolBar *_toolbar = nullptr;
+	QComboBox *_ports_box = nullptr;
+	QAction *_action_refresh = nullptr;
+	QAction *_action_connect = nullptr;
+	QAction *_action_disconnect = nullptr;
+	QAction *_action_clear = nullptr;
+	QStackedWidget *_central_widget = nullptr;
+	QStatusBar *_statusbar = nullptr;
+	QLabel *_status = nullptr;
+	Console *_console = nullptr;
+	AuthenticationForm *_authentication_form = nullptr;
+	FirmwareUploadPage *_firmware_upload_page = nullptr;
 	AutopilotSettingsPage *_autopilot_settings_page = nullptr;
-	// QQuickView *m_qml_view = nullptr;
-	// QWidget *m_qml_container = nullptr;
-	qint64 m_bytesToWrite = 0;
-	QTimer *m_timer = nullptr;
-	QSerialPort *m_serial = nullptr;
-	mavlink_message_t m_mavlink_message;
-	mavlink_status_t m_mavlink_status;
-	Settings m_port_settings;
-	QTimer *m_heartbeat_timer = nullptr;
+	// QQuickView *_qml_view = nullptr;
+	// QWidget *_qml_container = nullptr;
+	qint64 _bytesToWrite = 0;
+	QTimer *_timer = nullptr;
+	QSerialPort *_serial = nullptr;
+	mavlink_message_t _mavlink_message;
+	mavlink_status_t _mavlink_status;
+	Settings _port_settings;
+	QTimer *_heartbeat_timer = nullptr;
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;
 	CalibrationAccelState _cal_accel_state = CalibrationAccelState::None;
@@ -147,6 +148,7 @@ private:
 	CalibrationState _cal_gyro_state = CalibrationState::None;
 	QMessageBox *_msg_cal_box = nullptr;
 	QPushButton *_msg_cal_box_button = nullptr;
+	SerialPortState _serial_port_state = SerialPortState::Disconnected;
 	SensorStatus _gyro_status = SensorStatus::NotFound;
 	SensorStatus _accel_status = SensorStatus::NotFound;
 	SensorStatus _mag_status = SensorStatus::NotFound;

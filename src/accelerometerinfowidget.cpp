@@ -9,23 +9,30 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(QWidget *parent)
 			_x_label(new QLabel("x: 0")), _y_label(new QLabel("y: 0")),
 			_z_label(new QLabel("z: 0")), _accel_cal_btn(new QPushButton()),
 			_lvl_cal_btn(new QPushButton()), _cal_result_label(new QLabel()) {
-	auto values_layout = new QHBoxLayout();
+	const auto values_layout = new QHBoxLayout();
 	const auto title_layout = new QHBoxLayout();
+	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(title_layout);
 	_layout->addLayout(values_layout);
+	_layout->addLayout(buttons_layout);
 	_layout->addWidget(_cal_result_label);
 
+	// Title section
 	title_layout->addWidget(_title_label);
 	title_layout->addWidget(_status_label);
 
 	_title_label->setText(tr("Accelerometer"));
 	_status_label->setText(tr("Status: not found"));
 
+	// Values section
 	values_layout->addWidget(_x_label);
 	values_layout->addWidget(_y_label);
 	values_layout->addWidget(_z_label);
-	values_layout->addWidget(_accel_cal_btn);
-	values_layout->addWidget(_lvl_cal_btn);
+
+	// Buttons section
+	buttons_layout->addWidget(_accel_cal_btn);
+	buttons_layout->addWidget(_lvl_cal_btn);
+	buttons_layout->addStretch();
 
 	_cal_result_label->setVisible(false);
 

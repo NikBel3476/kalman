@@ -9,6 +9,12 @@ if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
 
+if (MSVC)
+	add_compile_options(/W4)
+else()
+	add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
 	Gui
@@ -70,6 +76,7 @@ set(resource_files
 	"images/connect.png"
 	"images/disconnect.png"
 	"images/settings.png"
+	"images/refresh.png"
 	"qml/AuthenticationForm.qml"
 )
 

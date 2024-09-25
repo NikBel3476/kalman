@@ -1,6 +1,6 @@
 #include "avionicswidget.h"
 
-static constexpr auto kRedrawTimeout = std::chrono::milliseconds{100}; // 10 FPS
+static constexpr auto kRedrawTimeout = std::chrono::milliseconds{50}; // 20 FPS
 
 AvionicsWidget::AvionicsWidget(QWidget *parent)
 		: QWidget{parent}, _layout(new QGridLayout(this)), _eadi(new qfi_EADI()),
@@ -13,6 +13,7 @@ AvionicsWidget::AvionicsWidget(QWidget *parent)
 	_eadi->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	_eadi->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	_eadi->setInteractive(false);
+	_eadi->setEnabled(false);
 
 	connect(_eadi_redraw_timer, &QTimer::timeout, this, &AvionicsWidget::update);
 

@@ -10,16 +10,19 @@ MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent)
 			_cal_progress_container(new QWidget()), _cal_attempt_label(new QLabel()),
 			_cal_step_label(new QLabel()), _mag_cal_progress_bar(new QProgressBar()),
 			_cal_result_label(new QLabel()) {
-	auto title_layout = new QHBoxLayout();
-	auto values_layout = new QHBoxLayout();
+	const auto title_layout = new QHBoxLayout();
+	const auto values_layout = new QHBoxLayout();
+	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(title_layout);
 	_layout->addLayout(values_layout);
+	_layout->addLayout(buttons_layout);
 	_layout->addWidget(_cal_progress_container);
 	_layout->addWidget(_cal_result_label);
 
 	// Title section
 	title_layout->addWidget(_title_label);
 	title_layout->addWidget(_status_label);
+	title_layout->addStretch();
 
 	_title_label->setText(tr("Magnetometer"));
 	_status_label->setText(tr("Stats: not found"));
@@ -28,8 +31,11 @@ MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent)
 	values_layout->addWidget(_x_label);
 	values_layout->addWidget(_y_label);
 	values_layout->addWidget(_z_label);
-	values_layout->addWidget(_start_calibration_button);
-	values_layout->addWidget(_cancel_calibration_button);
+
+	// Buttons section
+	buttons_layout->addWidget(_start_calibration_button);
+	buttons_layout->addWidget(_cancel_calibration_button);
+	buttons_layout->addStretch();
 
 	_start_calibration_button->setText(tr("Calibration"));
 	_cancel_calibration_button->setText(tr("Cancel"));

@@ -15,90 +15,97 @@
 
 #include <chrono>
 
-static constexpr std::chrono::seconds kWriteTimeout = std::chrono::seconds{5};
-static constexpr std::chrono::seconds kHeartbeatTimeout =
-		std::chrono::seconds{5};
+static constexpr auto kWriteTimeout = std::chrono::seconds{5};
+static constexpr auto kHeartbeatTimeout = std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
-static const uint8_t SYSTEM_ID = 255;
+static const uint8_t SYSTE_ID = 255;
 static const uint8_t COMP_ID = MAV_COMP_ID_MISSIONPLANNER;
-static const uint8_t TARGET_SYSTEM_ID = 1;
+static const uint8_t TARGET_SYSTE_ID = 1;
 static const uint8_t TARGET_COMP_ID = MAV_COMP_ID_AUTOPILOT1;
 
 MainWindow::MainWindow(QWidget *parent)
-		: QMainWindow(parent), m_toolbar(new QToolBar(this)),
-			m_ports_box(new QComboBox(m_toolbar)),
-			m_action_connect(new QAction(m_toolbar)),
-			m_action_disconnect(new QAction(m_toolbar)),
-			m_action_clear(new QAction(m_toolbar)), m_statusbar(new QStatusBar(this)),
-			m_status(new QLabel), m_console(new Console),
-			m_central_widget(new QStackedWidget()),
-			m_authentication_form(new AuthenticationForm()),
-			m_firmware_upload_page(new FirmwareUploadPage()),
+		: QMainWindow(parent), _toolbar(new QToolBar(this)),
+			_ports_box(new QComboBox(_toolbar)),
+			_action_refresh(new QAction(_toolbar)),
+			_action_connect(new QAction(_toolbar)),
+			_action_disconnect(new QAction(_toolbar)),
+			_action_clear(new QAction(_toolbar)),
+			_central_widget(new QStackedWidget()), _statusbar(new QStatusBar(this)),
+			_status(new QLabel), _console(new Console),
+			_authentication_form(new AuthenticationForm()),
+			_firmware_upload_page(new FirmwareUploadPage()),
 			_autopilot_settings_page(new AutopilotSettingsPage()),
-			// m_qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
-			// m_qml_container(QWidget::createWindowContainer(m_qml_view, this)),
-			m_timer(new QTimer(this)), m_serial(new QSerialPort(this)),
-			m_mavlink_message{}, m_mavlink_status{}, m_port_settings{},
-			m_heartbeat_timer(new QTimer(this)), _msg_cal_box(new QMessageBox(this)) {
+			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
+			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
+			_timer(new QTimer(this)), _serial(new QSerialPort(this)),
+			_mavlink_message{}, _mavlink_status{}, _port_settings{},
+			_heartbeat_timer(new QTimer(this)), _msg_cal_box(new QMessageBox(this)) {
 	setWindowTitle("Autopilot selfcheck");
-	setGeometry(QRect(0, 0, 800, 600));
+	setMinimumSize(600, 800);
+	setGeometry(QRect(0, 0, 600, 800));
 
 	// Main window content
-	addToolBar(m_toolbar);
-	setCentralWidget(m_central_widget);
-	setStatusBar(m_statusbar);
+	addToolBar(_toolbar);
+	setCentralWidget(_central_widget);
+	setStatusBar(_statusbar);
 
 	// toolbar content
-	m_toolbar->setMovable(false);
-	m_toolbar->addWidget(m_ports_box);
-	m_toolbar->setVisible(false);
+	_toolbar->setMovable(false);
+	_toolbar->addWidget(_ports_box);
+	_toolbar->setVisible(false);
 
-	m_toolbar->addAction(m_action_connect);
-	m_toolbar->addAction(m_action_disconnect);
-	m_toolbar->addAction(m_action_clear);
+	_toolbar->addAction(_action_refresh);
+	_toolbar->addAction(_action_connect);
+	_toolbar->addAction(_action_disconnect);
+	_toolbar->addAction(_action_clear);
 
-	m_action_connect->setIcon(QIcon(":/images/connect.png"));
-	m_action_connect->setText(tr("Connect"));
-	m_action_connect->setToolTip(tr("Connect"));
-	m_action_connect->setEnabled(false);
+	_action_refresh->setIcon(QIcon(":/images/refresh.png"));
+	_action_refresh->setText(tr("Refresh"));
+	_action_refresh->setToolTip(tr("Refresh"));
+	_action_refresh->setEnabled(true);
 
-	m_action_disconnect->setIcon(QIcon(":/images/disconnect.png"));
-	m_action_disconnect->setText(tr("Disconnect"));
-	m_action_disconnect->setToolTip(tr("Disconnect"));
-	m_action_disconnect->setEnabled(false);
+	_action_connect->setIcon(QIcon(":/images/connect.png"));
+	_action_connect->setText(tr("Connect"));
+	_action_connect->setToolTip(tr("Connect"));
+	_action_connect->setEnabled(false);
 
-	m_action_clear->setIcon(QIcon(":/images/clear.png"));
-	m_action_clear->setText(tr("Clear"));
-	m_action_clear->setToolTip(tr("Clear"));
-	m_action_clear->setEnabled(true);
+	_action_disconnect->setIcon(QIcon(":/images/disconnect.png"));
+	_action_disconnect->setText(tr("Disconnect"));
+	_action_disconnect->setToolTip(tr("Disconnect"));
+	_action_disconnect->setEnabled(false);
+
+	_action_clear->setIcon(QIcon(":/images/clear.png"));
+	_action_clear->setText(tr("Clear"));
+	_action_clear->setToolTip(tr("Clear"));
+	_action_clear->setEnabled(true);
 
 	// central widget content
-	m_central_widget->addWidget(m_authentication_form);
-	m_central_widget->addWidget(m_firmware_upload_page);
-	// m_central_widget->addWidget(m_console);
-	m_central_widget->addWidget(_autopilot_settings_page);
+	_central_widget->addWidget(_authentication_form);
+	_central_widget->addWidget(_firmware_upload_page);
+	// _central_widget->addWidget(_console);
+	_central_widget->addWidget(_autopilot_settings_page);
 
-	m_central_widget->setCurrentWidget(m_authentication_form);
+	_central_widget->setCurrentWidget(_authentication_form);
 
-	// m_central_widget_layout->addWidget(m_authentication_form);
-	// m_central_widget_layout->addWidget(m_console);
-	// m_central_widget_layout->addWidget(m_qml_container);
+	// _central_widget_layout->addWidget(_authentication_form);
+	// _central_widget_layout->addWidget(_console);
+	// _central_widget_layout->addWidget(_qml_container);
 
-	// m_qml_container->setFocusPolicy(Qt::TabFocus);
+	// _qml_container->setFocusPolicy(Qt::TabFocus);
 
-	m_console->setEnabled(false);
+	_console->setEnabled(false);
 
 	_msg_cal_box->setWindowTitle(tr("Calibration"));
 
 	_msg_cal_box_button = _msg_cal_box->addButton(QMessageBox::Ok);
 
 	// status bar content
-	m_statusbar->addWidget(m_status);
-	m_statusbar->setVisible(false);
-	m_status->setText(tr("Disconnected"));
+	_statusbar->addWidget(_status);
+	_statusbar->setVisible(false);
+	_status->setText(tr("Disconnected"));
 
-	m_timer->setSingleShot(true);
+	_timer->setSingleShot(true);
 
 	initActionsConnections();
 	initSerialPortEventsConnections();
@@ -107,18 +114,18 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_msg_cal_box_button, &QPushButton::clicked, this,
 					&MainWindow::handleCalibrationDialogButton);
 
-	connect(m_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
+	connect(_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
 
 	// authentiation form connections
-	connect(m_authentication_form, &AuthenticationForm::login, this,
+	connect(_authentication_form, &AuthenticationForm::login, this,
 					&MainWindow::handleLogin);
 
 	// firmware upload page connections
-	connect(this, &MainWindow::autopilotConnected, m_firmware_upload_page,
+	connect(this, &MainWindow::autopilotConnected, _firmware_upload_page,
 					&FirmwareUploadPage::handleAutopilotConnection);
-	connect(this, &MainWindow::autopilotDisconnected, m_firmware_upload_page,
+	connect(this, &MainWindow::autopilotDisconnected, _firmware_upload_page,
 					&FirmwareUploadPage::handleAutopilotDisconnection);
-	connect(m_firmware_upload_page, &FirmwareUploadPage::firmwareUploaded, this,
+	connect(_firmware_upload_page, &FirmwareUploadPage::firmwareUploaded, this,
 					&MainWindow::handleFirmwareUpload);
 
 	// autopilot settings page connections
@@ -174,7 +181,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(this, &MainWindow::gyroCalibrationCompleted, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleGyroCalibrationComplete);
 
-	connect(m_heartbeat_timer, &QTimer::timeout, this,
+	connect(_heartbeat_timer, &QTimer::timeout, this,
 					&MainWindow::handleHeartbeatTimeout);
 
 	fillPortsInfo();
@@ -183,77 +190,84 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow() = default;
 
 void MainWindow::openSerialPort() {
-	const auto p = m_port_settings;
-	m_serial->setPortName(p.name);
-	m_serial->setBaudRate(p.baudRate);
-	m_serial->setDataBits(p.dataBits);
-	m_serial->setParity(p.parity);
-	m_serial->setStopBits(p.stopBits);
-	m_serial->setFlowControl(p.flowControl);
+	const auto p = _port_settings;
+	_serial->setPortName(p.name);
+	_serial->setBaudRate(p.baudRate);
+	_serial->setDataBits(p.dataBits);
+	_serial->setParity(p.parity);
+	_serial->setStopBits(p.stopBits);
+	_serial->setFlowControl(p.flowControl);
 
-	if (m_serial->open(QIODevice::ReadWrite)) {
-		m_console->setEnabled(true);
-		// m_console->setLocalEchoEnabled(p.localEchoEnabled);
-		m_action_connect->setEnabled(false);
-		m_action_disconnect->setEnabled(true);
-		m_status->setText(tr("Connected to %1").arg(m_serial->portName()));
-		m_heartbeat_timer->start(kHeartbeatTimeout);
+	if (_serial->open(QIODevice::ReadWrite)) {
+		_console->setEnabled(true);
+		// _console->setLocalEchoEnabled(p.localEchoEnabled);
+		_ports_box->setEnabled(false);
+		_action_refresh->setEnabled(false);
+		_action_connect->setEnabled(false);
+		_action_disconnect->setEnabled(true);
+		_status->setText(tr("Connected to %1").arg(_serial->portName()));
+		_heartbeat_timer->start(kHeartbeatTimeout);
 		emit autopilotConnected();
+		_serial_port_state = SerialPortState::Connected;
 	} else {
-		QMessageBox::critical(this, tr("Error"), m_serial->errorString());
+		QMessageBox::critical(this, tr("Error"), _serial->errorString());
 		showStatusMessage(tr("Open error"));
 	}
 }
 
 void MainWindow::closeSerialPort() {
-	if (m_serial->isOpen())
-		m_serial->close();
-	// m_console->setEnabled(false);
-	m_action_connect->setEnabled(true);
-	m_action_disconnect->setEnabled(false);
+	if (_serial->isOpen())
+		_serial->close();
+	// _console->setEnabled(false);
+	_ports_box->setEnabled(true);
+	_action_refresh->setEnabled(true);
+	_action_connect->setEnabled(true);
+	_action_disconnect->setEnabled(false);
 	showStatusMessage(tr("Disconnected"));
-	m_central_widget->setCurrentWidget(m_firmware_upload_page);
-	m_heartbeat_timer->stop();
+	_central_widget->setCurrentWidget(_firmware_upload_page);
+	_heartbeat_timer->stop();
 	reset();
 	emit autopilotDisconnected();
+	_serial_port_state = SerialPortState::Disconnected;
+	fillPortsInfo();
 }
 
 void MainWindow::writeData(const QByteArray &data) {
-	const qint64 written = m_serial->write(data);
+	const qint64 written = _serial->write(data);
 	if (written == data.size()) {
-		m_bytesToWrite += written;
-		m_timer->start(kWriteTimeout);
+		_bytesToWrite += written;
+		_timer->start(kWriteTimeout);
 	} else {
 		const auto error = tr("Failed to write all data to port %1.\n"
 													"Error: %2")
-													 .arg(m_serial->portName(), m_serial->errorString());
+													 .arg(_serial->portName(), _serial->errorString());
 		showWriteError(error);
 	}
 }
 
 void MainWindow::readData() {
-	const auto data = m_serial->readAll();
+	const auto data = _serial->readAll();
 	for (auto byte : data) {
-		if (mavlink_parse_char(MAVLINK_COMM_0, byte, &m_mavlink_message,
-													 &m_mavlink_status)) {
+		if (mavlink_parse_char(MAVLINK_COMM_0, byte, &_mavlink_message,
+													 &_mavlink_status)) {
 			const auto msg =
 					std::format("ID: {} sequence: {} from component: {} of system: {}\n",
-											std::to_string(m_mavlink_message.msgid),
-											std::to_string(m_mavlink_message.seq),
-											std::to_string(m_mavlink_message.compid),
-											std::to_string(m_mavlink_message.sysid));
+											std::to_string(_mavlink_message.msgid),
+											std::to_string(_mavlink_message.seq),
+											std::to_string(_mavlink_message.compid),
+											std::to_string(_mavlink_message.sysid));
 			QByteArray data(msg.c_str(), static_cast<uint32_t>(msg.length()));
-			m_console->putData(data);
+			_console->putData(data);
 
-			switch (m_mavlink_message.msgid) {
+			switch (_mavlink_message.msgid) {
 			case MAVLINK_MSG_ID_HEARTBEAT: {
 				mavlink_heartbeat_t heartbeat;
-				mavlink_msg_heartbeat_decode(&m_mavlink_message, &heartbeat);
-				m_heartbeat_timer->start(kHeartbeatTimeout);
+				mavlink_msg_heartbeat_decode(&_mavlink_message, &heartbeat);
+				_heartbeat_timer->start(kHeartbeatTimeout);
 			} break;
 			case MAVLINK_MSG_ID_SYS_STATUS: {
 				mavlink_sys_status_t sys_status;
-				mavlink_msg_sys_status_decode(&m_mavlink_message, &sys_status);
+				mavlink_msg_sys_status_decode(&_mavlink_message, &sys_status);
 				const auto status_str = std::format(
 						"sensors present: {:b} sensors enabled: {:b} load: {} errors_comm: "
 						"{}\n",
@@ -263,12 +277,12 @@ void MainWindow::readData() {
 						std::to_string(sys_status.errors_comm));
 				QByteArray data(status_str.c_str(),
 												static_cast<uint32_t>(status_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				_updateSensorsStatus(sys_status);
 			} break;
 			case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: {
 				mavlink_global_position_int_t global_position;
-				mavlink_msg_global_position_int_decode(&m_mavlink_message,
+				mavlink_msg_global_position_int_decode(&_mavlink_message,
 																							 &global_position);
 				const auto coords_str = std::format(
 						"lon: {} lat: {} alt: {} vx: {} vy: {} vz: {} hdg: {}\n",
@@ -277,22 +291,22 @@ void MainWindow::readData() {
 						global_position.hdg);
 				QByteArray data(coords_str.c_str(),
 												static_cast<uint32_t>(coords_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit globalPositionIntUpdated(global_position);
 			} break;
 			case MAVLINK_MSG_ID_POWER_STATUS: {
 				mavlink_power_status_t power_status;
-				mavlink_msg_power_status_decode(&m_mavlink_message, &power_status);
+				mavlink_msg_power_status_decode(&_mavlink_message, &power_status);
 				const auto status_str =
 						std::format("Rail voltage: {} mV\n", power_status.Vcc);
 				QByteArray data(status_str.c_str(),
 												static_cast<uint32_t>(status_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit powerStatusUpdated(power_status);
 			} break;
 			case MAVLINK_MSG_ID_RAW_IMU: {
 				mavlink_raw_imu_t raw_imu;
-				mavlink_msg_raw_imu_decode(&m_mavlink_message, &raw_imu);
+				mavlink_msg_raw_imu_decode(&_mavlink_message, &raw_imu);
 				const auto raw_imu_str = std::format(
 						"Time: {} xacc: {} yacc: {} zacc: {} xgyro: {} ygyro: {} zgyro: {} "
 						"xmag: {} ymag: {} zmag: {} id: {}\n",
@@ -304,24 +318,24 @@ void MainWindow::readData() {
 						std::to_string(raw_imu.id));
 				QByteArray data(raw_imu_str.c_str(),
 												static_cast<uint32_t>(raw_imu_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit IMUUpdated(raw_imu);
 			} break;
 			case MAVLINK_MSG_ID_MCU_STATUS: {
 				mavlink_mcu_status_t mcu_status;
-				mavlink_msg_mcu_status_decode(&m_mavlink_message, &mcu_status);
+				mavlink_msg_mcu_status_decode(&_mavlink_message, &mcu_status);
 				auto mcu_status_str =
 						std::format("MCU_STATUS temp: {} voltage: {} v_min: {} v_max: {}\n",
 												mcu_status.MCU_temperature, mcu_status.MCU_voltage,
 												mcu_status.MCU_voltage_min, mcu_status.MCU_voltage_max);
 				QByteArray data(mcu_status_str.c_str(),
 												static_cast<uint32_t>(mcu_status_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit mcuStatusUpdated(mcu_status);
 			} break;
 			case MAVLINK_MSG_ID_COMMAND_ACK: {
 				mavlink_command_ack_t cmd_ack;
-				mavlink_msg_command_ack_decode(&m_mavlink_message, &cmd_ack);
+				mavlink_msg_command_ack_decode(&_mavlink_message, &cmd_ack);
 				auto cmd_ack_str = std::format(
 						"CMD_ACK COMMAND: {} RESULT: {} PROGRESS: {} RES_PRM2: {} "
 						"TARGET_SYS: {} TARGET_CMP: {}\n",
@@ -330,14 +344,14 @@ void MainWindow::readData() {
 						cmd_ack.target_component);
 				QByteArray data(cmd_ack_str.c_str(),
 												static_cast<uint32_t>(cmd_ack_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				_handleCommandAck(cmd_ack);
 				qDebug() << cmd_ack_str << '\n';
 			} break;
 			case MAVLINK_MSG_ID_COMMAND_LONG: {
 				// const auto cmd = std::make_unique<mavlink_command_long_t>();
 				mavlink_command_long_t cmd;
-				mavlink_msg_command_long_decode(&m_mavlink_message, &cmd);
+				mavlink_msg_command_long_decode(&_mavlink_message, &cmd);
 				auto cmd_str = std::format(
 						"CMD_LONG COMMAND: {} SYSTEM: {} COMPONENT: {} CONFIMATION: {} "
 						"param1: {} param2: {} param3: {} param4: {} param5: "
@@ -347,13 +361,13 @@ void MainWindow::readData() {
 						cmd.param5, cmd.param6, cmd.param7);
 				QByteArray data(cmd_str.c_str(),
 												static_cast<uint32_t>(cmd_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				qDebug() << cmd_str << '\n';
 				parseCommand(cmd);
 			} break;
 			case MAVLINK_MSG_ID_PARAM_VALUE: {
 				mavlink_param_value_t param_value;
-				mavlink_msg_param_value_decode(&m_mavlink_message, &param_value);
+				mavlink_msg_param_value_decode(&_mavlink_message, &param_value);
 				auto param_value_str =
 						std::format("ID: {} VALUE: {} TYPE: {} COUNT: {} INDEX: {}\n",
 												param_value.param_id, param_value.param_value,
@@ -361,23 +375,23 @@ void MainWindow::readData() {
 												param_value.param_index);
 				QByteArray data(param_value_str.c_str(),
 												static_cast<uint32_t>(param_value_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 			} break;
 			case MAVLINK_MSG_ID_STATUSTEXT: {
 				mavlink_statustext_t statustext;
-				mavlink_msg_statustext_decode(&m_mavlink_message, &statustext);
+				mavlink_msg_statustext_decode(&_mavlink_message, &statustext);
 				auto statustext_str =
 						std::format("ID: {} CHUNK_SEQ: {} SEVERITY: {} TEXT: {}\n",
 												std::to_string(statustext.id), statustext.chunk_seq,
 												statustext.severity, statustext.text);
 				QByteArray data(statustext_str.c_str(),
 												static_cast<uint32_t>(statustext_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				qDebug() << statustext_str << '\n';
 			} break;
 			case MAVLINK_MSG_ID_MAG_CAL_PROGRESS: {
 				mavlink_mag_cal_progress_t mag_cal_progress;
-				mavlink_msg_mag_cal_progress_decode(&m_mavlink_message,
+				mavlink_msg_mag_cal_progress_decode(&_mavlink_message,
 																						&mag_cal_progress);
 				auto mag_cal_progress_str = std::format(
 						"MAG_CAL_PROGRESS ATTEMPT: {} PCT: {} STATUS: {}\n",
@@ -385,18 +399,18 @@ void MainWindow::readData() {
 						mag_cal_progress.cal_status);
 				QByteArray data(mag_cal_progress_str.c_str(),
 												static_cast<uint32_t>(mag_cal_progress_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit magCalProgressUpdated(mag_cal_progress);
 				qDebug() << mag_cal_progress_str.c_str() << '\n';
 			} break;
 			case MAVLINK_MSG_ID_MAG_CAL_REPORT: {
 				mavlink_mag_cal_report_t mag_cal_report;
-				mavlink_msg_mag_cal_report_decode(&m_mavlink_message, &mag_cal_report);
+				mavlink_msg_mag_cal_report_decode(&_mavlink_message, &mag_cal_report);
 				auto mag_cal_report_str =
 						std::format("MAG_CAL_REPORT STATUS: {}", mag_cal_report.cal_status);
 				QByteArray data(mag_cal_report_str.c_str(),
 												static_cast<uint32_t>(mag_cal_report_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				if (_cal_mag_state == CalibrationMagState::InProgress) {
 					emit magCalReportUpdated(mag_cal_report);
 					_cal_mag_state = CalibrationMagState::None;
@@ -405,7 +419,7 @@ void MainWindow::readData() {
 			} break;
 			case MAVLINK_MSG_ID_SCALED_IMU: {
 				mavlink_scaled_imu_t scaled_imu;
-				mavlink_msg_scaled_imu_decode(&m_mavlink_message, &scaled_imu);
+				mavlink_msg_scaled_imu_decode(&_mavlink_message, &scaled_imu);
 				auto scaled_imu_str =
 						std::format("SCALED_IMU xacc: {} yacc: {} zacc: {} xgyro: {} "
 												"ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {}\n",
@@ -414,11 +428,11 @@ void MainWindow::readData() {
 												scaled_imu.xmag, scaled_imu.ymag, scaled_imu.zmag);
 				QByteArray data(scaled_imu_str.c_str(),
 												static_cast<uint32_t>(scaled_imu_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 			} break;
 			case MAVLINK_MSG_ID_SCALED_IMU2: {
 				mavlink_scaled_imu2_t scaled_imu;
-				mavlink_msg_scaled_imu2_decode(&m_mavlink_message, &scaled_imu);
+				mavlink_msg_scaled_imu2_decode(&_mavlink_message, &scaled_imu);
 				auto scaled_imu_str =
 						std::format("SCALED_IMU2 xacc: {} yacc: {} zacc: {} xgyro: {} "
 												"ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {}\n",
@@ -428,11 +442,11 @@ void MainWindow::readData() {
 				QByteArray data(scaled_imu_str.c_str(),
 												static_cast<uint32_t>(scaled_imu_str.length()));
 				emit imu2Updated(scaled_imu);
-				m_console->putData(data);
+				_console->putData(data);
 			} break;
 			case MAVLINK_MSG_ID_SCALED_IMU3: {
 				mavlink_scaled_imu3_t scaled_imu;
-				mavlink_msg_scaled_imu3_decode(&m_mavlink_message, &scaled_imu);
+				mavlink_msg_scaled_imu3_decode(&_mavlink_message, &scaled_imu);
 				auto scaled_imu_str =
 						std::format("SCALED_IMU3 xacc: {} yacc: {} zacc: {} xgyro: {} "
 												"ygyro: {} zgyro: {} xmag: {} ymag: {} zmag: {}\n",
@@ -441,11 +455,11 @@ void MainWindow::readData() {
 												scaled_imu.xmag, scaled_imu.ymag, scaled_imu.zmag);
 				QByteArray data(scaled_imu_str.c_str(),
 												static_cast<uint32_t>(scaled_imu_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 			} break;
 			case MAVLINK_MSG_ID_ATTITUDE: {
 				mavlink_attitude_t attitude;
-				mavlink_msg_attitude_decode(&m_mavlink_message, &attitude);
+				mavlink_msg_attitude_decode(&_mavlink_message, &attitude);
 				auto attitude_str = std::format(
 						"ATTITUDE roll: {} pitch: {} yaw: {} rollspeed: {} pitchspeed: {} "
 						"yawspeed: {}\n",
@@ -453,12 +467,12 @@ void MainWindow::readData() {
 						attitude.pitchspeed, attitude.yawspeed);
 				QByteArray data(attitude_str.c_str(),
 												static_cast<uint32_t>(attitude_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit attitudeUpdated(attitude);
 			} break;
 			case MAVLINK_MSG_ID_VFR_HUD: {
 				mavlink_vfr_hud_t vfr_hud;
-				mavlink_msg_vfr_hud_decode(&m_mavlink_message, &vfr_hud);
+				mavlink_msg_vfr_hud_decode(&_mavlink_message, &vfr_hud);
 				auto vfr_hud_str =
 						std::format("VFR_HUD airspeed: {} groundspeed: {} heading: {} "
 												"throttle: {} alt: {} climb: {}",
@@ -466,7 +480,7 @@ void MainWindow::readData() {
 												vfr_hud.throttle, vfr_hud.alt, vfr_hud.climb);
 				QByteArray data(vfr_hud_str.c_str(),
 												static_cast<uint32_t>(vfr_hud_str.length()));
-				m_console->putData(data);
+				_console->putData(data);
 				emit vfrHudUpdated(vfr_hud);
 			} break;
 			default:
@@ -478,37 +492,37 @@ void MainWindow::readData() {
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
 	if (error == QSerialPort::ResourceError) {
-		QMessageBox::critical(this, tr("Critical Error"), m_serial->errorString());
-		if (m_serial->errorString() != "Resource temporarily unavailable") {
+		QMessageBox::critical(this, tr("Critical Error"), _serial->errorString());
+		if (_serial->errorString() != "Resource temporarily unavailable") {
 			closeSerialPort();
 		}
 	}
 }
 
 void MainWindow::handleBytesWritten(qint64 bytes) {
-	m_bytesToWrite -= bytes;
-	if (m_bytesToWrite == 0)
-		m_timer->stop();
+	_bytesToWrite -= bytes;
+	if (_bytesToWrite == 0)
+		_timer->stop();
 }
 
 void MainWindow::handleWriteTimeout() {
 	const QString error = tr("Write operation timed out for port %1.\n"
 													 "Error: %2")
-														.arg(m_serial->portName(), m_serial->errorString());
+														.arg(_serial->portName(), _serial->errorString());
 	showWriteError(error);
 }
 
 void MainWindow::handleLogin(const QString &username, const QString &password) {
 	qDebug() << "Login event\n" << username << '\n' << password << '\n';
 	// TODO: add authentication
-	m_central_widget->setCurrentWidget(m_firmware_upload_page);
-	m_toolbar->setVisible(true);
-	m_statusbar->setVisible(true);
+	_central_widget->setCurrentWidget(_firmware_upload_page);
+	_toolbar->setVisible(true);
+	_statusbar->setVisible(true);
 }
 
 void MainWindow::handleFirmwareUpload() {
-	m_central_widget->setCurrentWidget(_autopilot_settings_page);
-	m_console->show();
+	_central_widget->setCurrentWidget(_autopilot_settings_page);
+	_console->show();
 }
 
 void MainWindow::handleHeartbeatTimeout() {
@@ -527,7 +541,7 @@ void MainWindow::_handleStartAccelCalibration() {
 	const float param5 = 1; // accelerometer calibration
 	const float param6 = 0;
 	const float param7 = 0;
-	mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
+	mavlink_msg_command_long_pack(SYSTE_ID, COMP_ID, &msg, TARGET_SYSTE_ID,
 																TARGET_COMP_ID, command, confirmation, param1,
 																param2, param3, param4, param5, param6, param7);
 
@@ -551,7 +565,7 @@ void MainWindow::_handleStartLevelCalibration() {
 	const float param6 = 0;
 	const float param7 = 0;
 	const auto msg_len = mavlink_msg_command_long_pack(
-			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID, command,
+			SYSTE_ID, COMP_ID, &msg, TARGET_SYSTE_ID, TARGET_COMP_ID, command,
 			confirmation, param1, param2, param3, param4, param5, param6, param7);
 
 	qDebug() << "Msg len: " << msg_len << '\n';
@@ -574,7 +588,7 @@ void MainWindow::_handleStartMagCalibration() {
 	const float param5 = 0; // Autoreboot
 	const float param6 = 0;
 	const float param7 = 0;
-	mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
+	mavlink_msg_command_long_pack(SYSTE_ID, COMP_ID, &msg, TARGET_SYSTE_ID,
 																TARGET_COMP_ID, command, confirmation, param1,
 																param2, param3, param4, param5, param6, param7);
 
@@ -597,7 +611,7 @@ void MainWindow::_handleCancelMagCalibration() {
 	const float param5 = 0;
 	const float param6 = 0;
 	const float param7 = 0;
-	mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
+	mavlink_msg_command_long_pack(SYSTE_ID, COMP_ID, &msg, TARGET_SYSTE_ID,
 																TARGET_COMP_ID, command, confirmation, param1,
 																param2, param3, param4, param5, param6, param7);
 
@@ -620,7 +634,7 @@ void MainWindow::_handleStartGyroCalibration() {
 	const float param5 = 0;
 	const float param6 = 0;
 	const float param7 = 0;
-	mavlink_msg_command_long_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
+	mavlink_msg_command_long_pack(SYSTE_ID, COMP_ID, &msg, TARGET_SYSTE_ID,
 																TARGET_COMP_ID, command, confirmation, param1,
 																param2, param3, param4, param5, param6, param7);
 
@@ -671,15 +685,14 @@ void MainWindow::handleCalibrationDialogButton() {
 		return;
 	}
 	mavlink_message_t msg;
-	auto msg_len = mavlink_msg_command_long_pack(
-			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
-			MAV_CMD_ACCELCAL_VEHICLE_POS, 0, vehicle_position_param, 0, 0, 0, 0, 0,
-			0);
+	mavlink_msg_command_long_pack(SYSTE_ID, COMP_ID, &msg, TARGET_SYSTE_ID,
+																TARGET_COMP_ID, MAV_CMD_ACCELCAL_VEHICLE_POS, 0,
+																vehicle_position_param, 0, 0, 0, 0, 0, 0);
 	// auto buf_len = MAVLINK_MAX_PACKET_LEN;
-	// mavlink_msg_command_ack_pack(SYSTEM_ID, COMP_ID, &msg, 0, 1, 0, 0,
-	// TARGET_SYSTEM_ID, TARGET_COMP_ID); const auto buf_len =
+	// mavlink_msg_command_ack_pack(SYSTE_ID, COMP_ID, &msg, 0, 1, 0, 0,
+	// TARGET_SYSTE_ID, TARGET_COMP_ID); const auto buf_len =
 	// MAVLINK_MAX_PACKET_LEN; const auto msg_len =
-	// mavlink_msg_command_ack_pack(SYSTEM_ID, COMP_ID, &msg, 0,
+	// mavlink_msg_command_ack_pack(SYSTE_ID, COMP_ID, &msg, 0,
 	// MAV_RESULT_TEMPORARILY_REJECTED, 0, 0, 0, 0);
 	uint8_t buf[44];
 	const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
@@ -711,43 +724,44 @@ void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 }
 
 void MainWindow::initActionsConnections() {
-	connect(m_action_connect, &QAction::triggered, this,
+	connect(_action_refresh, &QAction::triggered, this,
+					&MainWindow::fillPortsInfo);
+	connect(_action_connect, &QAction::triggered, this,
 					&MainWindow::openSerialPort);
-	connect(m_action_disconnect, &QAction::triggered, this,
+	connect(_action_disconnect, &QAction::triggered, this,
 					&MainWindow::closeSerialPort);
-	connect(m_action_clear, &QAction::triggered, m_console, &Console::clear);
+	connect(_action_clear, &QAction::triggered, _console, &Console::clear);
 }
 
 void MainWindow::initSerialPortEventsConnections() {
-	connect(m_serial, &QSerialPort::errorOccurred, this,
-					&MainWindow::handleError);
-	connect(m_serial, &QSerialPort::readyRead, this, &MainWindow::readData);
-	connect(m_serial, &QSerialPort::bytesWritten, this,
+	connect(_serial, &QSerialPort::errorOccurred, this, &MainWindow::handleError);
+	connect(_serial, &QSerialPort::readyRead, this, &MainWindow::readData);
+	connect(_serial, &QSerialPort::bytesWritten, this,
 					&MainWindow::handleBytesWritten);
-	connect(m_console, &Console::getData, this, &MainWindow::writeData);
+	connect(_console, &Console::getData, this, &MainWindow::writeData);
 }
 
 void MainWindow::initPortsBoxEventsConnections() {
-	connect(m_ports_box, &QComboBox::currentIndexChanged, this,
+	connect(_ports_box, &QComboBox::currentIndexChanged, this,
 					&MainWindow::setPortSettings);
 }
 
 void MainWindow::setPortSettings(int index) {
-	auto portSettingsMaybe = m_ports_box->itemData(index);
+	auto portSettingsMaybe = _ports_box->itemData(index);
 	if (portSettingsMaybe.canConvert<QStringList>()) {
 		auto port_settings_list = portSettingsMaybe.value<QStringList>();
-		m_port_settings = Settings{.name = port_settings_list.at(0),
-															 .baudRate = 57600,
-															 .dataBits = QSerialPort::Data8,
-															 .parity = QSerialPort::NoParity,
-															 .stopBits = QSerialPort::OneStop,
-															 .flowControl = QSerialPort::NoFlowControl};
-		m_action_connect->setEnabled(true);
+		_port_settings = Settings{.name = port_settings_list.at(0),
+															.baudRate = 57600,
+															.dataBits = QSerialPort::Data8,
+															.parity = QSerialPort::NoParity,
+															.stopBits = QSerialPort::OneStop,
+															.flowControl = QSerialPort::NoFlowControl};
+		_action_connect->setEnabled(true);
 	}
 }
 
 void MainWindow::showStatusMessage(const QString &message) {
-	m_status->setText(message);
+	_status->setText(message);
 }
 
 void MainWindow::showWriteError(const QString &message) {
@@ -755,7 +769,10 @@ void MainWindow::showWriteError(const QString &message) {
 }
 
 void MainWindow::fillPortsInfo() {
-	m_ports_box->clear();
+	if (_serial_port_state == SerialPortState::Connected) {
+		return;
+	}
+	_ports_box->clear();
 	const auto blankString = tr(::blankString);
 	const auto infos = QSerialPortInfo::availablePorts();
 
@@ -774,9 +791,9 @@ void MainWindow::fillPortsInfo() {
 				 << (vendorId ? QString::number(vendorId, 16) : blankString)
 				 << (productId ? QString::number(productId, 16) : blankString);
 
-		m_ports_box->addItem(list.constFirst(), list);
+		_ports_box->addItem(list.constFirst(), list);
 	}
-	m_ports_box->addItem(tr("Custom"));
+	_ports_box->addItem(tr("Custom"));
 }
 
 void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {

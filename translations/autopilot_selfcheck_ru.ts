@@ -4,6 +4,10 @@
 <context>
 	<name>MainWindow</name>
 	<message>
+	<source>Refresh</source>
+	<translation>Обновить</translation>
+	</message>
+	<message>
 		<source>Connect</source>
 		<translation>Подключить</translation>
 	</message>
@@ -214,8 +218,8 @@
 		<translation>Информация об МК</translation>
 	</message>
 	<message>
-		<source>Temperature: %1.%2 C</source>
-		<translation>Температура: %1.%2 C</translation>
+	<source>Temperature: %1.%2 %3</source>
+		<translation>Температура: %1.%2 %3</translation>
 	</message>
 	<message>
 		<source>Voltage: %1 mV</source>

@@ -14,9 +14,10 @@ McuInfoWidget::McuInfoWidget(QWidget *parent)
 }
 
 void McuInfoWidget::handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status) {
-	m_temperature_label->setText(QString(tr("Temperature: %1.%2 C"))
+	m_temperature_label->setText(QString(tr("Temperature: %1.%2 %3"))
 																	 .arg(mcu_status.MCU_temperature / 100)
-																	 .arg(mcu_status.MCU_temperature % 100));
+																	 .arg(mcu_status.MCU_temperature % 100)
+																	 .arg(QChar(0260) + 'C'));
 	m_voltage_label->setText(
 			QString(tr("Voltage: %1 mV")).arg(mcu_status.MCU_voltage));
 	if (mcu_status.MCU_voltage < mcu_status.MCU_voltage_min ||

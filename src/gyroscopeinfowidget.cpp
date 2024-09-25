@@ -7,21 +7,28 @@ GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent)
 			_z_label(new QLabel("z: 0")), _cal_start_btn(new QPushButton()),
 			_cal_result_label(new QLabel()) {
 	const auto title_layout = new QHBoxLayout();
-	auto values_layout = new QHBoxLayout();
+	const auto values_layout = new QHBoxLayout();
+	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(title_layout);
 	_layout->addLayout(values_layout);
+	_layout->addLayout(buttons_layout);
 	_layout->addWidget(_cal_result_label);
 
+	// Title section
 	title_layout->addWidget(_title_label);
 	title_layout->addWidget(_status_label);
 
 	_title_label->setText(tr("Gyroscope"));
 	_status_label->setText(tr("Status: not found"));
 
+	// Values section
 	values_layout->addWidget(_x_label);
 	values_layout->addWidget(_y_label);
 	values_layout->addWidget(_z_label);
-	values_layout->addWidget(_cal_start_btn);
+
+	// Buttons section
+	buttons_layout->addWidget(_cal_start_btn);
+	buttons_layout->addStretch();
 
 	_cal_start_btn->setText(tr("Calibration"));
 
