@@ -1,5 +1,7 @@
 # autopilot_selfcheck
 
+Program for autopilot calibration
+
 ## This project based on qt serial terminal example
 
 ### Prerequisites
@@ -20,13 +22,22 @@ Note: on windows qt must be in the PATH variable or passed with `-DCMAKE_PREFIX_
 
 > Tested only on linux at this moment
 
-#### Docker (use for build with older glibc)
+#### Docker (WIP)
 1. Build docker image - `docker build -t autopilot_selfcheck/autopilotselfcheck:0.1 .`
 2. Start building inside container - WIP
 
+### Development setup
+#### Prerequisites
+* clang-format
+* pre-commit (command for installation: `pip install pre-commit`)
+
+After repository cloning run command: `pre-commit install`
+Now on every `git commit` command it will format all modified c++ files,
+if format returns failed it reports that files have been formatted, run
+`git add` and `git commit` again
+
 ### Code formatting command
 `clang-format -i -style=file *.cpp *.h`
-
 
 ## Info about mavlink messages for calibration
 
