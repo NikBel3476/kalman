@@ -33,13 +33,13 @@ FirmwareUploadPage::FirmwareUploadPage(QWidget *parent)
 	m_drone_type_box->addItem(tr("Quadrocopter"), "Quadrocopter");
 }
 
-void FirmwareUploadPage::handleAutopilotConnection() {
+void FirmwareUploadPage::handleSerialConnection() {
 	qDebug() << "Autopilot connected\n";
 	m_drone_type_box->setVisible(true);
 	m_firmware_upload_button->setVisible(true);
 }
 
-void FirmwareUploadPage::handleAutopilotDisconnection() {
+void FirmwareUploadPage::handleSerialDisconnection() {
 	qDebug() << "Autopilot disconnected\n";
 	m_drone_type_box->setVisible(false);
 	m_firmware_upload_button->setVisible(false);
@@ -56,4 +56,8 @@ void FirmwareUploadPage::handleUploadButtonPress() {
 	qDebug() << "Firmware upload\n" << "Drone type: " << m_drone_type;
 	// TODO: add firmware upload and settings check
 	emit firmwareUploaded();
+}
+
+void FirmwareUploadPage::handleSettingsButtonPress() {
+	emit goToSettingsPage();
 }

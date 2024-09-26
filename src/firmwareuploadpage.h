@@ -13,12 +13,16 @@ public:
 
 signals:
 	void firmwareUploaded();
+	void goToSettingsPage();
 
 public slots:
-	void handleAutopilotConnection();
-	void handleAutopilotDisconnection();
+	void handleSerialConnection();
+	void handleSerialDisconnection();
 	void handleDroneTypeBoxChange(int index);
 	void handleUploadButtonPress();
+
+private slots:
+	void handleSettingsButtonPress();
 
 private:
 	QVBoxLayout *m_layout = nullptr;
