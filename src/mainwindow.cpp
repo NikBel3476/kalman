@@ -17,6 +17,7 @@
 
 static constexpr auto kWriteTimeout = std::chrono::seconds{5};
 static constexpr auto kHeartbeatTimeout = std::chrono::seconds{5};
+static constexpr auto kSendParamTimeout = std::chrono::seconds{1};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 static const uint8_t SYSTEM_ID = 255;
@@ -43,7 +44,8 @@ MainWindow::MainWindow(QWidget *parent)
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
 			_ap_params_page(new ApParametersPage()), _timer(new QTimer(this)),
 			_serial(new QSerialPort(this)), _mavlink_message{}, _mavlink_status{},
-			_port_settings{}, _heartbeat_timer(new QTimer(this)) {
+			_port_settings{}, _heartbeat_timer(new QTimer(this)),
+			_send_param_timer(new QTimer(this)) {
 	setWindowTitle("Autopilot selfcheck");
 	setMinimumSize(600, 800);
 	setGeometry(QRect(0, 0, 600, 800));
@@ -209,8 +211,12 @@ MainWindow::MainWindow(QWidget *parent)
 	// autopilot parameters page connections
 	connect(this, &MainWindow::apParamValueReceived, _ap_params_page,
 					&ApParametersPage::handleApParamReceive);
+	connect(_ap_params_page, &ApParametersPage::requestDownloadParams, this,
+					&MainWindow::_getParameterList);
 	connect(_ap_params_page, &ApParametersPage::apAllParamsReceived, this,
 					&MainWindow::_handleApAllParamsReceive);
+	connect(_ap_params_page, &ApParametersPage::requestUploadApParams, this,
+					&MainWindow::_handleUploadApParamsRequest);
 
 	fillPortsInfo();
 }
@@ -259,6 +265,8 @@ void MainWindow::closeSerialPort() {
 	showStatusMessage(tr("Disconnected"));
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_heartbeat_timer->stop();
+	_ap_state = AutopilotState::None;
+	_ap_status_label->setText(tr("Autopilot disconnected"));
 	reset();
 	_serial_port_state = SerialPortState::Disconnected;
 	fillPortsInfo();
@@ -299,6 +307,7 @@ void MainWindow::readData() {
 				_heartbeat_timer->start(kHeartbeatTimeout);
 				if (_ap_state == AutopilotState::None) {
 					_ap_state = AutopilotState::Alive;
+					_ap_status_label->setText(tr("Autopilot connected"));
 					_action_open_settings->setEnabled(true);
 					_action_open_ap_params->setEnabled(true);
 				}
@@ -414,7 +423,7 @@ void MainWindow::readData() {
 				QByteArray data(param_value_str.c_str(),
 												static_cast<uint32_t>(param_value_str.length()));
 				_console->putData(data);
-				emit apParamValueReceived(param_value);
+				_handleApParamReceive(param_value);
 			} break;
 			case MAVLINK_MSG_ID_STATUSTEXT: {
 				mavlink_statustext_t statustext;
@@ -575,6 +584,7 @@ void MainWindow::_openSettingsPage() {
 void MainWindow::handleHeartbeatTimeout() {
 	QMessageBox::critical(this, tr("Error"), tr("Heartbeat error"));
 	_ap_state = AutopilotState::None;
+	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
 	_ap_params_state = AutopilotParamsState::None;
@@ -700,6 +710,14 @@ void MainWindow::_handleStartGyroCalibration() {
 
 void MainWindow::_handleApAllParamsReceive() {
 	_ap_params_state = AutopilotParamsState::Received;
+}
+
+void MainWindow::_handleUploadApParamsRequest(
+		std::vector<mavlink_param_value_t> params_to_upload) {
+	_params_to_upload = std::move(params_to_upload);
+	_send_param_timer->start(kSendParamTimeout);
+	_ap_params_send_state = AutopilotParamsSendState::Sending;
+	_uploadApParam();
 }
 
 void MainWindow::handleCalibrationDialogButton() {
@@ -995,6 +1013,21 @@ void MainWindow::_updateSensorsStatus(mavlink_sys_status_t sys_status) {
 	}
 }
 
+void MainWindow::_handleApParamReceive(mavlink_param_value_t param) {
+	emit apParamValueReceived(param);
+	if (_ap_params_send_state == AutopilotParamsSendState::Sending) {
+		_send_param_timer->start(kSendParamTimeout);
+		qDebug() << "PARAM UPLOADED ID: " << param.param_id
+						 << "VALUE: " << param.param_value << '\n';
+		_params_to_upload.pop_back();
+		if (_params_to_upload.empty()) {
+			_ap_params_send_state = AutopilotParamsSendState::None;
+		} else {
+			_uploadApParam();
+		}
+	}
+}
+
 void MainWindow::_getParameterList() {
 	mavlink_message_t msg;
 	mavlink_msg_param_request_list_pack(SYSTEM_ID, COMP_ID, &msg,
@@ -1002,5 +1035,22 @@ void MainWindow::_getParameterList() {
 	uint8_t buf[14];
 	const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
 	QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
+	writeData(data);
+}
+
+void MainWindow::_uploadApParam() {
+	if (_params_to_upload.empty()) {
+		return;
+	}
+	auto param = _params_to_upload.back();
+
+	mavlink_message_t msg;
+	const auto msg_len = mavlink_msg_param_set_pack(
+			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
+			param.param_id, param.param_value, param.param_type);
+	qDebug() << "MSG LENGTH: " << msg_len << '\n';
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+	const auto buf_size = mavlink_msg_to_send_buffer(buf, &msg);
+	QByteArray data((char *)buf, static_cast<qsizetype>(buf_size));
 	writeData(data);
 }

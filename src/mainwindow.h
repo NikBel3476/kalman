@@ -29,6 +29,7 @@ class Console;
 enum class SerialPortState { Connected, Disconnected };
 enum class AutopilotState { None, Alive };
 enum class AutopilotParamsState { None, Received };
+enum class AutopilotParamsSendState { None, Sending };
 enum class CalibrationState { None, InProgress };
 enum class CalibrationAccelState {
 	None,
@@ -101,12 +102,14 @@ private slots:
 	void handleFirmwareUpload();
 	void _openApParamsPage();
 	void _openSettingsPage();
+	void _getParameterList();
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
 	void _handleStartMagCalibration();
 	void _handleCancelMagCalibration();
 	void _handleStartGyroCalibration();
 	void _handleApAllParamsReceive();
+	void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 
 private:
 	void initActionsConnections();
@@ -120,7 +123,8 @@ private:
 	void reset();
 	void _handleCommandAck(mavlink_command_ack_t &);
 	void _updateSensorsStatus(mavlink_sys_status_t);
-	void _getParameterList();
+	void _handleApParamReceive(mavlink_param_value_t);
+	void _uploadApParam();
 
 	QToolBar *_toolbar = nullptr;
 	QComboBox *_ports_box = nullptr;
@@ -152,6 +156,8 @@ private:
 	mavlink_status_t _mavlink_status;
 	Settings _port_settings;
 	QTimer *_heartbeat_timer = nullptr;
+	QTimer *_send_param_timer = nullptr;
+	std::vector<mavlink_param_value_t> _params_to_upload;
 
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;
@@ -164,6 +170,8 @@ private:
 	SensorStatus _mag_status = SensorStatus::NotFound;
 	AutopilotState _ap_state = AutopilotState::None;
 	AutopilotParamsState _ap_params_state = AutopilotParamsState::None;
+	AutopilotParamsSendState _ap_params_send_state =
+			AutopilotParamsSendState::None;
 };
 
 #endif // MAINWINDOW_H
