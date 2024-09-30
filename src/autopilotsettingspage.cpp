@@ -1,8 +1,5 @@
 #include "autopilotsettingspage.h"
 
-static const int MIN_WIDGET_WIDTH = 150;
-static const int MAX_WIDGET_WIDTH = 500;
-
 AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 		: QWidget{parent}, _layout(new QVBoxLayout(this)),
 			_magnetometer_info_widget(new MagnetometerInfoWidget()),

@@ -34,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_clear(new QAction(_toolbar)),
 			_action_open_settings(new QAction(_toolbar)),
 			_action_open_ap_params(new QAction(_toolbar)),
+			_action_open_console(new QAction(_toolbar)),
+			_action_reboot_ap(new QAction(_toolbar)),
 			_central_widget(new QStackedWidget()), _statusbar(new QStatusBar(this)),
 			_serial_status_label(new QLabel), _ap_status_label(new QLabel),
 			_console(new Console), _authentication_form(new AuthenticationForm()),
@@ -66,6 +68,8 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_clear);
 	_toolbar->addAction(_action_open_settings);
 	_toolbar->addAction(_action_open_ap_params);
+	_toolbar->addAction(_action_open_console);
+	_toolbar->addAction(_action_reboot_ap);
 
 	_action_refresh->setIcon(QIcon(":/images/refresh.png"));
 	_action_refresh->setText(tr("Refresh"));
@@ -92,9 +96,20 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_open_settings->setToolTip(tr("Settings"));
 	_action_open_settings->setEnabled(false);
 
+	_action_open_ap_params->setIcon(QIcon(":/images/parameters.png"));
 	_action_open_ap_params->setText(tr("Parameters"));
 	_action_open_ap_params->setToolTip(tr("Parameters"));
 	_action_open_ap_params->setEnabled(false);
+
+	_action_open_console->setIcon(QIcon(":/images/terminal.png"));
+	_action_open_console->setText(tr("Console"));
+	_action_open_console->setToolTip(tr("Console"));
+	_action_open_console->setEnabled(true);
+
+	_action_reboot_ap->setIcon(QIcon(":/images/reboot.png"));
+	_action_reboot_ap->setText(tr("Reboot"));
+	_action_reboot_ap->setToolTip(tr("Reboot"));
+	_action_reboot_ap->setEnabled(false);
 
 	// central widget content
 	_central_widget->addWidget(_authentication_form);
@@ -239,13 +254,13 @@ void MainWindow::openSerialPort() {
 		_action_refresh->setEnabled(false);
 		_action_connect->setEnabled(false);
 		_action_disconnect->setEnabled(true);
+		_action_reboot_ap->setEnabled(true);
 
 		_serial_status_label->setText(
 				tr("Connected to %1").arg(_serial->portName()));
 		_heartbeat_timer->start(kHeartbeatTimeout);
 		emit serialConnected();
 		_serial_port_state = SerialPortState::Connected;
-		_console->show();
 	} else {
 		QMessageBox::critical(this, tr("Error"), _serial->errorString());
 		showStatusMessage(tr("Open error"));
@@ -262,6 +277,7 @@ void MainWindow::closeSerialPort() {
 	_action_disconnect->setEnabled(false);
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
+	_action_reboot_ap->setEnabled(false);
 	showStatusMessage(tr("Disconnected"));
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_heartbeat_timer->stop();
@@ -304,6 +320,15 @@ void MainWindow::readData() {
 			case MAVLINK_MSG_ID_HEARTBEAT: {
 				mavlink_heartbeat_t heartbeat;
 				mavlink_msg_heartbeat_decode(&_mavlink_message, &heartbeat);
+				const auto heartbeat_str = std::format(
+						"HEARTBEAT type: {} autopilot: {} base_mode: {} custom_mode: {} "
+						"system_status: {} mavlink_version: {}\n",
+						heartbeat.type, heartbeat.autopilot, heartbeat.base_mode,
+						heartbeat.custom_mode, heartbeat.system_status,
+						heartbeat.mavlink_version);
+				QByteArray data(heartbeat_str.c_str(),
+												static_cast<uint32_t>(heartbeat_str.length()));
+				_console->putData(data);
 				_heartbeat_timer->start(kHeartbeatTimeout);
 				if (_ap_state == AutopilotState::None) {
 					_ap_state = AutopilotState::Alive;
@@ -570,6 +595,8 @@ void MainWindow::handleLogin(const QString &username, const QString &password) {
 
 void MainWindow::handleFirmwareUpload() { _openSettingsPage(); }
 
+void MainWindow::_openConsole() { _console->show(); }
+
 void MainWindow::_openApParamsPage() {
 	_central_widget->setCurrentWidget(_ap_params_page);
 	if (_ap_params_state == AutopilotParamsState::None) {
@@ -791,6 +818,15 @@ void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 			break;
 		}
 	} break;
+	case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
+		switch (cmd.result) {
+		case MAV_RESULT_ACCEPTED: {
+			closeSerialPort();
+		} break;
+		default:
+			break;
+		}
+	} break;
 	default:
 		break;
 	}
@@ -808,6 +844,9 @@ void MainWindow::initActionsConnections() {
 					&MainWindow::_openSettingsPage);
 	connect(_action_open_ap_params, &QAction::triggered, this,
 					&MainWindow::_openApParamsPage);
+	connect(_action_open_console, &QAction::triggered, this,
+					&MainWindow::_openConsole);
+	connect(_action_reboot_ap, &QAction::triggered, this, &MainWindow::_rebootAp);
 }
 
 void MainWindow::initSerialPortEventsConnections() {
@@ -1033,6 +1072,26 @@ void MainWindow::_getParameterList() {
 	mavlink_msg_param_request_list_pack(SYSTEM_ID, COMP_ID, &msg,
 																			TARGET_SYSTEM_ID, TARGET_COMP_ID);
 	uint8_t buf[14];
+	const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
+	QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
+	writeData(data);
+}
+
+void MainWindow::_rebootAp() {
+	mavlink_message_t msg;
+	const uint8_t confirmation = 0;
+	const float param1 = 1;
+	const float param2 = 0;
+	const float param3 = 0;
+	const float param4 = 0;
+	const float param5 = 0;
+	const float param6 = 0;
+	const float param7 = 0;
+	mavlink_msg_command_long_pack(
+			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
+			MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, confirmation, param1, param2, param3,
+			param4, param5, param6, param7);
+	uint8_t buf[44];
 	const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
 	QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
 	writeData(data);

@@ -89,6 +89,9 @@ set(resource_files
 	"images/disconnect.png"
 	"images/settings.png"
 	"images/refresh.png"
+	"images/parameters.png"
+	"images/terminal.png"
+	"images/reboot.png"
 	"qml/AuthenticationForm.qml"
 )
 

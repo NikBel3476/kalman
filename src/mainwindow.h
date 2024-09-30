@@ -100,9 +100,11 @@ private slots:
 
 	void handleLogin(const QString &, const QString &);
 	void handleFirmwareUpload();
+	void _openConsole();
 	void _openApParamsPage();
 	void _openSettingsPage();
 	void _getParameterList();
+	void _rebootAp();
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
 	void _handleStartMagCalibration();
@@ -134,6 +136,8 @@ private:
 	QAction *_action_clear = nullptr;
 	QAction *_action_open_settings = nullptr;
 	QAction *_action_open_ap_params = nullptr;
+	QAction *_action_open_console = nullptr;
+	QAction *_action_reboot_ap = nullptr;
 	QStackedWidget *_central_widget = nullptr;
 	QStatusBar *_statusbar = nullptr;
 	QLabel *_serial_status_label = nullptr;
