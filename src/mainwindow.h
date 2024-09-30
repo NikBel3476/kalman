@@ -12,9 +12,10 @@
 #include "mavlink/ardupilotmega/mavlink.h"
 
 #include "apparameterspage.h"
-#include "authenticationform.h"
+#include "authenticationpage.h"
 #include "autopilotsettingspage.h"
 #include "firmwareuploadpage.h"
+#include "mavlinkmanager.h"
 #include "sensor.h"
 
 QT_BEGIN_NAMESPACE
@@ -84,6 +85,7 @@ signals:
 	void magStatusUpdated(SensorStatus);
 	void gyroCalibrationCompleted();
 	void apParamValueReceived(mavlink_param_value_t);
+	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
 
 private slots:
 	void fillPortsInfo();
@@ -98,7 +100,8 @@ private slots:
 	void handleHeartbeatTimeout();
 	void handleCalibrationDialogButton();
 
-	void handleLogin(const QString &, const QString &);
+	void _login(const QString &, const QString &);
+	void _logout();
 	void handleFirmwareUpload();
 	void _openConsole();
 	void _openApParamsPage();
@@ -138,12 +141,13 @@ private:
 	QAction *_action_open_ap_params = nullptr;
 	QAction *_action_open_console = nullptr;
 	QAction *_action_reboot_ap = nullptr;
+	QAction *_action_logout = nullptr;
 	QStackedWidget *_central_widget = nullptr;
 	QStatusBar *_statusbar = nullptr;
 	QLabel *_serial_status_label = nullptr;
 	QLabel *_ap_status_label = nullptr;
 	Console *_console = nullptr;
-	AuthenticationForm *_authentication_form = nullptr;
+	AuthenticationPage *_authentication_page = nullptr;
 	QMessageBox *_msg_cal_box = nullptr;
 	QPushButton *_msg_cal_box_button = nullptr;
 
@@ -162,6 +166,8 @@ private:
 	QTimer *_heartbeat_timer = nullptr;
 	QTimer *_send_param_timer = nullptr;
 	std::vector<mavlink_param_value_t> _params_to_upload;
+	std::vector<mavlink_param_value_t> _not_written_params;
+	MavlinkManager *_mavlink_manager = nullptr;
 
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;

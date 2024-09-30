@@ -1,9 +1,9 @@
-#include "authenticationform.h"
+#include "authenticationpage.h"
 
 const static int MIN_FORM_WIDTH = 150;
 const static int MAX_FORM_WIDTH = 250;
 
-AuthenticationForm::AuthenticationForm(QWidget *parent)
+AuthenticationPage::AuthenticationPage(QWidget *parent)
 		: QWidget{parent}, m_layout(new QVBoxLayout(this)),
 			m_username_input(new QLineEdit()), m_password_input(new QLineEdit()),
 			m_login_button(new QPushButton()) {
@@ -33,21 +33,21 @@ AuthenticationForm::AuthenticationForm(QWidget *parent)
 	m_login_button->setMaximumWidth(MAX_FORM_WIDTH);
 
 	connect(m_login_button, &QPushButton::pressed, this,
-					&AuthenticationForm::handleLoginButtonPress);
+					&AuthenticationPage::handleLoginButtonPress);
 	connect(m_username_input, &QLineEdit::textChanged, this,
-					&AuthenticationForm::handleUsernameChange);
+					&AuthenticationPage::handleUsernameChange);
 	connect(m_password_input, &QLineEdit::textChanged, this,
-					&AuthenticationForm::handlePasswordChange);
+					&AuthenticationPage::handlePasswordChange);
 }
 
-void AuthenticationForm::handleUsernameChange(const QString &changedUsername) {
+void AuthenticationPage::handleUsernameChange(const QString &changedUsername) {
 	m_username = changedUsername;
 }
 
-void AuthenticationForm::handlePasswordChange(const QString &changedPassword) {
+void AuthenticationPage::handlePasswordChange(const QString &changedPassword) {
 	m_password = changedPassword;
 }
 
-void AuthenticationForm::handleLoginButtonPress() {
+void AuthenticationPage::handleLoginButtonPress() {
 	emit login(m_username, m_password);
 }

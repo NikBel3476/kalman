@@ -3,6 +3,7 @@
 #include <QScrollBar>
 
 Console::Console(QWidget *parent) : QPlainTextEdit(parent) {
+	setWindowTitle(tr("Mavlink messages"));
 	// document()->setMaximumBlockCount(100);
 	QPalette p = palette();
 	p.setColor(QPalette::Base, Qt::black);

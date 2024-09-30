@@ -4,8 +4,12 @@
 <context>
 	<name>MainWindow</name>
 	<message>
-	<source>Refresh</source>
-	<translation>Обновить</translation>
+	    <source>Refresh</source>
+	    <translation>Обновить</translation>
+	</message>
+	<message>
+	    <source>Refresh device list</source>
+	    <translation>Обновить список устройств</translation>
 	</message>
 	<message>
 		<source>Connect</source>
@@ -28,6 +32,30 @@
 		<translation>Очистить</translation>
 	</message>
 	<message>
+		<source>Clear console</source>
+		<translation>Очистить консоль</translation>
+	</message>
+	<message>
+		<source>Settings</source>
+		<translation>Настройки</translation>
+	</message>
+	<message>
+		<source>Parameters</source>
+		<translation>Параметры</translation>
+	</message>
+	<message>
+		<source>Console</source>
+		<translation>Консоль</translation>
+	</message>
+	<message>
+		<source>Reboot</source>
+		<translation>Перезагрузить</translation>
+	</message>
+	<message>
+		<source>Logout</source>
+		<translation>Выйти</translation>
+	</message>
+	<message>
 		<source>Error</source>
 		<translation>Ошибка</translation>
 	</message>
@@ -44,16 +72,16 @@
 		<translation>Подключено к %1</translation>
 	</message>
 	<message>
+		<source>Autopilot connected</source>
+		<translation>Автопилот подключён</translation>
+	</message>
+	<message>
+		<source>Autopilot disconnected</source>
+		<translation>Автопилот отключён</translation>
+	</message>
+	<message>
 		<source>Failed to write all data to port %1.\n Error: %2</source>
 		<translation>Не удалось записать все данные в порт %1.\n Ошибка: %2</translation>
-	</message>
-	<message>
-		<source>Username</source>
-		<translation>Имя пользователя</translation>
-	</message>
-	<message>
-		<source>Password</source>
-		<translation>Пароль</translation>
 	</message>
 	<message>
 		<source>Place vehicle in level position and then press OK</source>
@@ -85,7 +113,14 @@
 	</message>
 </context>
 <context>
-	<name>AuthenticationForm</name>
+    <name>Console</name>
+	<message>
+		<source>Mavlink messages</source>
+		<translation>Mavlink сообщения</translation>
+	</message>
+</context>
+<context>
+    <name>AuthenticationPage</name>
 	<message>
 		<source>Username</source>
 		<translation>Имя пользователя</translation>
@@ -152,7 +187,7 @@
 <context>
 	<name>MagnetometerInfoWidget</name>
 	<message>
-		<source>Magnetometr</source>
+		<source>Magnetometer</source>
 		<translation>Магнитометр</translation>
 	</message>
 	<message>
@@ -178,6 +213,22 @@
 	<message>
 		<source>Failed</source>
 		<translation>Неудачно</translation>
+	</message>
+	<message>
+		<source>Status: Not found</source>
+		<translation>Статус: не найден</translation>
+	</message>
+	<message>
+		<source>Status: disabled</source>
+		<translation>Статус: выключен</translation>
+	</message>
+	<message>
+		<source>Status: enabled</source>
+		<translation>Статус: включён</translation>
+	</message>
+	<message>
+		<source>Status: error</source>
+		<translation>Статус: ошибка</translation>
 	</message>
 </context>
 <context>
@@ -228,6 +279,53 @@
 	<message>
 		<source>Rail voltage: %1 mV</source>
 		<translation>Напряжение питания: %1 мВ</translation>
+	</message>
+</context>
+<context>
+    <name>ApParametersPage</name>
+	<message>
+		<source>Update</source>
+		<translation>Обновить</translation>
+	</message>
+	<message>
+		<source>Compare parameters</source>
+		<translation>Сравнить параметры</translation>
+	</message>
+	<message>
+		<source>Upload parameters</source>
+		<translation>Загрузить параметры</translation>
+	</message>
+	<message>
+		<source>Name</source>
+		<translation>Имя</translation>
+	</message>
+	<message>
+		<source>Value</source>
+		<translation>Значение</translation>
+	</message>
+	<message>
+		<source>Comparing value</source>
+		<translation>Сравниваемое значение</translation>
+	</message>
+	<message>
+		<source>Information</source>
+		<translation>Информация</translation>
+	</message>
+	<message>
+		<source>Warning</source>
+		<translation>Внимание</translation>
+	</message>
+	<message>
+		<source>Parameters are matching</source>
+		<translation>Параметры совпадают</translation>
+	</message>
+	<message>
+		<source>Parameters are not matching</source>
+		<translation>Параметры не совпадают</translation>
+	</message>
+    <message>
+		<source>Cannot write all new parameters</source>
+		<translation>Не удалось записать все новые параметры</translation>
 	</message>
 </context>
 </TS>

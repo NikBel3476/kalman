@@ -36,9 +36,10 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_open_ap_params(new QAction(_toolbar)),
 			_action_open_console(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
+			_action_logout(new QAction(_toolbar)),
 			_central_widget(new QStackedWidget()), _statusbar(new QStatusBar(this)),
 			_serial_status_label(new QLabel), _ap_status_label(new QLabel),
-			_console(new Console), _authentication_form(new AuthenticationForm()),
+			_console(new Console), _authentication_page(new AuthenticationPage()),
 			_msg_cal_box(new QMessageBox(this)),
 			_firmware_upload_page(new FirmwareUploadPage()),
 			_autopilot_settings_page(new AutopilotSettingsPage()),
@@ -47,7 +48,8 @@ MainWindow::MainWindow(QWidget *parent)
 			_ap_params_page(new ApParametersPage()), _timer(new QTimer(this)),
 			_serial(new QSerialPort(this)), _mavlink_message{}, _mavlink_status{},
 			_port_settings{}, _heartbeat_timer(new QTimer(this)),
-			_send_param_timer(new QTimer(this)) {
+			_send_param_timer(new QTimer(this)),
+			_mavlink_manager(new MavlinkManager(this, _serial)) {
 	setWindowTitle("Autopilot selfcheck");
 	setMinimumSize(600, 800);
 	setGeometry(QRect(0, 0, 600, 800));
@@ -62,18 +64,22 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addWidget(_ports_box);
 	_toolbar->setVisible(false);
 
+	const auto spacer = new QWidget();
+	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	_toolbar->addAction(_action_refresh);
 	_toolbar->addAction(_action_connect);
 	_toolbar->addAction(_action_disconnect);
-	_toolbar->addAction(_action_clear);
 	_toolbar->addAction(_action_open_settings);
 	_toolbar->addAction(_action_open_ap_params);
-	_toolbar->addAction(_action_open_console);
 	_toolbar->addAction(_action_reboot_ap);
+	_toolbar->addAction(_action_open_console);
+	_toolbar->addAction(_action_clear);
+	_toolbar->addWidget(spacer);
+	_toolbar->addAction(_action_logout);
 
 	_action_refresh->setIcon(QIcon(":/images/refresh.png"));
 	_action_refresh->setText(tr("Refresh"));
-	_action_refresh->setToolTip(tr("Refresh"));
+	_action_refresh->setToolTip(tr("Refresh device list"));
 	_action_refresh->setEnabled(true);
 
 	_action_connect->setIcon(QIcon(":/images/connect.png"));
@@ -88,7 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 	_action_clear->setIcon(QIcon(":/images/clear.png"));
 	_action_clear->setText(tr("Clear"));
-	_action_clear->setToolTip(tr("Clear"));
+	_action_clear->setToolTip(tr("Clear console"));
 	_action_clear->setEnabled(true);
 
 	_action_open_settings->setIcon(QIcon(":/images/settings.png"));
@@ -111,16 +117,20 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_reboot_ap->setToolTip(tr("Reboot"));
 	_action_reboot_ap->setEnabled(false);
 
+	_action_logout->setText(tr("Logout"));
+	_action_logout->setToolTip(tr("Logout"));
+	_action_logout->setEnabled(true);
+
 	// central widget content
-	_central_widget->addWidget(_authentication_form);
+	_central_widget->addWidget(_authentication_page);
 	_central_widget->addWidget(_firmware_upload_page);
 	// _central_widget->addWidget(_console);
 	_central_widget->addWidget(_autopilot_settings_page);
 	_central_widget->addWidget(_ap_params_page);
 
-	_central_widget->setCurrentWidget(_authentication_form);
+	_central_widget->setCurrentWidget(_authentication_page);
 
-	// _central_widget_layout->addWidget(_authentication_form);
+	// _central_widget_layout->addWidget(_authentication_page);
 	// _central_widget_layout->addWidget(_console);
 	// _central_widget_layout->addWidget(_qml_container);
 
@@ -154,8 +164,8 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
 
 	// authentiation form connections
-	connect(_authentication_form, &AuthenticationForm::login, this,
-					&MainWindow::handleLogin);
+	connect(_authentication_page, &AuthenticationPage::login, this,
+					&MainWindow::_login);
 
 	// firmware upload page connections
 	connect(this, &MainWindow::serialConnected, _firmware_upload_page,
@@ -232,6 +242,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_handleApAllParamsReceive);
 	connect(_ap_params_page, &ApParametersPage::requestUploadApParams, this,
 					&MainWindow::_handleUploadApParamsRequest);
+	connect(this, &MainWindow::apParamsUploaded, _ap_params_page,
+					&ApParametersPage::handleApParamsUploadCompletion);
 
 	fillPortsInfo();
 }
@@ -565,7 +577,11 @@ void MainWindow::readData() {
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
 	if (error == QSerialPort::ResourceError) {
-		QMessageBox::critical(this, tr("Critical Error"), _serial->errorString());
+		qDebug() << _serial->errorString() << '\n';
+		// QMessageBox::critical(this, tr("Critical Error"),
+		// _serial->errorString());
+		// FIXME: This error happens sometimes and not breaking connection, the
+		// reason is not figured out
 		if (_serial->errorString() != "Resource temporarily unavailable") {
 			closeSerialPort();
 		}
@@ -585,12 +601,18 @@ void MainWindow::handleWriteTimeout() {
 	showWriteError(error);
 }
 
-void MainWindow::handleLogin(const QString &username, const QString &password) {
+void MainWindow::_login(const QString &username, const QString &password) {
 	qDebug() << "Login event\n" << username << '\n' << password << '\n';
 	// TODO: add authentication
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_toolbar->setVisible(true);
 	_statusbar->setVisible(true);
+}
+
+void MainWindow::_logout() {
+	closeSerialPort();
+	_toolbar->setVisible(false);
+	_central_widget->setCurrentWidget(_authentication_page);
 }
 
 void MainWindow::handleFirmwareUpload() { _openSettingsPage(); }
@@ -847,6 +869,7 @@ void MainWindow::initActionsConnections() {
 	connect(_action_open_console, &QAction::triggered, this,
 					&MainWindow::_openConsole);
 	connect(_action_reboot_ap, &QAction::triggered, this, &MainWindow::_rebootAp);
+	connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
 }
 
 void MainWindow::initSerialPortEventsConnections() {
@@ -909,7 +932,7 @@ void MainWindow::fillPortsInfo() {
 
 		_ports_box->addItem(list.constFirst(), list);
 	}
-	_ports_box->addItem(tr("Custom"));
+	// _ports_box->addItem(tr("Custom"));
 }
 
 void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {
@@ -1058,9 +1081,15 @@ void MainWindow::_handleApParamReceive(mavlink_param_value_t param) {
 		_send_param_timer->start(kSendParamTimeout);
 		qDebug() << "PARAM UPLOADED ID: " << param.param_id
 						 << "VALUE: " << param.param_value << '\n';
+		const auto uploaded_param = _params_to_upload.back();
+		if (uploaded_param.param_value != param.param_value) {
+			_not_written_params.push_back(uploaded_param);
+		}
 		_params_to_upload.pop_back();
 		if (_params_to_upload.empty()) {
 			_ap_params_send_state = AutopilotParamsSendState::None;
+			emit apParamsUploaded(_not_written_params);
+			_not_written_params.clear();
 		} else {
 			_uploadApParam();
 		}
@@ -1104,11 +1133,10 @@ void MainWindow::_uploadApParam() {
 	auto param = _params_to_upload.back();
 
 	mavlink_message_t msg;
-	const auto msg_len = mavlink_msg_param_set_pack(
-			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
-			param.param_id, param.param_value, param.param_type);
-	qDebug() << "MSG LENGTH: " << msg_len << '\n';
-	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+	mavlink_msg_param_set_pack(SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID,
+														 TARGET_COMP_ID, param.param_id, param.param_value,
+														 param.param_type);
+	uint8_t buf[35];
 	const auto buf_size = mavlink_msg_to_send_buffer(buf, &msg);
 	QByteArray data((char *)buf, static_cast<qsizetype>(buf_size));
 	writeData(data);

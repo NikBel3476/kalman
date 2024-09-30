@@ -1,5 +1,5 @@
-#ifndef AUTHENTICATIONFORM_H
-#define AUTHENTICATIONFORM_H
+#ifndef AUTHENTICATIONPAGE_H
+#define AUTHENTICATIONPAGE_H
 
 #include <QLineEdit>
 #include <QPushButton>
@@ -7,10 +7,10 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-class AuthenticationForm : public QWidget {
+class AuthenticationPage : public QWidget {
 	Q_OBJECT
 public:
-	explicit AuthenticationForm(QWidget *parent = nullptr);
+	explicit AuthenticationPage(QWidget *parent = nullptr);
 
 signals:
 	void login(const QString &username, const QString &password);
@@ -30,4 +30,4 @@ private:
 	QString m_password;
 };
 
-#endif // AUTHENTICATIONFORM_H
+#endif // AUTHENTICATIONPAGE_H

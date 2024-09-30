@@ -4,12 +4,14 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QString>
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <algorithm>
 
 #include "mavlink/ardupilotmega/mavlink.h"
 
@@ -25,6 +27,8 @@ signals:
 
 public slots:
 	void handleApParamReceive(mavlink_param_value_t);
+	void
+	handleApParamsUploadCompletion(const std::vector<mavlink_param_value_t> &);
 
 private slots:
 	void _handleUpdateParamsButtonClick();
@@ -39,6 +43,7 @@ private:
 	QPushButton *_compare_params_btn = nullptr;
 	QPushButton *_upload_params_btn = nullptr;
 	QTableWidget *_ap_params_table = nullptr;
+	QProgressBar *_upload_params_progress_bar = nullptr;
 
 	std::vector<mavlink_param_value_t> _ap_params;
 	std::vector<mavlink_param_value_t> _params_to_change;
