@@ -323,9 +323,13 @@
 		<source>Parameters are not matching</source>
 		<translation>Параметры не совпадают</translation>
 	</message>
-    <message>
+	<message>
 		<source>Cannot write all new parameters</source>
 		<translation>Не удалось записать все новые параметры</translation>
+	</message>
+	<message>
+	    <source>Parameters written succesfully. Autopilot must be rebooted</source>
+		<translation>Параметры успешно записаны. Автопилот должен быть перезагружен</translation>
 	</message>
 </context>
 </TS>

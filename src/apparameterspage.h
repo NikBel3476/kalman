@@ -12,6 +12,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <algorithm>
+#include <set>
 
 #include "mavlink/ardupilotmega/mavlink.h"
 
@@ -45,7 +46,7 @@ private:
 	QTableWidget *_ap_params_table = nullptr;
 	QProgressBar *_upload_params_progress_bar = nullptr;
 
-	std::vector<mavlink_param_value_t> _ap_params;
+	std::map<std::string, mavlink_param_value_t> _ap_params;
 	std::vector<mavlink_param_value_t> _params_to_change;
 	uint16_t _params_total_count = 0;
 	uint32_t _params_received = 0;

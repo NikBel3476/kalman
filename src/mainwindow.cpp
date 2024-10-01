@@ -472,7 +472,7 @@ void MainWindow::readData() {
 				QByteArray data(statustext_str.c_str(),
 												static_cast<uint32_t>(statustext_str.length()));
 				_console->putData(data);
-				qDebug() << statustext_str << '\n';
+				// qDebug() << statustext_str << '\n';
 			} break;
 			case MAVLINK_MSG_ID_MAG_CAL_PROGRESS: {
 				mavlink_mag_cal_progress_t mag_cal_progress;

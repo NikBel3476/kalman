@@ -188,3 +188,12 @@ result_param: 0
 target_system: 255
 target_component: 190
 ```
+
+### Autopilot parameters
+GS -> AP  
+PARAM_REQUEST_LIST (21) - request all parameter list  
+PARAM_SET (23) - set parameter on autopilot
+
+AP -> GS  
+PARAM_VALUE (22) - parameter from autopilot  
+> After parameters set autopilot will return written parameters but with index 65535 
