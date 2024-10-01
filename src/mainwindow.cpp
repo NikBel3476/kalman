@@ -172,10 +172,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&FirmwareUploadPage::handleSerialConnection);
 	connect(this, &MainWindow::serialDisconnected, _firmware_upload_page,
 					&FirmwareUploadPage::handleSerialDisconnection);
-	connect(_firmware_upload_page, &FirmwareUploadPage::firmwareUploaded, this,
+	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmware, this,
 					&MainWindow::handleFirmwareUpload);
-	connect(_firmware_upload_page, &FirmwareUploadPage::goToSettingsPage, this,
-					&MainWindow::_openSettingsPage);
 
 	// autopilot settings page connections
 	connect(this, &MainWindow::IMUUpdated, _autopilot_settings_page,
@@ -624,7 +622,10 @@ void MainWindow::_logout() {
 	_central_widget->setCurrentWidget(_authentication_page);
 }
 
-void MainWindow::handleFirmwareUpload() { _openSettingsPage(); }
+void MainWindow::handleFirmwareUpload(DroneType drone_type) {
+	qDebug() << std::format("Upload firmware. Drone type: {}\n",
+													static_cast<int>(drone_type));
+}
 
 void MainWindow::_openConsole() { _console->show(); }
 

@@ -102,7 +102,7 @@ private slots:
 
 	void _login(const QString &, const QString &);
 	void _logout();
-	void handleFirmwareUpload();
+	void handleFirmwareUpload(DroneType);
 	void _openConsole();
 	void _openApParamsPage();
 	void _openSettingsPage();

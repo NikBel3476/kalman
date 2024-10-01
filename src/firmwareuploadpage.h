@@ -4,7 +4,10 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QVariant>
 #include <QWidget>
+
+enum class DroneType { SingleWing, Quadrocopter };
 
 class FirmwareUploadPage : public QWidget {
 	Q_OBJECT
@@ -12,8 +15,7 @@ public:
 	explicit FirmwareUploadPage(QWidget *parent = nullptr);
 
 signals:
-	void firmwareUploaded();
-	void goToSettingsPage();
+	void uploadFirmware(DroneType);
 
 public slots:
 	void handleSerialConnection();
@@ -21,15 +23,12 @@ public slots:
 	void handleDroneTypeBoxChange(int index);
 	void handleUploadButtonPress();
 
-private slots:
-	void handleSettingsButtonPress();
-
 private:
-	QVBoxLayout *m_layout = nullptr;
-	QComboBox *m_drone_type_box = nullptr;
-	QPushButton *m_firmware_upload_button = nullptr;
+	QVBoxLayout *_layout = nullptr;
+	QComboBox *_drone_type_box = nullptr;
+	QPushButton *_firmware_upload_button = nullptr;
 
-	QString m_drone_type;
+	DroneType _drone_type;
 };
 
 #endif // FIRMWAREUPLOADPAGE_H
