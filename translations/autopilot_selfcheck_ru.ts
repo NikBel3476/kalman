@@ -84,6 +84,10 @@
 		<translation>Не удалось записать все данные в порт %1.\n Ошибка: %2</translation>
 	</message>
 	<message>
+		<source>No device permissions or it is already in use</source>
+		<translation>Нет прав доступа к устройству или оно уже используется</translation>
+	</message>
+	<message>
 		<source>Place vehicle in level position and then press OK</source>
 		<translation>Поставьте автопилот в уроверь с полом и нажмите ОК</translation>
 	</message>

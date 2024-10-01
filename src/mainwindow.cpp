@@ -274,7 +274,7 @@ void MainWindow::openSerialPort() {
 		emit serialConnected();
 		_serial_port_state = SerialPortState::Connected;
 	} else {
-		QMessageBox::critical(this, tr("Error"), _serial->errorString());
+		// QMessageBox::critical(this, tr("Error"), _serial->errorString());
 		showStatusMessage(tr("Open error"));
 	}
 }
@@ -576,15 +576,24 @@ void MainWindow::readData() {
 }
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
-	if (error == QSerialPort::ResourceError) {
+	switch (error) {
+	case QSerialPort::ResourceError: {
 		qDebug() << _serial->errorString() << '\n';
 		// QMessageBox::critical(this, tr("Critical Error"),
 		// _serial->errorString());
-		// FIXME: This error happens sometimes and not breaking connection, the
-		// reason is not figured out
-		if (_serial->errorString() != "Resource temporarily unavailable") {
-			closeSerialPort();
+		// FIXME: This error happens sometimes and not breaking connection so we do
+		// not close the port, the reason is not figured out closeSerialPort();
+	} break;
+	case QSerialPort::PermissionError: {
+		QMessageBox::warning(this, tr("Warning"),
+												 tr("No device permissions or it is already in use"));
+	} break;
+	default: {
+		// sometimes error emits with `No error` message
+		if (_serial->errorString() != "No error") {
+			QMessageBox::critical(this, tr("Error"), _serial->errorString());
 		}
+	}
 	}
 }
 
