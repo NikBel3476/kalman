@@ -2,9 +2,15 @@ name: Build and test
 
 on: [push, pull_request]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+
+    env:
+      OUT_FILENAME: autopilot_selfcheck-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.c_compiler }}
 
     strategy:
       fail-fast: false
@@ -44,6 +50,7 @@ jobs:
             c_compiler: gcc-13
           - os: macos-latest
             c_compiler: clang-15
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -77,14 +84,41 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCPACK_PACKAGE_FILE_NAME=${{ env.OUT_FILENAME }}
         -S ${{ github.workspace }}
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+    - name: Create archive
+      run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake"
+
     # - name: Test
     #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
     #   # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
     #   # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
     #   run: ctest --build-config ${{ matrix.build_type }}
+
+    - name: Release (ubuntu)
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      uses: softprops/action-gh-release@v2
+      with:
+        body: ${{ github.ref_name }}
+        files: |
+          ${{ env.OUT_FILENAME }}.tar.gz
+          ${{ env.OUT_FILENAME }}.exe
+
+    #- name: Release (windows)
+    #  if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.os == 'windows-latest' }}
+    #  uses: softprops/action-gh-release@v2
+    #  with:
+    #    body: ${{ matrix.os }}-${{ github.ref_name }}-${{ matrix.c_compiler }}
+    #    files: autopilot_selfcheck-${{ github.ref_name }}-${{ runner.os }}-${{ matrix.c_compiler }}.exe
+
+    #- name: Release (macos)
+    #  if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.os == 'macos-latest' }}
+    #  uses: softprops/action-gh-release@v2
+    #  with:
+    #    body: ${{ matrix.os }}-${{ github.ref_name }}-${{ matrix.c_compiler }}
+    #    files: autopilot_selfcheck-${{ github.ref_name }}-${{ runner.os }}-${{ matrix.c_compiler }}.tar.gz
