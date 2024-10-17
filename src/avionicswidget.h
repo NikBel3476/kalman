@@ -6,8 +6,8 @@
 #include <QWidget>
 #include <cmath>
 
-#include "mavlink/ardupilotmega/mavlink.h"
-#include "qflightinstruments/src/qfi/qfi_EADI.h"
+#include <ardupilotmega/mavlink.h>
+#include <qfi_EADI.h>
 
 class AvionicsWidget : public QWidget {
 	Q_OBJECT

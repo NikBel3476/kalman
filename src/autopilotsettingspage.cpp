@@ -109,8 +109,9 @@ void AutopilotSettingsPage::handleMagStatusUpdate(SensorStatus status) {
 	emit magStatusUpdated(status);
 }
 
-void AutopilotSettingsPage::handleCompleteAccelerometerCalibration() {
-	emit accelerometerCalibrationCompleted();
+void AutopilotSettingsPage::handleCompleteAccelerometerCalibration(
+		CalibrationResult result) {
+	emit accelerometerCalibrationCompleted(result);
 }
 
 void AutopilotSettingsPage::handleMagCalProgressUpdate(

@@ -38,8 +38,17 @@ ApParametersPage::ApParametersPage(QWidget *parent)
 					&ApParametersPage::_handleUploadParamsButtonClick);
 }
 
+void ApParametersPage::clearParamsToUpload() {
+	const auto column_count = _ap_params_table->columnCount();
+	if (column_count == 3) {
+		_ap_params_table->removeColumn(column_count - 1);
+	}
+	_params_to_change.clear();
+}
+
 void ApParametersPage::handleApParamReceive(mavlink_param_value_t param_value) {
-	if (param_value.param_index == 65535) {
+	const auto written_param_index = 65535;
+	if (param_value.param_index == written_param_index) {
 		// this is a written value, return right param index
 		param_value.param_index =
 				_ap_params[std::string(param_value.param_id)].param_index;
@@ -114,6 +123,7 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 void ApParametersPage::_handleUploadParamsButtonClick() {
 	_upload_params_btn->setEnabled(false);
 	emit requestUploadApParams(_params_to_change);
+	_params_to_change.clear();
 }
 
 void ApParametersPage::_parseApParameters(const QByteArray &file_content) {

@@ -14,12 +14,13 @@
 #include <algorithm>
 #include <set>
 
-#include "mavlink/ardupilotmega/mavlink.h"
+#include <ardupilotmega/mavlink.h>
 
 class ApParametersPage : public QWidget {
 	Q_OBJECT
 public:
 	explicit ApParametersPage(QWidget *parent = nullptr);
+	void clearParamsToUpload();
 
 signals:
 	void requestDownloadParams();

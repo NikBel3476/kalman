@@ -37,13 +37,13 @@ FirmwareUploadPage::FirmwareUploadPage(QWidget *parent)
 }
 
 void FirmwareUploadPage::handleSerialConnection() {
-	qDebug() << "Autopilot connected\n";
+	qDebug() << "Serial connected\n";
 	_drone_type_box->setVisible(true);
 	_firmware_upload_button->setVisible(true);
 }
 
 void FirmwareUploadPage::handleSerialDisconnection() {
-	qDebug() << "Autopilot disconnected\n";
+	qDebug() << "Serial disconnected\n";
 	_drone_type_box->setVisible(false);
 	_firmware_upload_button->setVisible(false);
 }

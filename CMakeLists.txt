@@ -1,13 +1,44 @@
 cmake_minimum_required(VERSION 3.18)
-project(autopilot_selfcheck VERSION 0.1.0 LANGUAGES C CXX)
+project(autopilot_selfcheck VERSION 0.1.0 LANGUAGES CXX)
+
+cmake_policy(SET CMP0135 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
+
+include(FetchContent)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(MAVLINK_DIALECT ardupilotmega)
 
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
+
+set(mavlink mavlink)
+set(qflightinstruments qflightinstruments)
+set(json json)
+# FetchContent_Declare(mavlink
+# 	GIT_REPOSITORY https://github.com/mavlink/mavlink.git
+# 	# FIND_PACKAGE_ARGS NAMES MAVLink
+# )
+FetchContent_Declare(${mavlink}
+	GIT_REPOSITORY https://github.com/mavlink/c_library_v2.git
+	GIT_TAG 52698eb556445d22ea0f0145fde1ae64719b6646
+)
+# FetchContent_Declare(
+#   googletest
+#   GIT_REPOSITORY https://github.com/google/googletest.git
+#   GIT_TAG        703bd9caab50b139428cea1aaff9974ebee5742e # release-1.10.0
+#   FIND_PACKAGE_ARGS NAMES GTest
+# )
+FetchContent_Declare(${qflightinstruments}
+	GIT_REPOSITORY https://github.com/NikBel3476/QFlightinstruments.git
+)
+FetchContent_Declare(${json} URL
+	https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+)
+FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink})
 
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
@@ -19,21 +50,46 @@ find_package(Qt6 REQUIRED COMPONENTS
 	SvgWidgets
 )
 
-file(GLOB_RECURSE mavlink_sources
-	${PROJECT_SOURCE_DIR}/src/mavlink/*.h
-)
+# find_package(MAVLink REQUIRED)
 
-set(mavlink_lib_name mavlink)
+# file(GLOB_RECURSE mavlink_sources
+# 	${PROJECT_SOURCE_DIR}/src/mavlink/*.h
+# )
 
-add_library(${mavlink_lib_name} STATIC
-	${mavlink_sources}
-)
+# set(mavlink_lib_name mavlink)
 
-if (MSVC)
-	target_compile_options(${mavlink_lib_name} PRIVATE /w)
-else()
-	target_compile_options(${mavlink_lib_name} PRIVATE -w)
-endif()
+# add_library(${mavlink_lib_name} STATIC
+# 	${mavlink_sources}
+# )
+
+# if (MSVC)
+# 	# target_compile_options(mavlink PUBLIC /w)
+# 	# set_target_properties(${mavlink_lib_name} PROPERTIES
+# 	# 	COMPILE_OPTIONS /w
+# 	# )
+# else()
+# 	# target_compile_options(${mavlink_lib_name} PUBLIC -w)
+# 	# set_target_properties(${mavlink_lib_name} PROPERTIES
+# 	# 	COMPILE_OPTIONS -w
+# 	# )
+# endif()
+
+# file(GLOB_RECURSE ${mavlink_source_files}
+# 	${PROJECT_SOURCE_DIR}/src/mavlink/*.h
+# )
+
+# if (MSVC)
+# 	set(MAVLINK_LIB_FLAGS /w)
+# else()
+# 	set(MAVLINK_LIB_FLAGS -w)
+# endif()
+
+# set_source_files_properties(
+# 	${mavlink_source_files}
+# 	DIRECTORY src/mavlink
+# 	PROPERTIES
+# 	COMPILE_OPTIONS ${MAVLINK_LIB_FLAGS}
+# )
 
 qt_standard_project_setup(
 	I18N_TRANSLATED_LANGUAGES en ru
@@ -50,9 +106,17 @@ qt_add_executable(${PROJECT_NAME}
 )
 
 if (MSVC)
+	# target_compile_options(mavlink INTERFACE /w)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+	# set_target_properties(mavlink PROPERTIES
+	# 	COMPILE_OPTIONS /w
+	# )
 else()
+	# target_compile_options(mavlink INTERFACE -w)
 	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+	# set_target_properties(mavlink PROPERTIES
+	# 	COMPILE_OPTIONS -w
+	# )
 endif()
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
@@ -75,11 +139,34 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Quick
 	Qt6::Platform
 	Qt6::SvgWidgets
-	mavlink
+	# MAVLink::mavlink
+	# mavlink
 	qflightinstruments
+	nlohmann_json::nlohmann_json
 )
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/qflightinstruments)
+target_include_directories(${PROJECT_NAME} PRIVATE
+	${mavlink_SOURCE_DIR}
+	# ${mavlink_SOURCE_DIR}/all
+	# ${mavlink_SOURCE_DIR}/common
+	# ${mavlink_SOURCE_DIR}/ardupilotmega
+)
+
+file(GLOB_RECURSE mavlink_source_files
+	${mavlink_SOURCE_DIR}/*.h
+)
+
+set_source_files_properties(
+	${mavlink_source_files}
+	PROPERTIES
+	COMPILE_OPTIONS -w
+)
+
+# target_include_directories(${PROJECT_NAME} INTERFACE
+# 	${CMAKE_CURRENT_SOURCE_DIR}/src/mavlink
+# )
+
+# add_subdirectory(${PROJECT_SOURCE_DIR}/src/qflightinstruments)
 
 # Resources:
 set(resource_files

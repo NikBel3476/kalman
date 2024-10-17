@@ -8,12 +8,14 @@
 #include <QStackedWidget>
 #include <QtQuick/QQuickView>
 #include <format>
+#include <memory>
 
-#include "mavlink/ardupilotmega/mavlink.h"
+#include <ardupilotmega/mavlink.h>
 
 #include "apparameterspage.h"
 #include "authenticationpage.h"
 #include "autopilotsettingspage.h"
+#include "firmwareuploader.h"
 #include "firmwareuploadpage.h"
 #include "mavlinkmanager.h"
 #include "sensor.h"
@@ -28,7 +30,7 @@ QT_END_NAMESPACE
 class Console;
 
 enum class SerialPortState { Connected, Disconnected };
-enum class AutopilotState { None, Alive };
+enum class AutopilotState { None, Alive, Flashing };
 enum class AutopilotParamsState { None, Received };
 enum class AutopilotParamsSendState { None, Sending };
 enum class CalibrationState { None, InProgress };
@@ -76,7 +78,7 @@ signals:
 	void globalPositionIntUpdated(mavlink_global_position_int_t);
 	void powerStatusUpdated(mavlink_power_status_t);
 	void mcuStatusUpdated(mavlink_mcu_status_t);
-	void accelerometerCalibrationCompleted();
+	void accelerometerCalibrationCompleted(CalibrationResult);
 	void levelCalibrationCompleted();
 	void magCalProgressUpdated(mavlink_mag_cal_progress_t);
 	void magCalReportUpdated(mavlink_mag_cal_report_t);
@@ -130,6 +132,7 @@ private:
 	void _updateSensorsStatus(mavlink_sys_status_t);
 	void _handleApParamReceive(mavlink_param_value_t);
 	void _uploadApParam();
+	void _handleFlashError(FirmwareUploadError);
 
 	QToolBar *_toolbar = nullptr;
 	QComboBox *_ports_box = nullptr;
@@ -168,6 +171,7 @@ private:
 	std::vector<mavlink_param_value_t> _params_to_upload;
 	std::vector<mavlink_param_value_t> _not_written_params;
 	MavlinkManager *_mavlink_manager = nullptr;
+	FirmwareUploader *_firmware_uploader = nullptr;
 
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;

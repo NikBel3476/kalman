@@ -4,7 +4,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "mavlink/ardupilotmega/mavlink.h"
+#include <ardupilotmega/mavlink.h>
 
 #include "accelerometerinfowidget.h"
 #include "avionicswidget.h"
@@ -27,7 +27,7 @@ signals:
 	void accelStatusUpdated(SensorStatus);
 	void magStatusUpdated(SensorStatus);
 	void startAccelCalibration();
-	void accelerometerCalibrationCompleted();
+	void accelerometerCalibrationCompleted(CalibrationResult);
 	void startLevelCalibration();
 	void levelCalibrationCompleted();
 	void startMagCalibration();
@@ -48,7 +48,7 @@ public slots:
 	void handleGyroStatusUpdate(SensorStatus);
 	void handleAccelStatusUpdate(SensorStatus);
 	void handleMagStatusUpdate(SensorStatus);
-	void handleCompleteAccelerometerCalibration();
+	void handleCompleteAccelerometerCalibration(CalibrationResult);
 	void handleCompleteLevelCalibration();
 	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t);
 	void handleMagCalReportUpdate(mavlink_mag_cal_report_t);

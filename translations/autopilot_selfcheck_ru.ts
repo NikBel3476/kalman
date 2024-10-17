@@ -61,7 +61,7 @@
 	</message>
 	<message>
 		<source>Open error</source>
-		<translation>Ошибка при открытии</translation>
+		<translation>Ошибка открытия порта</translation>
 	</message>
 	<message>
 		<source>Warning</source>
@@ -114,6 +114,10 @@
 	<message>
 		<source>Calibration completed</source>
 		<translation>Калибровка завершена</translation>
+	</message>
+	<message>
+		<source>Calibration failed</source>
+		<translation>Не удалось откалибровать</translation>
 	</message>
 </context>
 <context>
@@ -170,6 +174,10 @@
 	<message>
 	    <source>Success</source>
 		<translation>Успешно</translation>
+	</message>
+	<message>
+	    <source>Failed</source>
+		<translation>Неудачно</translation>
 	</message>
 	<message>
 	    <source>Status: not found</source>
@@ -270,7 +278,7 @@
 	<name>McuInfoWidget</name>
 	<message>
 		<source>MCU information</source>
-		<translation>Информация об МК</translation>
+		<translation>Информация о микроконтроллере</translation>
 	</message>
 	<message>
 	<source>Temperature: %1.%2 %3</source>

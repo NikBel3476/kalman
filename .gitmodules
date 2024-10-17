@@ -1,7 +1,3 @@
-[submodule "mavlink"]
-	path = src/mavlink
-	url = https://github.com/mavlink/c_library_v2.git
-    branch = master
 [submodule "src/qflightinstruments"]
 	path = src/qflightinstruments
 	url = https://github.com/NikBel3476/QFlightinstruments.git

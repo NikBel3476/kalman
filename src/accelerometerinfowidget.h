@@ -7,8 +7,10 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "mavlink/ardupilotmega/mavlink.h"
 #include "sensor.h"
+#include <ardupilotmega/mavlink.h>
+
+enum class CalibrationResult { Success, Failed };
 
 class AccelerometerInfoWidget : public QWidget {
 	Q_OBJECT
@@ -22,7 +24,7 @@ signals:
 public slots:
 	void handleIMUUpdate(uint16_t, uint16_t, uint16_t);
 	void handleAccelStatusUpdate(SensorStatus);
-	void handleAccelCalComplete();
+	void handleAccelCalComplete(CalibrationResult);
 	void handleLvlCalComplete();
 
 private slots:

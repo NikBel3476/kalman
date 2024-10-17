@@ -8,8 +8,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "mavlink/ardupilotmega/mavlink.h"
 #include "sensor.h"
+#include <ardupilotmega/mavlink.h>
 
 class MagnetometerInfoWidget : public QWidget {
 	Q_OBJECT

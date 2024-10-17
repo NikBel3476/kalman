@@ -69,10 +69,17 @@ void AccelerometerInfoWidget::handleAccelStatusUpdate(SensorStatus status) {
 	}
 }
 
-void AccelerometerInfoWidget::handleAccelCalComplete() {
+void AccelerometerInfoWidget::handleAccelCalComplete(CalibrationResult result) {
 	_accel_cal_btn->setEnabled(true);
 	_lvl_cal_btn->setEnabled(true);
-	_cal_result_label->setText(tr("Success"));
+	switch (result) {
+	case CalibrationResult::Success: {
+		_cal_result_label->setText(tr("Success"));
+	} break;
+	case CalibrationResult::Failed: {
+		_cal_result_label->setText(tr("Failed"));
+	}
+	}
 	_cal_result_label->setVisible(true);
 }
 

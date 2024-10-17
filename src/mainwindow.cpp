@@ -16,7 +16,7 @@
 #include <chrono>
 
 static constexpr auto kWriteTimeout = std::chrono::seconds{5};
-static constexpr auto kHeartbeatTimeout = std::chrono::seconds{5};
+static constexpr auto kHeartbeatTimeout = std::chrono::seconds{7};
 static constexpr auto kSendParamTimeout = std::chrono::seconds{1};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
@@ -26,7 +26,7 @@ static const uint8_t TARGET_SYSTEM_ID = 1;
 static const uint8_t TARGET_COMP_ID = MAV_COMP_ID_AUTOPILOT1;
 
 MainWindow::MainWindow(QWidget *parent)
-		: QMainWindow(parent), _toolbar(new QToolBar(this)),
+		: QMainWindow(parent), _toolbar(new QToolBar()),
 			_ports_box(new QComboBox(_toolbar)),
 			_action_refresh(new QAction(_toolbar)),
 			_action_connect(new QAction(_toolbar)),
@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_open_console(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
 			_action_logout(new QAction(_toolbar)),
-			_central_widget(new QStackedWidget()), _statusbar(new QStatusBar(this)),
+			_central_widget(new QStackedWidget()), _statusbar(new QStatusBar()),
 			_serial_status_label(new QLabel), _ap_status_label(new QLabel),
 			_console(new Console), _authentication_page(new AuthenticationPage()),
 			_msg_cal_box(new QMessageBox(this)),
@@ -49,7 +49,9 @@ MainWindow::MainWindow(QWidget *parent)
 			_serial(new QSerialPort(this)), _mavlink_message{}, _mavlink_status{},
 			_port_settings{}, _heartbeat_timer(new QTimer(this)),
 			_send_param_timer(new QTimer(this)),
-			_mavlink_manager(new MavlinkManager(this, _serial)) {
+			_mavlink_manager(new MavlinkManager(this, _serial)),
+			_firmware_uploader(
+					new FirmwareUploader(this, _serial, _mavlink_manager)) {
 	setWindowTitle("Autopilot selfcheck");
 	setMinimumSize(600, 800);
 	setGeometry(QRect(0, 0, 600, 800));
@@ -61,11 +63,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 	// toolbar content
 	_toolbar->setMovable(false);
-	_toolbar->addWidget(_ports_box);
 	_toolbar->setVisible(false);
-
 	const auto spacer = new QWidget();
 	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	_toolbar->addWidget(_ports_box);
 	_toolbar->addAction(_action_refresh);
 	_toolbar->addAction(_action_connect);
 	_toolbar->addAction(_action_disconnect);
@@ -76,6 +77,8 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_clear);
 	_toolbar->addWidget(spacer);
 	_toolbar->addAction(_action_logout);
+
+	// _ports_box->setEditable(false);
 
 	_action_refresh->setIcon(QIcon(":/images/refresh.png"));
 	_action_refresh->setText(tr("Refresh"));
@@ -152,6 +155,8 @@ MainWindow::MainWindow(QWidget *parent)
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 
 	_timer->setSingleShot(true);
+	_heartbeat_timer->setSingleShot(true);
+	_send_param_timer->setSingleShot(true);
 
 	// Connections
 	initActionsConnections();
@@ -162,6 +167,10 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::handleCalibrationDialogButton);
 
 	connect(_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
+
+	// heartbeat timer connections
+	connect(_heartbeat_timer, &QTimer::timeout, this,
+					&MainWindow::handleHeartbeatTimeout);
 
 	// authentiation form connections
 	connect(_authentication_page, &AuthenticationPage::login, this,
@@ -228,9 +237,6 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(this, &MainWindow::gyroCalibrationCompleted, _autopilot_settings_page,
 					&AutopilotSettingsPage::handleGyroCalibrationComplete);
 
-	connect(_heartbeat_timer, &QTimer::timeout, this,
-					&MainWindow::handleHeartbeatTimeout);
-
 	// autopilot parameters page connections
 	connect(this, &MainWindow::apParamValueReceived, _ap_params_page,
 					&ApParametersPage::handleApParamReceive);
@@ -242,6 +248,10 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_handleUploadApParamsRequest);
 	connect(this, &MainWindow::apParamsUploaded, _ap_params_page,
 					&ApParametersPage::handleApParamsUploadCompletion);
+
+	// firmware uploader connections
+	connect(_firmware_uploader, &FirmwareUploader::flashFailed, this,
+					&MainWindow::_handleFlashError);
 
 	fillPortsInfo();
 }
@@ -313,6 +323,9 @@ void MainWindow::writeData(const QByteArray &data) {
 }
 
 void MainWindow::readData() {
+	if (_ap_state == AutopilotState::Flashing) {
+		return;
+	}
 	const auto data = _serial->readAll();
 	for (auto byte : data) {
 		if (mavlink_parse_char(MAVLINK_COMM_0, byte, &_mavlink_message,
@@ -589,7 +602,8 @@ void MainWindow::handleError(QSerialPort::SerialPortError error) {
 	default: {
 		// sometimes error emits with `No error` message
 		if (_serial->errorString() != "No error") {
-			QMessageBox::critical(this, tr("Error"), _serial->errorString());
+			qDebug() << "Serial error: " << _serial->errorString();
+			// QMessageBox::critical(this, tr("Error"), _serial->errorString());
 		}
 	}
 	}
@@ -625,6 +639,27 @@ void MainWindow::_logout() {
 void MainWindow::handleFirmwareUpload(DroneType drone_type) {
 	qDebug() << std::format("Upload firmware. Drone type: {}\n",
 													static_cast<int>(drone_type));
+	closeSerialPort();
+	// mavlink_message_t msg;
+	// const uint8_t confirmation = 0;
+	// const float param1 = 1; // reboot autopilot
+	// const float param2 = 3; // keep component in the bootloader
+	// const float param3 = 0;
+	// const float param4 = 0;
+	// const float param5 = 0;
+	// const float param6 = 0;
+	// const float param7 = 0;
+	// mavlink_msg_command_long_pack(
+	// 		SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
+	// 		MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, confirmation, param1, param2, param3,
+	// 		param4, param5, param6, param7);
+	// uint8_t buf[44];
+	// const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
+	// QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
+	// writeData(data);
+	_ap_state = AutopilotState::Flashing;
+	_heartbeat_timer->stop();
+	_firmware_uploader->upload();
 }
 
 void MainWindow::_openConsole() { _console->show(); }
@@ -633,6 +668,7 @@ void MainWindow::_openApParamsPage() {
 	_central_widget->setCurrentWidget(_ap_params_page);
 	if (_ap_params_state == AutopilotParamsState::None) {
 		_getParameterList();
+		_ap_params_page->clearParamsToUpload();
 	}
 }
 
@@ -647,7 +683,7 @@ void MainWindow::handleHeartbeatTimeout() {
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
 	_ap_params_state = AutopilotParamsState::None;
-	closeSerialPort();
+	// closeSerialPort();
 }
 
 void MainWindow::_handleStartAccelCalibration() {
@@ -788,31 +824,24 @@ void MainWindow::handleCalibrationDialogButton() {
 	case CalibrationAccelState::Level: {
 		_cal_accel_state = CalibrationAccelState::LeftSide;
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_LEVEL;
-		qDebug() << "LEVEL REQUEST\n";
 	} break;
 	case CalibrationAccelState::LeftSide: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_LEFT;
-		qDebug() << "LEFT REQUEST\n";
 	} break;
 	case CalibrationAccelState::RightSide: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_RIGHT;
-		qDebug() << "RIGHT REQUEST\n";
 	} break;
 	case CalibrationAccelState::NoseUp: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEUP;
-		qDebug() << "NOSEUP REQUEST\n";
 	} break;
 	case CalibrationAccelState::NoseDown: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEDOWN;
-		qDebug() << "NOSEDOWN REQUEST\n";
 	} break;
 	case CalibrationAccelState::Back: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_BACK;
-		qDebug() << "BACK REQUEST\n";
 	} break;
 	case CalibrationAccelState::None:
 	default:
-		qDebug() << "END REQUEST\n";
 		_msg_cal_box->close();
 		return;
 	}
@@ -900,7 +929,7 @@ void MainWindow::setPortSettings(int index) {
 	if (portSettingsMaybe.canConvert<QStringList>()) {
 		auto port_settings_list = portSettingsMaybe.value<QStringList>();
 		_port_settings = Settings{.name = port_settings_list.at(0),
-															.baudRate = 57600,
+															.baudRate = 115200,
 															.dataBits = QSerialPort::Data8,
 															.parity = QSerialPort::NoParity,
 															.stopBits = QSerialPort::OneStop,
@@ -997,13 +1026,14 @@ void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {
 				_cal_accel_state = CalibrationAccelState::None;
 				_msg_cal_box->setText(tr("Calibration completed"));
 				reset();
-				emit accelerometerCalibrationCompleted();
+				emit accelerometerCalibrationCompleted(CalibrationResult::Success);
 				qDebug() << "SUCCESS RESPONSE\n";
 			} break;
 			case ACCELCAL_VEHICLE_POS_FAILED: {
 				_cal_state = CalibrationState::None;
 				_cal_accel_state = CalibrationAccelState::None;
 				_msg_cal_box->setText(tr("Calibration failed"));
+				emit accelerometerCalibrationCompleted(CalibrationResult::Failed);
 				reset();
 				qDebug() << "FAIL RESPONSE\n";
 			} break;
@@ -1134,6 +1164,10 @@ void MainWindow::_rebootAp() {
 	const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
 	QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
 	writeData(data);
+	_ap_state = AutopilotState::None;
+	_ap_params_state = AutopilotParamsState::None;
+	_ap_status_label->setText(tr("Autopilot disconnected"));
+	_heartbeat_timer->stop();
 }
 
 void MainWindow::_uploadApParam() {
@@ -1150,4 +1184,28 @@ void MainWindow::_uploadApParam() {
 	const auto buf_size = mavlink_msg_to_send_buffer(buf, &msg);
 	QByteArray data((char *)buf, static_cast<qsizetype>(buf_size));
 	writeData(data);
+}
+
+void MainWindow::_handleFlashError(FirmwareUploadError error) {
+	auto error_msg = QString();
+	switch (error) {
+	case FirmwareUploadError::SyncFail: {
+		error_msg = tr("Synchronization failed");
+	} break;
+	case FirmwareUploadError::InvalidOperation: {
+		error_msg = tr("Bootloader: invalid operation");
+	} break;
+	case FirmwareUploadError::UploadFail: {
+		error_msg = tr("Bootloader: flash failed");
+	} break;
+	case FirmwareUploadError::UnexpectedResponse: {
+		error_msg = tr("Unexpected response");
+	} break;
+	case FirmwareUploadError::ReadTimeout: {
+		error_msg = tr("Read timout");
+	}
+	}
+	// QMessageBox::critical(this, tr("Firmware upload error"), error_msg);
+	// _ap_state = AutopilotState::None;
+	// _heartbeat_timer->start(kHeartbeatTimeout);
 }
