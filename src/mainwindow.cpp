@@ -181,8 +181,20 @@ MainWindow::MainWindow(QWidget *parent)
 					&FirmwareUploadPage::handleSerialConnection);
 	connect(this, &MainWindow::serialDisconnected, _firmware_upload_page,
 					&FirmwareUploadPage::handleSerialDisconnection);
+	connect(this, &MainWindow::fimwareUploadStateUpdated, _firmware_upload_page,
+					&FirmwareUploadPage::handleFirmwareUploadStateUpdate);
+	connect(this, &MainWindow::flashProgressUpdated, _firmware_upload_page,
+					&FirmwareUploadPage::handleFlashProgressUpdate);
 	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmware, this,
 					&MainWindow::handleFirmwareUpload);
+
+	// firmware uploader connections
+	connect(_firmware_uploader, &FirmwareUploader::stateUpdated, this,
+					&MainWindow::_handleFirmwareUploadStateUpdate);
+	connect(_firmware_uploader, &FirmwareUploader::flashProgressUpdated, this,
+					&MainWindow::_handleFlashProgressUpdate);
+	connect(_firmware_uploader, &FirmwareUploader::uploadCompleted, this,
+					&MainWindow::_handleFirmwareUploadCompletion);
 
 	// autopilot settings page connections
 	connect(this, &MainWindow::IMUUpdated, _autopilot_settings_page,
@@ -248,10 +260,6 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_handleUploadApParamsRequest);
 	connect(this, &MainWindow::apParamsUploaded, _ap_params_page,
 					&ApParametersPage::handleApParamsUploadCompletion);
-
-	// firmware uploader connections
-	connect(_firmware_uploader, &FirmwareUploader::flashFailed, this,
-					&MainWindow::_handleFlashError);
 
 	fillPortsInfo();
 }
@@ -593,7 +601,8 @@ void MainWindow::handleError(QSerialPort::SerialPortError error) {
 		// QMessageBox::critical(this, tr("Critical Error"),
 		// _serial->errorString());
 		// FIXME: This error happens sometimes and not breaking connection so we do
-		// not close the port, the reason is not figured out closeSerialPort();
+		// not close the port, the reason is not figured out
+		// closeSerialPort();
 	} break;
 	case QSerialPort::PermissionError: {
 		QMessageBox::warning(this, tr("Warning"),
@@ -640,23 +649,6 @@ void MainWindow::handleFirmwareUpload(DroneType drone_type) {
 	qDebug() << std::format("Upload firmware. Drone type: {}\n",
 													static_cast<int>(drone_type));
 	closeSerialPort();
-	// mavlink_message_t msg;
-	// const uint8_t confirmation = 0;
-	// const float param1 = 1; // reboot autopilot
-	// const float param2 = 3; // keep component in the bootloader
-	// const float param3 = 0;
-	// const float param4 = 0;
-	// const float param5 = 0;
-	// const float param6 = 0;
-	// const float param7 = 0;
-	// mavlink_msg_command_long_pack(
-	// 		SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID,
-	// 		MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, confirmation, param1, param2, param3,
-	// 		param4, param5, param6, param7);
-	// uint8_t buf[44];
-	// const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
-	// QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
-	// writeData(data);
 	_ap_state = AutopilotState::Flashing;
 	_heartbeat_timer->stop();
 	_firmware_uploader->upload();
@@ -1186,26 +1178,80 @@ void MainWindow::_uploadApParam() {
 	writeData(data);
 }
 
-void MainWindow::_handleFlashError(FirmwareUploadError error) {
+void MainWindow::_handleFirmwareUploadCompletion(FirmwareUploadResult result) {
+	auto error_title = QString();
 	auto error_msg = QString();
-	switch (error) {
-	case FirmwareUploadError::SyncFail: {
-		error_msg = tr("Synchronization failed");
+	switch (result) {
+	// Firmware file errors
+	case FirmwareUploadResult::FirmwareImageNotFound: {
+		error_title = tr("Firmware file error");
+		error_msg = tr("Firmware image not found");
 	} break;
-	case FirmwareUploadError::InvalidOperation: {
-		error_msg = tr("Bootloader: invalid operation");
+	case FirmwareUploadResult::FirmwareSizeNotFound: {
+		error_title = tr("Firmware file error");
+		error_msg = tr("Firmware size not found");
 	} break;
-	case FirmwareUploadError::UploadFail: {
-		error_msg = tr("Bootloader: flash failed");
+	case FirmwareUploadResult::BoardIdNotFound: {
+		error_title = tr("Firmware file error");
+		error_msg = tr("Board id not found");
 	} break;
-	case FirmwareUploadError::UnexpectedResponse: {
-		error_msg = tr("Unexpected response");
+	case FirmwareUploadResult::DecodeFail: {
+		error_title = tr("Firmware file error");
+		error_msg = tr("Image decoding error");
 	} break;
-	case FirmwareUploadError::ReadTimeout: {
-		error_msg = tr("Read timout");
+	// Bootloader errors
+	case FirmwareUploadResult::BootloaderNotFound: {
+		error_title = tr("Bootloader error");
+		error_msg = tr("Bootloader not found");
+	} break;
+	case FirmwareUploadResult::IncompatibleBoardType: {
+		error_title = tr("Bootloader error");
+		error_msg = tr("Incompatible board");
+	} break;
+	case FirmwareUploadResult::UnsupportedBoard: {
+		error_title = tr("Bootloader error");
+		error_msg = tr("Unsupported board");
+	} break;
+	case FirmwareUploadResult::UnsupportedBootloader: {
+		error_title = tr("Bootloader error");
+		error_msg = tr("Unsupported bootloader");
+	} break;
+	// Erase errors
+	case FirmwareUploadResult::EraseFail: {
+		error_title = tr("Erase error");
+		error_msg = tr("Board erase failed");
+	} break;
+	// Flashing errors
+	case FirmwareUploadResult::ProgramFail: {
+		error_title = tr("Program error");
+		error_msg = tr("Firmware program failed");
+	} break;
+	case FirmwareUploadResult::TooLargeFirmware: {
+		error_title = tr("Program error");
+		error_msg = tr("Too large firmware size");
+	} break;
+	// Verification errors
+	case FirmwareUploadResult::VerificationFail: {
+		error_title = tr("Verification error");
+		error_msg = tr("Firmware verification failed");
+	} break;
+	// Successful upload
+	case FirmwareUploadResult::Ok: {
+		return;
 	}
 	}
-	// QMessageBox::critical(this, tr("Firmware upload error"), error_msg);
-	// _ap_state = AutopilotState::None;
-	// _heartbeat_timer->start(kHeartbeatTimeout);
+	if (!error_title.isEmpty() || !error_msg.isEmpty()) {
+		QMessageBox::critical(this, tr("Firmware upload error"), error_msg);
+	}
+	_ap_state = AutopilotState::None;
+	_heartbeat_timer->start(kHeartbeatTimeout);
+}
+
+void MainWindow::_handleFirmwareUploadStateUpdate(
+		FirmwareUploadState new_state) {
+	emit fimwareUploadStateUpdated(new_state);
+}
+
+void MainWindow::_handleFlashProgressUpdate(uint8_t progress) {
+	emit flashProgressUpdated(progress);
 }

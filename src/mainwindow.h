@@ -88,6 +88,8 @@ signals:
 	void gyroCalibrationCompleted();
 	void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
+	void fimwareUploadStateUpdated(FirmwareUploadState);
+	void flashProgressUpdated(uint8_t progress);
 
 private slots:
 	void fillPortsInfo();
@@ -117,6 +119,9 @@ private slots:
 	void _handleStartGyroCalibration();
 	void _handleApAllParamsReceive();
 	void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
+	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
+	void _handleFirmwareUploadStateUpdate(FirmwareUploadState);
+	void _handleFlashProgressUpdate(uint8_t progress);
 
 private:
 	void initActionsConnections();
@@ -132,7 +137,6 @@ private:
 	void _updateSensorsStatus(mavlink_sys_status_t);
 	void _handleApParamReceive(mavlink_param_value_t);
 	void _uploadApParam();
-	void _handleFlashError(FirmwareUploadError);
 
 	QToolBar *_toolbar = nullptr;
 	QComboBox *_ports_box = nullptr;

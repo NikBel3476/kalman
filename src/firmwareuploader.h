@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <future>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <thread>
@@ -18,26 +19,44 @@
 
 static constexpr uint8_t PROG_MULTI_MAX = 252;
 
-enum class FirmwareUploadError {
-	SyncFail,
-	InvalidOperation,
-	UploadFail,
-	UnexpectedResponse,
-	UnsopportedBoard,
+enum class FindBootloaderResult {
+	Ok,
+	SerialPortError,
+	UnsupportedBootloader,
+	SyncFail
+};
+
+enum class FirmwareUploadResult {
+	Ok,
+	UnsupportedBoard,
 	UnsupportedBootloader,
 	FirmwareImageNotFound,
 	FirmwareSizeNotFound,
 	BoardIdNotFound,
 	TooLargeFirmware,
 	EraseFail,
-	ReadTimeout,
 	IncompatibleBoardType,
 	ProgramFail,
 	DecodeFail,
-	VerifyFail
+	VerificationFail,
+	BootloaderNotFound
+};
+
+enum class FirmwareUploadState { None, Rebooting, Erasing, Flashing };
+
+enum class SyncResult {
+	Ok,
+	ReadTimeout,
+	Fail,
+	InvalidOperation,
+	UnexpectedResponse
 };
 
 enum class TrySyncResult { Ok, BadSiliconRev, NotInSync, NotOk, ReadTimeout };
+
+enum class IdentifyResult { Ok, UnsupportedBootloader, SyncFail };
+
+enum class EraseResult { Ok, UnsupportedBoard, Timeout };
 
 struct Firmware {
 	QByteArray image;
@@ -53,12 +72,12 @@ public:
 	void upload();
 
 signals:
-	void flashFailed(FirmwareUploadError);
-	void firmwareUploaded(bool);
+	void uploadCompleted(FirmwareUploadResult);
+	void stateUpdated(FirmwareUploadState);
+	void flashProgressUpdated(uint8_t progress);
 
 private slots:
 	void _handleBytesWritten(qint64);
-	void _handleEraseTimeout();
 
 private:
 	QSerialPort *_serial = nullptr;
@@ -75,25 +94,25 @@ private:
 	Firmware _firmware;
 	QByteArray MAVLINK_REBOOT_ID0 = QByteArray::fromHex(
 			"0xfe2145ff004c00004040000000000000000000000000000000000000000000000000f6"
-			"00000000cc37"); //"\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b";
+			"00000000cc37");
 	QByteArray MAVLINK_REBOOT_ID1 = QByteArray::fromHex(
 			"0xfe2172ff004c00004040000000000000000000000000000000000000000000000000f6"
-			"00010000536b"); //"\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37";
+			"00010000536b");
 
 	void _writeData(const QByteArray &);
-	bool _tryUploadFirmware(const QByteArray &);
+	FirmwareUploadResult _tryUploadFirmware(const QByteArray &);
 	bool _openSerialPort();
 	void _closeSerialPort();
-	bool _sync();
-	bool _getSync();
+	SyncResult _sync();
+	SyncResult _getSync();
 	TrySyncResult _trySync();
-	bool _erase();
-	bool _identify();
+	EraseResult _erase();
+	IdentifyResult _identify();
 	uint32_t _getInfo(char param);
-	bool _findBootloader();
+	FindBootloaderResult _findBootloader();
 	bool _program();
 	std::vector<QByteArray> _splitLen(QByteArray &, uint8_t);
-	bool _programMulti(const QByteArray &bytes);
+	SyncResult _programMulti(const QByteArray &bytes);
 	void _sendReboot();
 	void _reboot();
 	QByteArray _crc(uint32_t padlen);
