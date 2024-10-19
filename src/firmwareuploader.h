@@ -1,18 +1,16 @@
 #ifndef FIRMWAREUPLOADER_H
 #define FIRMWAREUPLOADER_H
 
-#include <QFileDialog>
 #include <QMessageBox>
 #include <QObject>
 #include <QSerialPort>
+#include <QThread>
 #include <QTimer>
 #include <algorithm>
 #include <array>
 #include <cstdlib>
-#include <future>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <thread>
 #include <vector>
 
 #include "mavlinkmanager.h"
@@ -42,7 +40,13 @@ enum class FirmwareUploadResult {
 	BootloaderNotFound
 };
 
-enum class FirmwareUploadState { None, Rebooting, Erasing, Flashing };
+enum class FirmwareUploadState {
+	None,
+	Rebooting,
+	BootloaderSearching,
+	Erasing,
+	Flashing
+};
 
 enum class SyncResult {
 	Ok,
@@ -52,11 +56,25 @@ enum class SyncResult {
 	UnexpectedResponse
 };
 
-enum class TrySyncResult { Ok, BadSiliconRev, NotInSync, NotOk, ReadTimeout };
+enum class TrySyncResult {
+	Ok,
+	BadSiliconRev,
+	NotInSync,
+	NotOk,
+	ReadTimeout
+};
 
-enum class IdentifyResult { Ok, UnsupportedBootloader, SyncFail };
+enum class IdentifyResult {
+	Ok,
+	UnsupportedBootloader,
+	SyncFail
+};
 
-enum class EraseResult { Ok, UnsupportedBoard, Timeout };
+enum class EraseResult {
+	Ok,
+	UnsupportedBoard,
+	Timeout
+};
 
 struct Firmware {
 	QByteArray image;
@@ -68,13 +86,16 @@ struct Firmware {
 class FirmwareUploader : public QObject {
 	Q_OBJECT
 public:
+	FirmwareUploadState upload_state = FirmwareUploadState::None;
+
 	explicit FirmwareUploader(QObject *, QSerialPort *, MavlinkManager *);
-	void upload();
+	void upload(const QByteArray &file_content);
 
 signals:
 	void uploadCompleted(FirmwareUploadResult);
 	void stateUpdated(FirmwareUploadState);
 	void flashProgressUpdated(uint8_t progress);
+	void eraseProgressUpdated(uint8_t progress);
 
 private slots:
 	void _handleBytesWritten(qint64);
@@ -98,6 +119,8 @@ private:
 	QByteArray MAVLINK_REBOOT_ID1 = QByteArray::fromHex(
 			"0xfe2172ff004c00004040000000000000000000000000000000000000000000000000f6"
 			"00010000536b");
+
+	void _setUploadState(FirmwareUploadState state);
 
 	void _writeData(const QByteArray &);
 	FirmwareUploadResult _tryUploadFirmware(const QByteArray &);

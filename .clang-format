@@ -52,7 +52,7 @@ TabWidth: 2
 # AllowShortBlocksOnASingleLine: Never
 # AllowShortCaseLabelsOnASingleLine: false
 # AllowShortCompoundRequirementOnASingleLine: true
-# AllowShortEnumsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
 # AllowShortFunctionsOnASingleLine: All
 # AllowShortIfStatementsOnASingleLine: Never
 # AllowShortLambdasOnASingleLine: All

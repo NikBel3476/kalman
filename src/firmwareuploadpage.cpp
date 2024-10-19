@@ -3,17 +3,18 @@
 const int MIN_PAGE_WIDTH = 150;
 const int MAX_PAGE_WIDTH = 250;
 
-FirmwareUploadPage::FirmwareUploadPage(QWidget *parent)
+FirmwareUploadPage::FirmwareUploadPage(QWidget *parent,
+																			 FirmwareUploader *firmware_uploader)
 		: QWidget{parent}, _layout(new QVBoxLayout(this)),
 			_drone_type_box(new QComboBox()),
 			_firmware_upload_button(new QPushButton()),
 			_firmware_upload_status_label(new QLabel()),
-			_firmware_upload_progress_bar(new QProgressBar()) {
+			_progress_bar(new QProgressBar()), _firmware_uploader(firmware_uploader) {
 	_layout->setAlignment(Qt::AlignCenter);
 	_layout->addWidget(_drone_type_box);
 	_layout->addWidget(_firmware_upload_button);
 	_layout->addWidget(_firmware_upload_status_label);
-	_layout->addWidget(_firmware_upload_progress_bar);
+	_layout->addWidget(_progress_bar);
 
 	_drone_type_box->setSizePolicy(
 			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
@@ -28,36 +29,51 @@ FirmwareUploadPage::FirmwareUploadPage(QWidget *parent)
 	_firmware_upload_button->setMaximumWidth(MAX_PAGE_WIDTH);
 	_firmware_upload_button->setVisible(false);
 
-	connect(_drone_type_box, &QComboBox::currentIndexChanged, this,
-					&FirmwareUploadPage::handleDroneTypeBoxChange);
-	connect(_firmware_upload_button, &QPushButton::pressed, this,
-					&FirmwareUploadPage::handleUploadButtonPress);
-
 	_drone_type = DroneType::SingleWing;
 	_drone_type_box->addItem(tr("Single wing"),
 													 static_cast<int>(DroneType::SingleWing));
 	_drone_type_box->addItem(tr("Quadrocopter"),
 													 static_cast<int>(DroneType::Quadrocopter));
+	_drone_type_box->setVisible(false);
 
+	_firmware_upload_status_label->setAlignment(Qt::AlignCenter);
+	_firmware_upload_status_label->setText(tr("test"));
 	_firmware_upload_status_label->setVisible(false);
 
-	_firmware_upload_progress_bar->setRange(0, 255);
-	_firmware_upload_progress_bar->setVisible(false);
+	_progress_bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	_progress_bar->setAlignment(Qt::AlignCenter);
+	_progress_bar->setRange(0, 100);
+	_progress_bar->setVisible(false);
+
+	connect(_drone_type_box, &QComboBox::currentIndexChanged, this,
+					&FirmwareUploadPage::_handleDroneTypeBoxChange);
+	connect(_firmware_upload_button, &QPushButton::pressed, this,
+					&FirmwareUploadPage::_handleUploadButtonPress);
+
+	// firmware uploader connections
+	connect(_firmware_uploader, &FirmwareUploader::stateUpdated, this,
+					&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
+	connect(_firmware_uploader, &FirmwareUploader::flashProgressUpdated, this,
+					&FirmwareUploadPage::_handleFlashProgressUpdate);
+	connect(_firmware_uploader, &FirmwareUploader::eraseProgressUpdated, this,
+					&FirmwareUploadPage::_handleEraseProgressUpdate);
+	connect(_firmware_uploader, &FirmwareUploader::uploadCompleted, this,
+					&FirmwareUploadPage::_handleFirmwareUploadCompletion);
 }
 
 void FirmwareUploadPage::handleSerialConnection() {
 	qDebug() << "Serial connected\n";
-	_drone_type_box->setVisible(true);
+	// _drone_type_box->setVisible(true);
 	_firmware_upload_button->setVisible(true);
 }
 
 void FirmwareUploadPage::handleSerialDisconnection() {
 	qDebug() << "Serial disconnected\n";
-	_drone_type_box->setVisible(false);
+	// _drone_type_box->setVisible(false);
 	_firmware_upload_button->setVisible(false);
 }
 
-void FirmwareUploadPage::handleDroneTypeBoxChange(int index) {
+void FirmwareUploadPage::_handleDroneTypeBoxChange(int index) {
 	auto drone_type_maybe = _drone_type_box->itemData(index);
 	if (drone_type_maybe.canConvert<DroneType>()) {
 		_drone_type = drone_type_maybe.value<DroneType>();
@@ -65,41 +81,53 @@ void FirmwareUploadPage::handleDroneTypeBoxChange(int index) {
 	}
 }
 
-void FirmwareUploadPage::handleUploadButtonPress() {
-	// TODO: add firmware upload and settings check
-	emit uploadFirmware(_drone_type);
+void FirmwareUploadPage::_handleUploadButtonPress() {
+	emit uploadFirmwareStarted(_drone_type);
+	auto fileContentReady = [this](const QString &file_name,
+																 const QByteArray &file_content) {
+		if (!file_name.isEmpty()) {
+			_firmware_uploader->upload(file_content);
+		}
+	};
+	QFileDialog::getOpenFileContent("*.apj", fileContentReady);
 }
 
-void FirmwareUploadPage::handleFirmwareUploadStateUpdate(
+void FirmwareUploadPage::_handleFirmwareUploadStateUpdate(
 		FirmwareUploadState new_state) {
-	qDebug() << "FIRMWARE UPLOAD STATE UPDATED";
 	switch (new_state) {
 	case FirmwareUploadState::Rebooting: {
 		_firmware_upload_status_label->setVisible(true);
 		_firmware_upload_status_label->setText(tr("Rebooting..."));
 	} break;
+	case FirmwareUploadState::BootloaderSearching: {
+		_firmware_upload_status_label->setVisible(true);
+		_firmware_upload_status_label->setText(tr("Searching bootloader..."));
+	} break;
 	case FirmwareUploadState::Erasing: {
 		_firmware_upload_status_label->setVisible(true);
 		_firmware_upload_status_label->setText(tr("Erasing..."));
+		_progress_bar->setVisible(true);
 	} break;
 	case FirmwareUploadState::Flashing: {
 		_firmware_upload_status_label->setVisible(true);
-		_firmware_upload_status_label->setText(tr("Flasing..."));
-		// _firmware_upload_progress_bar->setVisible(true);
-		// _firmware_upload_progress_bar->setValue();
+		_firmware_upload_status_label->setText(tr("Flashing..."));
+		_progress_bar->setVisible(true);
 	} break;
 	case FirmwareUploadState::None: {
-		_firmware_upload_status_label->setVisible(false);
-		_firmware_upload_progress_bar->setVisible(false);
+		_progress_bar->setVisible(false);
 	}
 	}
 }
 
-void FirmwareUploadPage::handleFlashProgressUpdate(uint8_t progress) {
-	_firmware_upload_progress_bar->setValue(progress);
+void FirmwareUploadPage::_handleFlashProgressUpdate(uint8_t progress) {
+	_progress_bar->setValue(progress);
 }
 
-void FirmwareUploadPage::handleFirmwareUploadComplete(
+void FirmwareUploadPage::_handleEraseProgressUpdate(uint8_t progress) {
+	_progress_bar->setValue(progress);
+}
+
+void FirmwareUploadPage::_handleFirmwareUploadCompletion(
 		FirmwareUploadResult result) {
 	switch (result) {
 	case FirmwareUploadResult::Ok: {

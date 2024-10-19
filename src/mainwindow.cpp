@@ -41,7 +41,8 @@ MainWindow::MainWindow(QWidget *parent)
 			_serial_status_label(new QLabel), _ap_status_label(new QLabel),
 			_console(new Console), _authentication_page(new AuthenticationPage()),
 			_msg_cal_box(new QMessageBox(this)),
-			_firmware_upload_page(new FirmwareUploadPage()),
+			// _firmware_upload_page(new FirmwareUploadPage(nullptr,
+			// _firmware_uploader)),
 			_autopilot_settings_page(new AutopilotSettingsPage()),
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
@@ -51,7 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
 			_send_param_timer(new QTimer(this)),
 			_mavlink_manager(new MavlinkManager(this, _serial)),
 			_firmware_uploader(
-					new FirmwareUploader(this, _serial, _mavlink_manager)) {
+					new FirmwareUploader(nullptr, _serial, _mavlink_manager)) {
+	_firmware_upload_page = new FirmwareUploadPage(nullptr, _firmware_uploader);
 	setWindowTitle("Autopilot selfcheck");
 	setMinimumSize(600, 800);
 	setGeometry(QRect(0, 0, 600, 800));
@@ -181,20 +183,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&FirmwareUploadPage::handleSerialConnection);
 	connect(this, &MainWindow::serialDisconnected, _firmware_upload_page,
 					&FirmwareUploadPage::handleSerialDisconnection);
-	connect(this, &MainWindow::fimwareUploadStateUpdated, _firmware_upload_page,
-					&FirmwareUploadPage::handleFirmwareUploadStateUpdate);
-	connect(this, &MainWindow::flashProgressUpdated, _firmware_upload_page,
-					&FirmwareUploadPage::handleFlashProgressUpdate);
-	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmware, this,
-					&MainWindow::handleFirmwareUpload);
-
-	// firmware uploader connections
-	connect(_firmware_uploader, &FirmwareUploader::stateUpdated, this,
-					&MainWindow::_handleFirmwareUploadStateUpdate);
-	connect(_firmware_uploader, &FirmwareUploader::flashProgressUpdated, this,
-					&MainWindow::_handleFlashProgressUpdate);
-	connect(_firmware_uploader, &FirmwareUploader::uploadCompleted, this,
-					&MainWindow::_handleFirmwareUploadCompletion);
+	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmwareStarted,
+					this, &MainWindow::handleFirmwareUpload);
 
 	// autopilot settings page connections
 	connect(this, &MainWindow::IMUUpdated, _autopilot_settings_page,
@@ -595,6 +585,9 @@ void MainWindow::readData() {
 }
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
+	if (_firmware_uploader->upload_state != FirmwareUploadState::None) {
+		return;
+	}
 	switch (error) {
 	case QSerialPort::ResourceError: {
 		qDebug() << _serial->errorString() << '\n';
@@ -651,7 +644,6 @@ void MainWindow::handleFirmwareUpload(DroneType drone_type) {
 	closeSerialPort();
 	_ap_state = AutopilotState::Flashing;
 	_heartbeat_timer->stop();
-	_firmware_uploader->upload();
 }
 
 void MainWindow::_openConsole() { _console->show(); }
@@ -1245,13 +1237,4 @@ void MainWindow::_handleFirmwareUploadCompletion(FirmwareUploadResult result) {
 	}
 	_ap_state = AutopilotState::None;
 	_heartbeat_timer->start(kHeartbeatTimeout);
-}
-
-void MainWindow::_handleFirmwareUploadStateUpdate(
-		FirmwareUploadState new_state) {
-	emit fimwareUploadStateUpdated(new_state);
-}
-
-void MainWindow::_handleFlashProgressUpdate(uint8_t progress) {
-	emit flashProgressUpdated(progress);
 }

@@ -24,16 +24,11 @@ static constexpr auto NSH_INIT = "\x0d\x0d\x0d";
 static constexpr auto NSH_REBOOT_BL = "reboot -b\x0a";
 static constexpr auto NSH_REBOOT = "reboot\x0a";
 
-static const uint8_t SYSTEM_ID = 255;
-static const uint8_t COMP_ID = MAV_COMP_ID_MISSIONPLANNER;
-static const uint8_t TARGET_SYSTEM_ID = 1;
-static const uint8_t TARGET_COMP_ID = MAV_COMP_ID_AUTOPILOT1;
-
 static constexpr auto kWriteTimeout = std::chrono::seconds{5};
-static constexpr auto kOpenTimeout = std::chrono::milliseconds{1000};
+static constexpr auto kOpenTimeout = std::chrono::milliseconds{5000};
 static constexpr auto kEraseTimeout = std::chrono::seconds{20};
 
-static constexpr int READ_TIMEOUT_IN_MS = 2000;
+static constexpr int READ_TIMEOUT_IN_MS = 500;
 
 static constexpr std::array<uint32_t, 256> CRCTAB = {
 		0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -83,8 +78,8 @@ static constexpr std::array<uint32_t, 256> CRCTAB = {
 FirmwareUploader::FirmwareUploader(QObject *parent, QSerialPort *serial,
 																	 MavlinkManager *mavlink_manager)
 		: QObject{parent}, _serial(serial), _mavlink_manager(mavlink_manager),
-			_erase_timer(new QTimer(this)), _serial_write_timer(new QTimer(this)),
-			_serial_open_timer(new QTimer(this)) {
+			_erase_timer(new QTimer()), _serial_write_timer(new QTimer()),
+			_serial_open_timer(new QTimer()) {
 	_erase_timer->setSingleShot(true);
 	_serial_write_timer->setSingleShot(true);
 	_serial_open_timer->setSingleShot(true);
@@ -93,16 +88,20 @@ FirmwareUploader::FirmwareUploader(QObject *parent, QSerialPort *serial,
 					&FirmwareUploader::_handleBytesWritten);
 }
 
-void FirmwareUploader::upload() {
-	auto fileContentReady = [this](const QString &file_name,
-																 const QByteArray &file_content) {
-		if (!file_name.isEmpty()) {
-			qDebug() << "UPLOAD STARTED\n";
-			const auto upload_result = _tryUploadFirmware(file_content);
-			emit uploadCompleted(upload_result);
-		}
-	};
-	QFileDialog::getOpenFileContent("*.apj", fileContentReady);
+void FirmwareUploader::upload(const QByteArray &file_content) {
+	const auto thread = QThread::create([this, file_content]() {
+		const auto upload_result = _tryUploadFirmware(file_content);
+		emit uploadCompleted(upload_result);
+	});
+	_erase_timer->moveToThread(thread);
+	_serial_write_timer->moveToThread(thread);
+	_serial_open_timer->moveToThread(thread);
+	thread->start();
+}
+
+void FirmwareUploader::_setUploadState(FirmwareUploadState state) {
+	upload_state = state;
+	emit stateUpdated(state);
 }
 
 void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
@@ -114,6 +113,7 @@ void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
 
 FirmwareUploadResult
 FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
+	_setUploadState(FirmwareUploadState::BootloaderSearching);
 	switch (_findBootloader()) {
 	case FindBootloaderResult::SerialPortError:
 	case FindBootloaderResult::SyncFail:
@@ -172,8 +172,9 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	}
 	_sync();
 	qDebug() << "FIRMWARE COMPATIBLE WITH BOARD";
+
 	qDebug() << "ERASING...";
-	emit stateUpdated(FirmwareUploadState::Erasing);
+	_setUploadState(FirmwareUploadState::Erasing);
 	switch (_erase()) {
 	case EraseResult::Timeout: {
 		qDebug() << "ERASE FAILED";
@@ -187,7 +188,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	}
 	}
 
-	emit stateUpdated(FirmwareUploadState::Flashing);
+	_setUploadState(FirmwareUploadState::Flashing);
 	qDebug() << "PROGRAM STARTED";
 	const auto program_success = _program();
 	if (!program_success) {
@@ -204,19 +205,19 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	qDebug() << "VERIFYING COMPLETED";
 	_reboot();
 	_closeSerialPort();
-	emit stateUpdated(FirmwareUploadState::None);
+	_setUploadState(FirmwareUploadState::None);
 	return FirmwareUploadResult::Ok;
 }
 
 bool FirmwareUploader::_openSerialPort() {
 	_serial_open_timer->start(kOpenTimeout);
-	while (true) {
+	while (_serial_open_timer->isActive()) {
 		if (_serial->open(QIODevice::ReadWrite)) {
 			qDebug() << "Serial connected\n";
+			_serial_open_timer->stop();
 			return true;
-		} else if (!_serial_open_timer->isActive()) {
-			return false;
 		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 	return false;
 }
@@ -231,7 +232,7 @@ void FirmwareUploader::_closeSerialPort() {
 void FirmwareUploader::_writeData(const QByteArray &data) {
 	const qint64 written = _serial->write(data);
 	if (written == data.size()) {
-		qDebug() << "SEND: " << data;
+		// qDebug() << "SEND: " << data;
 		_bytes_to_write += written;
 		_serial_write_timer->start(kWriteTimeout);
 	} else {
@@ -330,7 +331,14 @@ EraseResult FirmwareUploader::_erase() {
 		case TrySyncResult::ReadTimeout:
 		case TrySyncResult::NotInSync:
 		case TrySyncResult::NotOk: {
-
+			const auto erase_timeout_in_ms =
+					std::chrono::duration_cast<std::chrono::milliseconds>(kEraseTimeout)
+							.count();
+			const double progress =
+					static_cast<float>(erase_timeout_in_ms -
+														 _erase_timer->remainingTime()) /
+					static_cast<float>(erase_timeout_in_ms) * 100.0;
+			emit eraseProgressUpdated(static_cast<uint8_t>(std::round(progress)));
 		} break;
 		case TrySyncResult::BadSiliconRev: {
 			_erase_timer->stop();
@@ -381,8 +389,6 @@ uint32_t FirmwareUploader::_getInfo(const char param) {
 	uint32_t uint_result =
 			((raw_data[3] << 24) & 0xff000000) | ((raw_data[2] << 16) & 0x00ff0000) |
 			((raw_data[1] << 8) & 0x0000ff00) | (raw_data[0] & 0x000000ff);
-	qDebug() << std::format("uint bin: {:b}", uint_result);
-	qDebug() << "INT RESULT: " << uint_result << "TEST: ";
 	return uint_result;
 }
 
@@ -410,7 +416,7 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 	_sendReboot();
 	std::this_thread::sleep_for(std::chrono::milliseconds(250));
 	_closeSerialPort();
-	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 	// attempt to connect on baud 57600
 	_serial->setBaudRate(QSerialPort::Baud57600);
@@ -432,7 +438,7 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 
 bool FirmwareUploader::_program() {
 	const auto groups = _splitLen(_firmware.image, PROG_MULTI_MAX);
-	uint8_t progress = 0;
+	size_t uploaded = 0;
 	for (const auto &bytes : groups) {
 		switch (_programMulti(bytes)) {
 		case SyncResult::Fail:
@@ -443,8 +449,10 @@ bool FirmwareUploader::_program() {
 		case SyncResult::Ok:
 			break;
 		}
-		emit flashProgressUpdated(progress);
-		progress++;
+		const double progress = static_cast<float>(uploaded) /
+														static_cast<float>(groups.size()) * 100.0;
+		emit flashProgressUpdated(static_cast<uint8_t>(std::round(progress)));
+		uploaded++;
 	}
 	return true;
 }
@@ -453,12 +461,7 @@ std::vector<QByteArray> FirmwareUploader::_splitLen(QByteArray &image,
 																										uint8_t bunch_size) {
 	std::vector<QByteArray> groups = {};
 	for (qsizetype i = 0; i < image.size(); i += bunch_size) {
-		// const auto last =  std::min(static_cast<size_t>(image.size()), i +
-		// bunch_size); std::array<char, PROG_MULTI_MAX> bunch{};
-		// std::copy(image.constBegin() + i, image.constBegin() + last,
-		// bunch.begin());
 		const auto slice = image.mid(i, bunch_size);
-		qDebug() << "SPLIT LEN SLICE SIZE: " << slice.length();
 		groups.push_back(slice);
 	}
 	return groups;
@@ -473,7 +476,8 @@ SyncResult FirmwareUploader::_programMulti(const QByteArray &bytes) {
 										 std::find_if(length_bytes.begin(), length_bytes.end(),
 																	[](const auto &byte) { return byte; }));
 	QByteArray data_prog_multi(1, PROG_MULTI);
-	QByteArray data_length(length_bytes.data(), length_bytes.size());
+	QByteArray data_length(length_bytes.data(),
+												 static_cast<qsizetype>(length_bytes.size()));
 	QByteArray data_eoc(1, EOC);
 	_writeData(data_prog_multi);
 	_writeData(data_length);
@@ -527,11 +531,6 @@ bool FirmwareUploader::_verify_v3() {
 	}
 	const auto crc_response = _serial->read(4);
 	_getSync();
-	const auto crc_response_uint = crc_response.toUInt();
-	qDebug() << "RESPONSE BYTES: " << crc_response
-					 << "RESPONSE: " << crc_response_uint
-					 << "EXPECTED CRC BYTES: " << expected_crc
-					 << "EXPECTED CRC: " << expected_crc.toUInt();
 	if (crc_response != expected_crc) {
 		return false;
 	}

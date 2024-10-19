@@ -8,7 +8,6 @@
 #include <QStackedWidget>
 #include <QtQuick/QQuickView>
 #include <format>
-#include <memory>
 
 #include <ardupilotmega/mavlink.h>
 
@@ -29,11 +28,27 @@ QT_END_NAMESPACE
 
 class Console;
 
-enum class SerialPortState { Connected, Disconnected };
-enum class AutopilotState { None, Alive, Flashing };
-enum class AutopilotParamsState { None, Received };
-enum class AutopilotParamsSendState { None, Sending };
-enum class CalibrationState { None, InProgress };
+enum class SerialPortState {
+	Connected,
+	Disconnected
+};
+enum class AutopilotState {
+	None,
+	Alive,
+	Flashing
+};
+enum class AutopilotParamsState {
+	None,
+	Received
+};
+enum class AutopilotParamsSendState {
+	None,
+	Sending
+};
+enum class CalibrationState {
+	None,
+	InProgress
+};
 enum class CalibrationAccelState {
 	None,
 	Level,
@@ -49,8 +64,14 @@ enum class CalibrationAccelState {
 	Back,
 	BackDone
 };
-enum class CalibrationLevelState { None, InProgress };
-enum class CalibrationMagState { None, InProgress };
+enum class CalibrationLevelState {
+	None,
+	InProgress
+};
+enum class CalibrationMagState {
+	None,
+	InProgress
+};
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -88,8 +109,6 @@ signals:
 	void gyroCalibrationCompleted();
 	void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
-	void fimwareUploadStateUpdated(FirmwareUploadState);
-	void flashProgressUpdated(uint8_t progress);
 
 private slots:
 	void fillPortsInfo();
@@ -120,8 +139,6 @@ private slots:
 	void _handleApAllParamsReceive();
 	void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
-	void _handleFirmwareUploadStateUpdate(FirmwareUploadState);
-	void _handleFlashProgressUpdate(uint8_t progress);
 
 private:
 	void initActionsConnections();
