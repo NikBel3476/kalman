@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QSerialPort>
+#include <QShortcut>
 #include <QStackedWidget>
 #include <QtQuick/QQuickView>
 #include <format>
@@ -13,6 +14,7 @@
 
 #include "apparameterspage.h"
 #include "authenticationpage.h"
+#include "autopilot.h"
 #include "autopilotsettingspage.h"
 #include "firmwareuploader.h"
 #include "firmwareuploadpage.h"
@@ -31,11 +33,6 @@ class Console;
 enum class SerialPortState {
 	Connected,
 	Disconnected
-};
-enum class AutopilotState {
-	None,
-	Alive,
-	Flashing
 };
 enum class AutopilotParamsState {
 	None,
@@ -109,27 +106,26 @@ signals:
 	void gyroCalibrationCompleted();
 	void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
+	void apStateUpdated(AutopilotState);
 
 private slots:
 	void fillPortsInfo();
 	void openSerialPort();
 	void closeSerialPort();
-	void writeData(const QByteArray &);
-	void readData();
 
+	void _handleSerialWriteError(const QString &error_msg);
 	void handleError(QSerialPort::SerialPortError);
 	void handleBytesWritten(qint64);
 	void handleWriteTimeout();
 	void handleHeartbeatTimeout();
 	void handleCalibrationDialogButton();
 
-	void _login(const QString &, const QString &);
+	void _login(const QString &login, const QString &password);
 	void _logout();
 	void handleFirmwareUpload(DroneType);
 	void _openConsole();
 	void _openApParamsPage();
 	void _openSettingsPage();
-	void _getParameterList();
 	void _rebootAp();
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
@@ -139,6 +135,7 @@ private slots:
 	void _handleApAllParamsReceive();
 	void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
+	void _handleMavlinkMessageReceive(mavlink_message_t &);
 
 private:
 	void initActionsConnections();
@@ -154,6 +151,7 @@ private:
 	void _updateSensorsStatus(mavlink_sys_status_t);
 	void _handleApParamReceive(mavlink_param_value_t);
 	void _uploadApParam();
+	void _setApState(AutopilotState);
 
 	QToolBar *_toolbar = nullptr;
 	QComboBox *_ports_box = nullptr;
@@ -184,13 +182,12 @@ private:
 	qint64 _bytesToWrite = 0;
 	QTimer *_timer = nullptr;
 	QSerialPort *_serial = nullptr;
-	mavlink_message_t _mavlink_message;
-	mavlink_status_t _mavlink_status;
 	Settings _port_settings;
 	QTimer *_heartbeat_timer = nullptr;
 	QTimer *_send_param_timer = nullptr;
 	std::vector<mavlink_param_value_t> _params_to_upload;
 	std::vector<mavlink_param_value_t> _not_written_params;
+	Autopilot *_autopilot = nullptr;
 	MavlinkManager *_mavlink_manager = nullptr;
 	FirmwareUploader *_firmware_uploader = nullptr;
 
@@ -203,7 +200,6 @@ private:
 	SensorStatus _gyro_status = SensorStatus::NotFound;
 	SensorStatus _accel_status = SensorStatus::NotFound;
 	SensorStatus _mag_status = SensorStatus::NotFound;
-	AutopilotState _ap_state = AutopilotState::None;
 	AutopilotParamsState _ap_params_state = AutopilotParamsState::None;
 	AutopilotParamsSendState _ap_params_send_state =
 			AutopilotParamsSendState::None;
