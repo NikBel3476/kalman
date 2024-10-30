@@ -6,8 +6,8 @@ Program for autopilot calibration
 
 ### Prerequisites
 
-* qt6
-* cmake 3.18 or above
+* qt 6.5 or above
+* cmake 3.16 or above
 * microsoft visual studio 2022 (for windows)
 
 ### Project building
@@ -17,6 +17,9 @@ Program for autopilot calibration
 2. configure cmake - `cmake -B build`
 3. build - `cmake --build build`
 4. run the executable - `./build/autopilot_selfcheck`
+
+To create archive:  
+`cpack --config "build/CPackConfig.cmake"`
 
 Note: on windows qt must be in the PATH variable or passed with `-DCMAKE_PREFIX_PATH=<path_to_qt>` on configuration step
 

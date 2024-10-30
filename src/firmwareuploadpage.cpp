@@ -5,11 +5,13 @@ const int MAX_PAGE_WIDTH = 250;
 
 FirmwareUploadPage::FirmwareUploadPage(QWidget *parent,
 																			 FirmwareUploader *firmware_uploader)
-		: QWidget{parent}, _layout(new QVBoxLayout(this)),
+		: QWidget{parent},
+			_layout(new QVBoxLayout(this)),
 			_drone_type_box(new QComboBox()),
 			_firmware_upload_button(new QPushButton()),
 			_firmware_upload_status_label(new QLabel()),
-			_progress_bar(new QProgressBar()), _firmware_uploader(firmware_uploader) {
+			_progress_bar(new QProgressBar()),
+			_firmware_uploader(firmware_uploader) {
 	_layout->setAlignment(Qt::AlignCenter);
 	_layout->addWidget(_drone_type_box);
 	_layout->addWidget(_firmware_upload_button);
@@ -131,10 +133,56 @@ void FirmwareUploadPage::_handleFirmwareUploadCompletion(
 		FirmwareUploadResult result) {
 	switch (result) {
 	case FirmwareUploadResult::Ok: {
-		_firmware_upload_status_label->setText(tr("Upload succesfully completed"));
+		_firmware_upload_status_label->setText(tr("Upload successfully completed"));
 	} break;
-	default:
-		_firmware_upload_status_label->setText(tr("Upload failed"));
-		break;
+	case FirmwareUploadResult::FirmwareImageNotFound: {
+		_firmware_upload_status_label->setText(QString("%1\n%2").arg(
+				tr("Upload failed"), tr("Firmware image not found")));
+	} break;
+	case FirmwareUploadResult::FirmwareSizeNotFound: {
+		_firmware_upload_status_label->setText(QString("%1\n%2").arg(
+				tr("Upload failed"), tr("Firmware size not found")));
+	} break;
+	case FirmwareUploadResult::BoardIdNotFound: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Board id not found")));
+	} break;
+	case FirmwareUploadResult::BootloaderNotFound: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Bootloader not found")));
+	} break;
+	case FirmwareUploadResult::TooLargeFirmware: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Too large firmware")));
+	} break;
+	case FirmwareUploadResult::DecodeFail: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Decode fail")));
+	} break;
+	case FirmwareUploadResult::EraseFail: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Erase fail")));
+	} break;
+	case FirmwareUploadResult::ProgramFail: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Program fail")));
+	} break;
+	case FirmwareUploadResult::VerificationFail: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Verification fail")));
+	} break;
+	case FirmwareUploadResult::UnsupportedBoard: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Unsupported board")));
+	} break;
+	case FirmwareUploadResult::UnsupportedBootloader: {
+		_firmware_upload_status_label->setText(QString("%1\n%2").arg(
+				tr("Upload failed"), tr("Unsupported bootloader")));
+	} break;
+	case FirmwareUploadResult::IncompatibleBoardType: {
+		_firmware_upload_status_label->setText(QString("%1\n%2").arg(
+				tr("Upload failed"), tr("Incompatible board type")));
+	} break;
 	}
+	_firmware_upload_button->setVisible(true);
 }

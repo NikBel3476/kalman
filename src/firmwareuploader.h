@@ -1,16 +1,17 @@
 #ifndef FIRMWAREUPLOADER_H
 #define FIRMWAREUPLOADER_H
 
+#include <QApplication>
 #include <QMessageBox>
 #include <QObject>
 #include <QSerialPort>
-#include <QThread>
 #include <QTimer>
 #include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <thread>
 #include <vector>
 
 #include "mavlinkmanager.h"

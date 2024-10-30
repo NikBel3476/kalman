@@ -14,12 +14,13 @@
 #include <format>
 #include <string>
 
-static constexpr auto kHeartbeatTimeout = std::chrono::seconds{7};
-static constexpr auto kSendParamTimeout = std::chrono::seconds{1};
+static constexpr auto kHeartbeatTimeout = std::chrono::seconds{3};
+static constexpr auto kSerialReconnectTimeout = std::chrono::seconds{5};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
-		: QMainWindow(parent), _toolbar(new QToolBar()),
+		: QMainWindow(parent),
+			_toolbar(new QToolBar()),
 			_ports_box(new QComboBox(_toolbar)),
 			_action_refresh(new QAction(_toolbar)),
 			_action_connect(new QAction(_toolbar)),
@@ -30,23 +31,30 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_open_console(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
 			_action_logout(new QAction(_toolbar)),
-			_central_widget(new QStackedWidget()), _statusbar(new QStatusBar()),
-			_serial_status_label(new QLabel), _ap_status_label(new QLabel),
-			_console(new Console), _authentication_page(new AuthenticationPage()),
+			_central_widget(new QStackedWidget()),
+			_statusbar(new QStatusBar()),
+			_serial_status_label(new QLabel),
+			_ap_status_label(new QLabel),
+			_console(new Console),
+			_authentication_page(new AuthenticationPage()),
 			_msg_cal_box(new QMessageBox(this)),
 			// _firmware_upload_page(new FirmwareUploadPage(nullptr,
 			// _firmware_uploader)),
+			_autopilot(new Autopilot(this)),
+			_serial(new QSerialPort()),
+			_mavlink_manager(new MavlinkManager(this, _serial, _autopilot)),
+			_firmware_uploader(
+					new FirmwareUploader(nullptr, _serial, _mavlink_manager)),
+			_firmware_upload_page{
+					new FirmwareUploadPage(nullptr, _firmware_uploader)},
 			_autopilot_settings_page(new AutopilotSettingsPage()),
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
-			_ap_params_page(new ApParametersPage()), _timer(new QTimer(this)),
-			_serial(new QSerialPort(this)), _port_settings{},
-			_heartbeat_timer(new QTimer(this)), _send_param_timer(new QTimer(this)),
-			_autopilot(new Autopilot(this)),
-			_mavlink_manager(new MavlinkManager(this, _serial, _autopilot)),
-			_firmware_uploader(
-					new FirmwareUploader(nullptr, _serial, _mavlink_manager)) {
-	_firmware_upload_page = new FirmwareUploadPage(nullptr, _firmware_uploader);
+			_ap_params_page(new ApParametersPage(this, _mavlink_manager, _autopilot)),
+			_serial_write_timer(new QTimer(this)),
+			_port_settings{},
+			_heartbeat_timer(new QTimer(this)),
+			_send_param_timer(new QTimer(this)) {
 	setWindowTitle("Autopilot selfcheck");
 	setMinimumSize(600, 800);
 	setGeometry(QRect(0, 0, 600, 800));
@@ -150,7 +158,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 
-	_timer->setSingleShot(true);
+	_serial_write_timer->setSingleShot(true);
 	_heartbeat_timer->setSingleShot(true);
 	_send_param_timer->setSingleShot(true);
 
@@ -167,7 +175,8 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_msg_cal_box_button, &QPushButton::clicked, this,
 					&MainWindow::handleCalibrationDialogButton);
 
-	connect(_timer, &QTimer::timeout, this, &MainWindow::handleWriteTimeout);
+	connect(_serial_write_timer, &QTimer::timeout, this,
+					&MainWindow::handleWriteTimeout);
 
 	// heartbeat timer connections
 	connect(_heartbeat_timer, &QTimer::timeout, this,
@@ -245,18 +254,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&AutopilotSettingsPage::handleGyroCalibrationComplete);
 
 	// autopilot parameters page connections
-	connect(this, &MainWindow::apParamValueReceived, _ap_params_page,
-					&ApParametersPage::handleApParamReceive);
-	connect(_ap_params_page, &ApParametersPage::requestDownloadParams,
-					_mavlink_manager, &MavlinkManager::sendParamRequestList);
-	connect(_ap_params_page, &ApParametersPage::apAllParamsReceived, this,
-					&MainWindow::_handleApAllParamsReceive);
-	connect(_ap_params_page, &ApParametersPage::requestUploadApParams, this,
-					&MainWindow::_handleUploadApParamsRequest);
-	connect(this, &MainWindow::apParamsUploaded, _ap_params_page,
-					&ApParametersPage::handleApParamsUploadCompletion);
-
-	fillPortsInfo();
+	connect(_ap_params_page, &ApParametersPage::parametersWritten, this,
+					&MainWindow::_rebootAp);
 }
 
 MainWindow::~MainWindow() = default;
@@ -270,58 +269,8 @@ void MainWindow::_handleSerialWriteError(const QString &error_msg) {
 	QMessageBox::warning(this, tr("Warning"), error_msg);
 }
 
-void MainWindow::openSerialPort() {
-	const auto p = _port_settings;
-	_serial->setPortName(p.name);
-	_serial->setBaudRate(p.baudRate);
-	_serial->setDataBits(p.dataBits);
-	_serial->setParity(p.parity);
-	_serial->setStopBits(p.stopBits);
-	_serial->setFlowControl(p.flowControl);
-
-	if (_serial->open(QIODevice::ReadWrite)) {
-		_console->setEnabled(true);
-		_ports_box->setEnabled(false);
-		_action_refresh->setEnabled(false);
-		_action_connect->setEnabled(false);
-		_action_disconnect->setEnabled(true);
-		_action_reboot_ap->setEnabled(true);
-
-		_serial_status_label->setText(
-				tr("Connected to %1").arg(_serial->portName()));
-		_heartbeat_timer->start(kHeartbeatTimeout);
-		emit serialConnected();
-		_serial_port_state = SerialPortState::Connected;
-	} else {
-		// QMessageBox::critical(this, tr("Error"), _serial->errorString());
-		showStatusMessage(tr("Open error"));
-	}
-}
-
-void MainWindow::closeSerialPort() {
-	if (_serial->isOpen())
-		_serial->close();
-	// _console->setEnabled(false);
-	_ports_box->setEnabled(true);
-	_action_refresh->setEnabled(true);
-	_action_connect->setEnabled(true);
-	_action_disconnect->setEnabled(false);
-	_action_open_settings->setEnabled(false);
-	_action_open_ap_params->setEnabled(false);
-	_action_reboot_ap->setEnabled(false);
-	showStatusMessage(tr("Disconnected"));
-	_central_widget->setCurrentWidget(_firmware_upload_page);
-	_heartbeat_timer->stop();
-	_autopilot->state = AutopilotState::None;
-	_ap_status_label->setText(tr("Autopilot disconnected"));
-	reset();
-	_serial_port_state = SerialPortState::Disconnected;
-	fillPortsInfo();
-	emit serialDisconnected();
-}
-
 void MainWindow::_handleMavlinkMessageReceive(
-		mavlink_message_t &mavlink_message) {
+		const mavlink_message_t &mavlink_message) {
 	const auto msg =
 			std::format("ID: {} sequence: {} from component: {} of system: {}\n",
 									std::to_string(mavlink_message.msgid),
@@ -458,7 +407,7 @@ void MainWindow::_handleMavlinkMessageReceive(
 		QByteArray data(param_value_str.c_str(),
 										static_cast<uint32_t>(param_value_str.length()));
 		_console->putData(data);
-		_handleApParamReceive(param_value);
+		// _handleApParamReceive(param_value);
 	} break;
 	case MAVLINK_MSG_ID_STATUSTEXT: {
 		mavlink_statustext_t statustext;
@@ -598,8 +547,9 @@ void MainWindow::handleError(QSerialPort::SerialPortError error) {
 
 void MainWindow::handleBytesWritten(qint64 bytes) {
 	_bytesToWrite -= bytes;
-	if (_bytesToWrite == 0)
-		_timer->stop();
+	if (_bytesToWrite == 0) {
+		_serial_write_timer->stop();
+	}
 }
 
 void MainWindow::handleWriteTimeout() {
@@ -612,6 +562,8 @@ void MainWindow::handleWriteTimeout() {
 void MainWindow::_login(const QString &username, const QString &password) {
 	qDebug() << "Login event\n" << username << '\n' << password << '\n';
 	// TODO: add authentication
+	fillPortsInfo();
+	_trySerialConnect();
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_toolbar->setVisible(true);
 	_statusbar->setVisible(true);
@@ -637,7 +589,7 @@ void MainWindow::_openConsole() {
 
 void MainWindow::_openApParamsPage() {
 	_central_widget->setCurrentWidget(_ap_params_page);
-	if (_ap_params_state == AutopilotParamsState::None) {
+	if (_autopilot->params_state == AutopilotParamsState::None) {
 		_mavlink_manager->sendParamRequestList();
 		_ap_params_page->clearParamsToUpload();
 	}
@@ -653,7 +605,7 @@ void MainWindow::handleHeartbeatTimeout() {
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
-	_ap_params_state = AutopilotParamsState::None;
+	_autopilot->params_state = AutopilotParamsState::None;
 	// closeSerialPort();
 }
 
@@ -718,18 +670,6 @@ void MainWindow::_handleStartGyroCalibration() {
 	qDebug("Gyro calibration started\n");
 }
 
-void MainWindow::_handleApAllParamsReceive() {
-	_ap_params_state = AutopilotParamsState::Received;
-}
-
-void MainWindow::_handleUploadApParamsRequest(
-		std::vector<mavlink_param_value_t> params_to_upload) {
-	_params_to_upload = std::move(params_to_upload);
-	_send_param_timer->start(kSendParamTimeout);
-	_ap_params_send_state = AutopilotParamsSendState::Sending;
-	_uploadApParam();
-}
-
 void MainWindow::handleCalibrationDialogButton() {
 	if (_cal_state == CalibrationState::None) {
 		return;
@@ -746,11 +686,11 @@ void MainWindow::handleCalibrationDialogButton() {
 	case CalibrationAccelState::RightSide: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_RIGHT;
 	} break;
-	case CalibrationAccelState::NoseUp: {
-		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEUP;
-	} break;
 	case CalibrationAccelState::NoseDown: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEDOWN;
+	} break;
+	case CalibrationAccelState::NoseUp: {
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEUP;
 	} break;
 	case CalibrationAccelState::Back: {
 		vehicle_position_param = ACCELCAL_VEHICLE_POS_BACK;
@@ -864,7 +804,8 @@ void MainWindow::fillPortsInfo() {
 		// 	"MANUFACTURER: " <<	info.manufacturer() <<
 		// 	"PRODUCT_ID: " <<	info.productIdentifier() <<
 		// 	"SERIAL_NUMBER: " <<	info.serialNumber() <<
-		// 	"VENDOR_ID: " <<	info.vendorIdentifier();
+		// 	"VENDOR_ID: " <<	info.vendorIdentifier() <<
+		// 	"SYSTEM_LOCATION: " << info.systemLocation();
 		QStringList list;
 		const auto description = info.description();
 		const auto manufacturer = info.manufacturer();
@@ -882,6 +823,75 @@ void MainWindow::fillPortsInfo() {
 		_ports_box->addItem(list.constFirst(), list);
 	}
 	// _ports_box->addItem(tr("Custom"));
+}
+
+void MainWindow::_trySerialConnect() {
+	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
+	for (int i = 0; i < _ports_box->count(); i++) {
+		setPortSettings(i);
+		if (port_regex.match(_port_settings.name).hasMatch()) {
+			openSerialPort();
+			_heartbeat_timer->start(kHeartbeatTimeout);
+			while (_heartbeat_timer->isActive()) {
+				if (_autopilot->state == AutopilotState::Alive) {
+					_ports_box->setCurrentIndex(i);
+					return;
+				}
+				QApplication::processEvents();
+			}
+		}
+	}
+}
+
+void MainWindow::openSerialPort() {
+	const auto p = _port_settings;
+	_serial->setPortName(p.name);
+	_serial->setBaudRate(p.baudRate);
+	_serial->setDataBits(p.dataBits);
+	_serial->setParity(p.parity);
+	_serial->setStopBits(p.stopBits);
+	_serial->setFlowControl(p.flowControl);
+
+	if (_serial->open(QIODevice::ReadWrite)) {
+		_console->setEnabled(true);
+		_ports_box->setEnabled(false);
+		_action_refresh->setEnabled(false);
+		_action_connect->setEnabled(false);
+		_action_disconnect->setEnabled(true);
+		_action_reboot_ap->setEnabled(true);
+
+		_serial_status_label->setText(
+				tr("Connected to %1").arg(_serial->portName()));
+		_heartbeat_timer->start(kHeartbeatTimeout);
+		emit serialConnected();
+		_serial_port_state = SerialPortState::Connected;
+	} else {
+		// QMessageBox::critical(this, tr("Error"), _serial->errorString());
+		showStatusMessage(tr("Open error"));
+	}
+}
+
+void MainWindow::closeSerialPort() {
+	if (_serial->isOpen()) {
+		_serial->close();
+	}
+	// _console->setEnabled(false);
+	_ports_box->setEnabled(true);
+	_action_refresh->setEnabled(true);
+	_action_connect->setEnabled(true);
+	_action_disconnect->setEnabled(false);
+	_action_open_settings->setEnabled(false);
+	_action_open_ap_params->setEnabled(false);
+	_action_reboot_ap->setEnabled(false);
+	showStatusMessage(tr("Disconnected"));
+	_central_widget->setCurrentWidget(_firmware_upload_page);
+	_heartbeat_timer->stop();
+	_autopilot->state = AutopilotState::None;
+	_ap_status_label->setText(tr("Autopilot disconnected"));
+	reset();
+	_serial_port_state = SerialPortState::Disconnected;
+	fillPortsInfo();
+	emit serialDisconnected();
 }
 
 void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {
@@ -1025,44 +1035,15 @@ void MainWindow::_updateSensorsStatus(mavlink_sys_status_t sys_status) {
 	}
 }
 
-void MainWindow::_handleApParamReceive(mavlink_param_value_t param) {
-	emit apParamValueReceived(param);
-	if (_ap_params_send_state == AutopilotParamsSendState::Sending) {
-		_send_param_timer->start(kSendParamTimeout);
-		qDebug() << "PARAM UPLOADED ID: " << param.param_id
-						 << "VALUE: " << param.param_value << '\n';
-		const auto uploaded_param = _params_to_upload.back();
-		if (uploaded_param.param_value != param.param_value) {
-			_not_written_params.push_back(uploaded_param);
-		}
-		_params_to_upload.pop_back();
-		if (_params_to_upload.empty()) {
-			_ap_params_send_state = AutopilotParamsSendState::None;
-			emit apParamsUploaded(_not_written_params);
-			_not_written_params.clear();
-		} else {
-			_uploadApParam();
-		}
-	}
-}
-
 void MainWindow::_rebootAp() {
 	const auto command = MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN;
 	const uint8_t confirmation = 0;
 	const float param1 = 1;
 	_mavlink_manager->sendCmdLong(command, confirmation, param1);
 	_autopilot->state = AutopilotState::None;
-	_ap_params_state = AutopilotParamsState::None;
+	_autopilot->params_state = AutopilotParamsState::None;
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_heartbeat_timer->stop();
-}
-
-void MainWindow::_uploadApParam() {
-	if (_params_to_upload.empty()) {
-		return;
-	}
-	auto param = _params_to_upload.back();
-	_mavlink_manager->sendParamSet(param);
 }
 
 void MainWindow::_handleFirmwareUploadCompletion(FirmwareUploadResult result) {

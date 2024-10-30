@@ -8,6 +8,14 @@ enum class AutopilotState {
 	Alive,
 	Flashing
 };
+enum class AutopilotParamsState {
+	None,
+	Received
+};
+enum class AutopilotParamsSendState {
+	None,
+	Sending
+};
 
 class Autopilot : public QObject {
 	Q_OBJECT
@@ -15,6 +23,8 @@ public:
 	explicit Autopilot(QObject *parent = nullptr);
 
 	AutopilotState state = AutopilotState::None;
+	AutopilotParamsState params_state = AutopilotParamsState::None;
+	AutopilotParamsSendState params_send_state = AutopilotParamsSendState::None;
 };
 
 #endif // AUTOPILOT_H

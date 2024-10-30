@@ -77,8 +77,11 @@ static constexpr std::array<uint32_t, 256> CRCTAB = {
 
 FirmwareUploader::FirmwareUploader(QObject *parent, QSerialPort *serial,
 																	 MavlinkManager *mavlink_manager)
-		: QObject{parent}, _serial(serial), _mavlink_manager(mavlink_manager),
-			_erase_timer(new QTimer()), _serial_write_timer(new QTimer()),
+		: QObject{parent},
+			_serial(serial),
+			_mavlink_manager(mavlink_manager),
+			_erase_timer(new QTimer()),
+			_serial_write_timer(new QTimer()),
 			_serial_open_timer(new QTimer()) {
 	_erase_timer->setSingleShot(true);
 	_serial_write_timer->setSingleShot(true);
@@ -89,14 +92,8 @@ FirmwareUploader::FirmwareUploader(QObject *parent, QSerialPort *serial,
 }
 
 void FirmwareUploader::upload(const QByteArray &file_content) {
-	const auto thread = QThread::create([this, file_content]() {
-		const auto upload_result = _tryUploadFirmware(file_content);
-		emit uploadCompleted(upload_result);
-	});
-	_erase_timer->moveToThread(thread);
-	_serial_write_timer->moveToThread(thread);
-	_serial_open_timer->moveToThread(thread);
-	thread->start();
+	const auto upload_result = _tryUploadFirmware(file_content);
+	emit uploadCompleted(upload_result);
 }
 
 void FirmwareUploader::_setUploadState(FirmwareUploadState state) {
@@ -218,6 +215,7 @@ bool FirmwareUploader::_openSerialPort() {
 			return true;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		QApplication::processEvents();
 	}
 	return false;
 }
@@ -345,6 +343,7 @@ EraseResult FirmwareUploader::_erase() {
 			return EraseResult::UnsupportedBoard;
 		}
 		}
+		QApplication::processEvents();
 	}
 	qDebug() << "ERASE TIMEOUT";
 	return EraseResult::Timeout;
@@ -384,7 +383,6 @@ uint32_t FirmwareUploader::_getInfo(const char param) {
 	}
 	// little endian format
 	const auto raw_data = _serial->read(4);
-	qDebug() << "getInfo RAW: " << raw_data;
 	_getSync();
 	uint32_t uint_result =
 			((raw_data[3] << 24) & 0xff000000) | ((raw_data[2] << 16) & 0x00ff0000) |
@@ -393,7 +391,18 @@ uint32_t FirmwareUploader::_getInfo(const char param) {
 }
 
 FindBootloaderResult FirmwareUploader::_findBootloader() {
-	qDebug() << "FINDING BOOTLOADER...";
+	qDebug() << "SEARCHING BOOTLOADER...";
+
+	_serial->setBaudRate(QSerialPort::Baud57600);
+	if (_openSerialPort()) {
+		_sendReboot();
+		_closeSerialPort();
+		QApplication::processEvents();
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	} else {
+		return FindBootloaderResult::SerialPortError;
+	}
+
 	// attempt to connect on baud 115200
 	_serial->setBaudRate(QSerialPort::Baud115200);
 	if (_openSerialPort()) {
@@ -414,8 +423,8 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 	qDebug() << "CANNOT OPEN SERIAL PORT ATTEMPT 1\n";
 
 	_sendReboot();
-	std::this_thread::sleep_for(std::chrono::milliseconds(250));
 	_closeSerialPort();
+	QApplication::processEvents();
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 	// attempt to connect on baud 57600
@@ -453,6 +462,7 @@ bool FirmwareUploader::_program() {
 														static_cast<float>(groups.size()) * 100.0;
 		emit flashProgressUpdated(static_cast<uint8_t>(std::round(progress)));
 		uploaded++;
+		QApplication::processEvents();
 	}
 	return true;
 }
@@ -489,8 +499,7 @@ SyncResult FirmwareUploader::_programMulti(const QByteArray &bytes) {
 void FirmwareUploader::_sendReboot() {
 	qDebug() << "REBOOT ATTEMPT\n";
 	// Reboot via mavlink
-	const auto result = _serial->flush();
-	qDebug() << "REBOOT BYTES WRITTEN: " << result;
+	_serial->flush();
 	_writeData(MAVLINK_REBOOT_ID1);
 	if (_serial->bytesToWrite() > 0) {
 		_serial->waitForBytesWritten(300);
@@ -545,7 +554,8 @@ QByteArray FirmwareUploader::_crc(uint32_t padlen) {
 	const char state_bytes[4] = {
 			static_cast<char>(state), static_cast<char>(state >> 8),
 			static_cast<char>(state >> 16), static_cast<char>(state >> 24)};
-	return QByteArray(state_bytes, 4);
+	// return QByteArray(state_bytes, 4);
+	return {state_bytes, 4};
 }
 
 /// crc32 exposed for use by chibios.py
