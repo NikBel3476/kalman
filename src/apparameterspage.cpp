@@ -4,7 +4,7 @@ static constexpr int ap_params_table_column_count = 3;
 static constexpr auto kSendParamTimeout = std::chrono::seconds{1};
 static constexpr auto kApParamsUpdateDelay = std::chrono::seconds{10};
 static constexpr uint8_t _params_upload_attempt_max =
-		5; // params conuter is zero based
+		6; // params conuter is zero based
 
 ApParametersPage::ApParametersPage(QWidget *parent,
 																	 MavlinkManager *mavlink_manager,
@@ -137,8 +137,8 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 			_update_params_btn->setEnabled(false);
 			_compare_params_btn->setEnabled(false);
 			_upload_params_btn->setEnabled(false);
-			_not_saved_params.clear();
-			_params_to_upload.clear();
+			clearNotSavedParams();
+			clearParamsToUpload();
 			_parseApParameters(file_content);
 		}
 	};
@@ -319,6 +319,11 @@ void ApParametersPage::_handleApParamReceive(
 					_params_have_been_saved = true;
 				}
 			}
+			if (_cannot_save_params.contains(ap_param.first) &&
+					_cannot_save_params[ap_param.first].param_value ==
+							ap_param.second.param_value) {
+				_cannot_save_params.erase(ap_param.first);
+			}
 		}
 		_autopilot->params_state = AutopilotParamsState::Received;
 		_update_params_btn->setEnabled(true);
@@ -348,12 +353,11 @@ void ApParametersPage::_handleApParamReceive(
 				QMessageBox::warning(this, tr("Warning"),
 														 tr("Not all parameters saved"));
 				_autopilot->params_send_state = AutopilotParamsSendState::None;
-				for (const auto &cannot_save_param : _cannot_save_params) {
+				for (const auto &[_, cannot_save_param] : _cannot_save_params) {
 					qDebug() << cannot_save_param.param_id << "CANNOT SAVE"
 									 << cannot_save_param.param_index;
 				}
 				_showUploadResult();
-				clearParamsToUpload();
 				_reset();
 				return;
 			}
@@ -378,12 +382,11 @@ void ApParametersPage::_handleApParamReceive(
 																 tr("Not all parameters saved"));
 					}
 					_autopilot->params_send_state = AutopilotParamsSendState::None;
-					for (const auto &cannot_save_param : _cannot_save_params) {
+					for (const auto &[_, cannot_save_param] : _cannot_save_params) {
 						qDebug() << cannot_save_param.param_id << "CANNOT SAVE"
 										 << cannot_save_param.param_index;
 					}
 					_showUploadResult();
-					clearParamsToUpload();
 					_reset();
 				}
 				return;
@@ -402,7 +405,9 @@ void ApParametersPage::_handleParamUploadAck(mavlink_param_value_t &param) {
 		const auto param_to_upload = _params_to_upload.back();
 		if (param_to_upload.param_value != param.param_value) {
 			_not_saved_params.erase(std::string(param.param_id, 16));
-			_cannot_save_params.push_back(param_to_upload);
+			// _cannot_save_params.push_back(param_to_upload);
+			_cannot_save_params[std::string(param_to_upload.param_id, 16)] =
+					param_to_upload;
 		}
 
 		_params_to_upload.pop_back();
@@ -434,10 +439,12 @@ void ApParametersPage::_uploadParameters() {
 
 void ApParametersPage::_showUploadResult() {
 	_upload_params_progress_wrapper->setVisible(false);
-	_cannot_save_params.insert(_cannot_save_params.cend(),
-														 _params_to_upload.cbegin(),
-														 _params_to_upload.cend());
-	for (const auto &not_saved_param : _cannot_save_params) {
+	for (const auto &param_to_upload : _params_to_upload) {
+		_cannot_save_params[std::string(param_to_upload.param_id, 16)] =
+				param_to_upload;
+	}
+	clearParamsToUpload();
+	for (const auto &[_, not_saved_param] : _cannot_save_params) {
 		const auto not_saved_param_item = new QTableWidgetItem(
 				QString::number(not_saved_param.param_value), QTableWidgetItem::Type);
 		not_saved_param_item->setBackground(QBrush(Qt::darkRed));

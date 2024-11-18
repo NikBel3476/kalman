@@ -70,7 +70,7 @@ private:
 	std::vector<mavlink_param_value_t> _params_to_upload;
 	std::vector<mavlink_param_value_t> _not_written_params;
 	std::unordered_map<std::string, float> _not_saved_params;
-	std::vector<mavlink_param_value_t> _cannot_save_params;
+	std::unordered_map<std::string, mavlink_param_value_t> _cannot_save_params;
 	uint16_t _params_total_count = 0;
 	MavlinkManager *_mavlink_manager = nullptr;
 	Autopilot *_autopilot = nullptr;
