@@ -29,25 +29,17 @@ signals:
 	void accelerometerCalibrationCompleted(CalibrationResult);
 	void startLevelCalibration();
 	void levelCalibrationCompleted();
-	void startMagCalibration();
-	void cancelMagCalibration();
-	void magCalProgressUpdated(mavlink_mag_cal_progress_t);
-	void magCalReportUpdated(mavlink_mag_cal_report_t);
 	void startGyroCalibration();
 	void gyroCalibrationCompleted();
 
 public slots:
 	void handleCompleteAccelerometerCalibration(CalibrationResult);
 	void handleCompleteLevelCalibration();
-	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t);
-	void handleMagCalReportUpdate(mavlink_mag_cal_report_t);
 	void handleGyroCalibrationComplete();
 
 private slots:
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
-	void _handleStartMagCalibration();
-	void _handleCancelMagCalibration();
 	void _handleStartGyroCalibration();
 
 private:

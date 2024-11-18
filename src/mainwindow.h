@@ -35,10 +35,10 @@ enum class SerialPortState {
 	Connected,
 	Disconnected
 };
-enum class CalibrationState {
-	None,
-	InProgress
-};
+// enum class CalibrationState {
+// 	None,
+// 	InProgress
+// };
 enum class CalibrationAccelState {
 	None,
 	Level,
@@ -55,10 +55,6 @@ enum class CalibrationAccelState {
 	BackDone
 };
 enum class CalibrationLevelState {
-	None,
-	InProgress
-};
-enum class CalibrationMagState {
 	None,
 	InProgress
 };
@@ -91,8 +87,6 @@ signals:
 	void mcuStatusUpdated(mavlink_mcu_status_t);
 	void accelerometerCalibrationCompleted(CalibrationResult);
 	void levelCalibrationCompleted();
-	void magCalProgressUpdated(mavlink_mag_cal_progress_t);
-	void magCalReportUpdated(mavlink_mag_cal_report_t);
 	void gyroCalibrationCompleted();
 	// void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
@@ -121,8 +115,6 @@ private slots:
 	void _rebootAp();
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
-	void _handleStartMagCalibration();
-	void _handleCancelMagCalibration();
 	void _handleStartGyroCalibration();
 	// void _handleApAllParamsReceive();
 	// void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
@@ -191,7 +183,6 @@ private:
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;
 	CalibrationAccelState _cal_accel_state = CalibrationAccelState::None;
-	CalibrationMagState _cal_mag_state = CalibrationMagState::None;
 	CalibrationState _cal_gyro_state = CalibrationState::None;
 	SerialPortState _serial_port_state = SerialPortState::Disconnected;
 };

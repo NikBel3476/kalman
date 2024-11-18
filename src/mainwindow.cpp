@@ -225,16 +225,6 @@ MainWindow::MainWindow(QWidget *parent)
 					_autopilot_settings_page,
 					&AutopilotSettingsPage::handleCompleteLevelCalibration);
 
-	connect(_autopilot_settings_page, &AutopilotSettingsPage::startMagCalibration,
-					this, &MainWindow::_handleStartMagCalibration);
-	connect(_autopilot_settings_page,
-					&AutopilotSettingsPage::cancelMagCalibration, this,
-					&MainWindow::_handleCancelMagCalibration);
-	connect(this, &MainWindow::magCalProgressUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleMagCalProgressUpdate);
-	connect(this, &MainWindow::magCalReportUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleMagCalReportUpdate);
-
 	connect(_autopilot_settings_page,
 					&AutopilotSettingsPage::startGyroCalibration, this,
 					&MainWindow::_handleStartGyroCalibration);
@@ -421,7 +411,6 @@ void MainWindow::_handleMavlinkMessageReceive(
 		QByteArray data(mag_cal_progress_str.c_str(),
 										static_cast<uint32_t>(mag_cal_progress_str.length()));
 		_console->putData(data);
-		emit magCalProgressUpdated(mag_cal_progress);
 		qDebug() << mag_cal_progress_str.c_str() << '\n';
 	} break;
 	case MAVLINK_MSG_ID_MAG_CAL_REPORT: {
@@ -432,10 +421,6 @@ void MainWindow::_handleMavlinkMessageReceive(
 		QByteArray data(mag_cal_report_str.c_str(),
 										static_cast<uint32_t>(mag_cal_report_str.length()));
 		_console->putData(data);
-		if (_cal_mag_state == CalibrationMagState::InProgress) {
-			emit magCalReportUpdated(mag_cal_report);
-			_cal_mag_state = CalibrationMagState::None;
-		}
 		qDebug() << mag_cal_report_str << '\n';
 	} break;
 	case MAVLINK_MSG_ID_SCALED_IMU: {
@@ -654,29 +639,6 @@ void MainWindow::_handleStartLevelCalibration() {
 	qDebug("Level calibration started\n");
 }
 
-void MainWindow::_handleStartMagCalibration() {
-	const uint8_t confirmation = 0;
-	const auto command = MAV_CMD_DO_START_MAG_CAL;
-	const float param1 = 0; // Bitmask (all)
-	const float param2 = 1; // Retry on failure
-	const float param3 = 1; // Autosave
-	const float param4 = 0; // Delay
-	const float param5 = 0; // Autoreboot
-	_mavlink_manager->sendCmdLong(command, confirmation, param1, param2, param3,
-																param4, param5);
-	_cal_mag_state = CalibrationMagState::InProgress;
-	qDebug("Mag calibration started\n");
-}
-
-void MainWindow::_handleCancelMagCalibration() {
-	const auto command = MAV_CMD_DO_CANCEL_MAG_CAL;
-	const uint8_t confirmation = 0;
-	const float param1 = 0; // Bitmask (all)
-	_mavlink_manager->sendCmdLong(command, confirmation, param1);
-	_cal_mag_state = CalibrationMagState::None;
-	qDebug() << "Cancel mag calibration" << '\n';
-}
-
 void MainWindow::_handleStartGyroCalibration() {
 	const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
 	const uint8_t confirmation = 0;
@@ -840,7 +802,6 @@ void MainWindow::fillPortsInfo() {
 
 		_ports_box->addItem(list.constFirst(), list);
 	}
-	// _ports_box->addItem(tr("Custom"));
 }
 
 void MainWindow::_trySerialConnect() {
@@ -857,26 +818,6 @@ void MainWindow::_trySerialConnect() {
 		openSerialPort();
 		_serial_reconnect_timer->start(kSerialReconnectTimeout);
 	}
-
-	// for (int i = 0; i < _ports_box->count(); i++) {
-	// 	setPortSettings(i);
-	// 	if (port_regex.match(_port_settings.name).hasMatch()) {
-	// 		qDebug() << "Try connect to " << _port_settings.name;
-	// 		openSerialPort();
-	// 		_serial_reconnect_timer->start(kSerialReconnectTimeout);
-	// 		while (_serial_reconnect_timer->isActive()) {
-	// 			if (_autopilot->state == AutopilotState::Alive) {
-	// 				qDebug() << "AUTOPILOT CONNECTED";
-	// 				_ports_box->setCurrentIndex(i);
-	// 				emit autopilotConnected();
-	// 				return;
-	// 			}
-	// 			QApplication::processEvents(QEventLoop::AllEvents, 1000);
-	// 			// qDebug() << "UPDATE";
-	// 		}
-	// 		closeSerialPort();
-	// 	}
-	// }
 }
 
 void MainWindow::openSerialPort() {

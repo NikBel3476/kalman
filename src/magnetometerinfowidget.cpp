@@ -78,33 +78,6 @@ MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent,
 					&MagnetometerInfoWidget::_handleMavlinkMessageReceive);
 }
 
-void MagnetometerInfoWidget::handleMagCalProgressUpdate(
-		mavlink_mag_cal_progress_t mag_cal_progress) {
-	_mag_cal_progress_bar->setValue(mag_cal_progress.completion_pct);
-	_cal_attempt_label->setText(tr("Attempt: %1").arg(mag_cal_progress.attempt));
-	switch (mag_cal_progress.cal_status) {
-	case MAG_CAL_RUNNING_STEP_ONE: {
-		_cal_step_label->setText(tr("Step: %1").arg(1));
-	} break;
-	case MAG_CAL_RUNNING_STEP_TWO: {
-		_cal_step_label->setText(tr("Step: %1").arg(2));
-	} break;
-	default:
-		break;
-	}
-}
-
-void MagnetometerInfoWidget::handleMagCalReportUpdate(
-		mavlink_mag_cal_report_t mag_cal_report) {
-	_cal_progress_container->setVisible(false);
-	_cal_result_label->setText(mag_cal_report.cal_status == MAG_CAL_SUCCESS
-																 ? tr("Success")
-																 : tr("Failed"));
-	_cal_result_label->setVisible(true);
-	_start_calibration_button->setEnabled(true);
-	_cancel_calibration_button->setEnabled(false);
-}
-
 void MagnetometerInfoWidget::_handleMavlinkMessageReceive(
 		const mavlink_message_t &mavlink_message) {
 	switch (mavlink_message.msgid) {
@@ -118,23 +91,53 @@ void MagnetometerInfoWidget::_handleMavlinkMessageReceive(
 		mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
 		_handleSysStatusUpdate(sys_status);
 	} break;
+	case MAVLINK_MSG_ID_MAG_CAL_PROGRESS: {
+		mavlink_mag_cal_progress_t mag_cal_progress;
+		mavlink_msg_mag_cal_progress_decode(&mavlink_message, &mag_cal_progress);
+		_handleMagCalProgressUpdate(mag_cal_progress);
+	} break;
+	case MAVLINK_MSG_ID_MAG_CAL_REPORT: {
+		mavlink_mag_cal_report_t mag_cal_report;
+		mavlink_msg_mag_cal_report_decode(&mavlink_message, &mag_cal_report);
+		if (_cal_mag_state == CalibrationState::InProgress) {
+			_cal_mag_state = CalibrationState::None;
+		}
+		_handleMagCalReportUpdate(mag_cal_report);
+	} break;
 	}
 }
 
 void MagnetometerInfoWidget::_handleCalStartButtonPress() {
-	emit startCalibration();
 	_cal_progress_container->setVisible(true);
 	_start_calibration_button->setEnabled(false);
 	_cancel_calibration_button->setEnabled(true);
 	_cal_result_label->setVisible(false);
+
+	const uint8_t confirmation = 0;
+	const auto command = MAV_CMD_DO_START_MAG_CAL;
+	const float param1 = 0; // Bitmask (all)
+	const float param2 = 1; // Retry on failure
+	const float param3 = 1; // Autosave
+	const float param4 = 0; // Delay
+	const float param5 = 0; // Autoreboot
+	_mavlink_manager->sendCmdLong(command, confirmation, param1, param2, param3,
+																param4, param5);
+	_cal_mag_state = CalibrationState::InProgress;
+	qDebug("Mag calibration started\n");
 }
 
 void MagnetometerInfoWidget::_handleCalCancelButtonPress() {
-	emit cancelCalibration();
 	_cal_progress_container->setVisible(false);
 	_start_calibration_button->setEnabled(true);
 	_cancel_calibration_button->setEnabled(false);
 	_cal_result_label->setVisible(false);
+
+	const auto command = MAV_CMD_DO_CANCEL_MAG_CAL;
+	const uint8_t confirmation = 0;
+	const float param1 = 0; // Bitmask (all)
+	_mavlink_manager->sendCmdLong(command, confirmation, param1);
+	_cal_mag_state = CalibrationState::None;
+	qDebug() << "Cancel mag calibration" << '\n';
 }
 
 void MagnetometerInfoWidget::_handleIMU2Update(
@@ -178,4 +181,31 @@ void MagnetometerInfoWidget::_handleSysStatusUpdate(
 		} break;
 		}
 	}
+}
+
+void MagnetometerInfoWidget::_handleMagCalProgressUpdate(
+		const mavlink_mag_cal_progress_t &mag_cal_progress) {
+	_mag_cal_progress_bar->setValue(mag_cal_progress.completion_pct);
+	_cal_attempt_label->setText(tr("Attempt: %1").arg(mag_cal_progress.attempt));
+	switch (mag_cal_progress.cal_status) {
+	case MAG_CAL_RUNNING_STEP_ONE: {
+		_cal_step_label->setText(tr("Step: %1").arg(1));
+	} break;
+	case MAG_CAL_RUNNING_STEP_TWO: {
+		_cal_step_label->setText(tr("Step: %1").arg(2));
+	} break;
+	default:
+		break;
+	}
+}
+
+void MagnetometerInfoWidget::_handleMagCalReportUpdate(
+		const mavlink_mag_cal_report_t &mag_cal_report) {
+	_cal_progress_container->setVisible(false);
+	_cal_result_label->setText(mag_cal_report.cal_status == MAG_CAL_SUCCESS
+																 ? tr("Success")
+																 : tr("Failed"));
+	_cal_result_label->setVisible(true);
+	_start_calibration_button->setEnabled(true);
+	_cancel_calibration_button->setEnabled(false);
 }

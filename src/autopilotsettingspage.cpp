@@ -32,18 +32,6 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 					_accelerometer_info_widget,
 					&AccelerometerInfoWidget::handleLvlCalComplete);
 
-	// magnetometer info widget connections
-	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::startCalibration,
-					this, &AutopilotSettingsPage::_handleStartMagCalibration);
-	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::cancelCalibration,
-					this, &AutopilotSettingsPage::_handleCancelMagCalibration);
-	connect(this, &AutopilotSettingsPage::magCalProgressUpdated,
-					_magnetometer_info_widget,
-					&MagnetometerInfoWidget::handleMagCalProgressUpdate);
-	connect(this, &AutopilotSettingsPage::magCalReportUpdated,
-					_magnetometer_info_widget,
-					&MagnetometerInfoWidget::handleMagCalReportUpdate);
-
 	// gyroscope info widget connections
 	connect(_gyroscope_info_widget, &GyroscopeInfoWidget::startCalibration, this,
 					&AutopilotSettingsPage::_handleStartGyroCalibration);
@@ -55,16 +43,6 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 void AutopilotSettingsPage::handleCompleteAccelerometerCalibration(
 		CalibrationResult result) {
 	emit accelerometerCalibrationCompleted(result);
-}
-
-void AutopilotSettingsPage::handleMagCalProgressUpdate(
-		mavlink_mag_cal_progress_t mag_cal_progress) {
-	emit magCalProgressUpdated(mag_cal_progress);
-}
-
-void AutopilotSettingsPage::handleMagCalReportUpdate(
-		mavlink_mag_cal_report_t mag_cal_report) {
-	emit magCalReportUpdated(mag_cal_report);
 }
 
 void AutopilotSettingsPage::handleGyroCalibrationComplete() {
@@ -81,14 +59,6 @@ void AutopilotSettingsPage::_handleStartLevelCalibration() {
 
 void AutopilotSettingsPage::handleCompleteLevelCalibration() {
 	emit levelCalibrationCompleted();
-}
-
-void AutopilotSettingsPage::_handleStartMagCalibration() {
-	emit startMagCalibration();
-}
-
-void AutopilotSettingsPage::_handleCancelMagCalibration() {
-	emit cancelMagCalibration();
 }
 
 void AutopilotSettingsPage::_handleStartGyroCalibration() {
