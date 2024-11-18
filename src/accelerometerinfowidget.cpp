@@ -1,14 +1,18 @@
 #include "accelerometerinfowidget.h"
 
-static const int MIN_LABEL_WIDTH = 50;
-static const int MAX_LABEL_WIDTH = 100;
-
-AccelerometerInfoWidget::AccelerometerInfoWidget(QWidget *parent)
-		: QWidget{parent}, _layout(new QVBoxLayout(this)),
-			_title_label(new QLabel()), _status_label(new QLabel()),
-			_x_label(new QLabel("x: 0")), _y_label(new QLabel("y: 0")),
-			_z_label(new QLabel("z: 0")), _accel_cal_btn(new QPushButton()),
-			_lvl_cal_btn(new QPushButton()), _cal_result_label(new QLabel()) {
+AccelerometerInfoWidget::AccelerometerInfoWidget(
+		QWidget *parent, MavlinkManager *mavlink_manager)
+		: QWidget{parent},
+			_layout(new QVBoxLayout(this)),
+			_title_label(new QLabel()),
+			_status_label(new QLabel()),
+			_x_label(new QLabel("x: 0")),
+			_y_label(new QLabel("y: 0")),
+			_z_label(new QLabel("z: 0")),
+			_accel_cal_btn(new QPushButton()),
+			_lvl_cal_btn(new QPushButton()),
+			_cal_result_label(new QLabel()),
+			_mavlink_manager{mavlink_manager} {
 	const auto values_layout = new QHBoxLayout();
 	const auto title_layout = new QHBoxLayout();
 	const auto buttons_layout = new QHBoxLayout();
@@ -43,30 +47,8 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(QWidget *parent)
 					&AccelerometerInfoWidget::_handleAccelCalBtnPress);
 	connect(_lvl_cal_btn, &QPushButton::pressed, this,
 					&AccelerometerInfoWidget::_handleLvlCalBtnPress);
-}
-
-void AccelerometerInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y,
-																							uint16_t z) {
-	_x_label->setText(QString("x: %1").arg(x));
-	_y_label->setText(QString("y: %1").arg(y));
-	_z_label->setText(QString("z: %1").arg(z));
-}
-
-void AccelerometerInfoWidget::handleAccelStatusUpdate(SensorStatus status) {
-	switch (status) {
-	case SensorStatus::NotFound: {
-		_status_label->setText(tr("Status: not found"));
-	} break;
-	case SensorStatus::Disabled: {
-		_status_label->setText(tr("Status: disabled"));
-	} break;
-	case SensorStatus::Enabled: {
-		_status_label->setText(tr("Status: enabled"));
-	} break;
-	case SensorStatus::Error: {
-		_status_label->setText(tr("Status: error"));
-	} break;
-	}
+	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
+					&AccelerometerInfoWidget::_handleMavlinkMessageReceive);
 }
 
 void AccelerometerInfoWidget::handleAccelCalComplete(CalibrationResult result) {
@@ -90,6 +72,22 @@ void AccelerometerInfoWidget::handleLvlCalComplete() {
 	_cal_result_label->setVisible(true);
 }
 
+void AccelerometerInfoWidget::_handleMavlinkMessageReceive(
+		const mavlink_message_t &mavlink_message) {
+	switch (mavlink_message.msgid) {
+	case MAVLINK_MSG_ID_SCALED_IMU2: {
+		mavlink_scaled_imu2_t scaled_imu;
+		mavlink_msg_scaled_imu2_decode(&mavlink_message, &scaled_imu);
+		_handleIMU2Update(scaled_imu);
+	} break;
+	case MAVLINK_MSG_ID_SYS_STATUS: {
+		mavlink_sys_status_t sys_status;
+		mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
+		_handleSysStatusUpdate(sys_status);
+	} break;
+	}
+}
+
 void AccelerometerInfoWidget::_handleAccelCalBtnPress() {
 	_accel_cal_btn->setEnabled(false);
 	_lvl_cal_btn->setEnabled(false);
@@ -102,4 +100,47 @@ void AccelerometerInfoWidget::_handleLvlCalBtnPress() {
 	_lvl_cal_btn->setEnabled(false);
 	_cal_result_label->setVisible(false);
 	emit startLevelCal();
+}
+
+void AccelerometerInfoWidget::_handleIMU2Update(
+		const mavlink_scaled_imu2_t &scaled_imu) {
+	_x_label->setText(QString("x: %1").arg(scaled_imu.xacc));
+	_y_label->setText(QString("y: %1").arg(scaled_imu.yacc));
+	_z_label->setText(QString("z: %1").arg(scaled_imu.zacc));
+}
+
+void AccelerometerInfoWidget::_handleSysStatusUpdate(
+		const mavlink_sys_status_t &sys_status) {
+	auto current_accel_status = SensorStatus::NotFound;
+	if (sys_status.onboard_control_sensors_present &
+			MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
+		if (sys_status.onboard_control_sensors_enabled &
+				MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
+			if (sys_status.onboard_control_sensors_health &
+					MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
+				current_accel_status = SensorStatus::Enabled;
+			} else {
+				current_accel_status = SensorStatus::Error;
+			}
+		} else {
+			current_accel_status = SensorStatus::Disabled;
+		}
+	}
+	if (current_accel_status != _acc_status) {
+		_acc_status = current_accel_status;
+		switch (_acc_status) {
+		case SensorStatus::NotFound: {
+			_status_label->setText(tr("Status: not found"));
+		} break;
+		case SensorStatus::Disabled: {
+			_status_label->setText(tr("Status: disabled"));
+		} break;
+		case SensorStatus::Enabled: {
+			_status_label->setText(tr("Status: enabled"));
+		} break;
+		case SensorStatus::Error: {
+			_status_label->setText(tr("Status: error"));
+		} break;
+		}
+	}
 }

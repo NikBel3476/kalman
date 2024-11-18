@@ -93,9 +93,6 @@ signals:
 	void levelCalibrationCompleted();
 	void magCalProgressUpdated(mavlink_mag_cal_progress_t);
 	void magCalReportUpdated(mavlink_mag_cal_report_t);
-	void gyroStatusUpdated(SensorStatus);
-	void accelStatusUpdated(SensorStatus);
-	void magStatusUpdated(SensorStatus);
 	void gyroCalibrationCompleted();
 	// void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
@@ -146,9 +143,6 @@ private:
 	void parseCommand(const mavlink_command_long_t &);
 	void reset();
 	void _handleCommandAck(mavlink_command_ack_t &);
-	void _updateSensorsStatus(mavlink_sys_status_t);
-	// void _handleApParamReceive(mavlink_param_value_t);
-	// void _uploadApParam();
 	void _setApState(AutopilotState);
 	void _trySerialConnect();
 
@@ -200,9 +194,6 @@ private:
 	CalibrationMagState _cal_mag_state = CalibrationMagState::None;
 	CalibrationState _cal_gyro_state = CalibrationState::None;
 	SerialPortState _serial_port_state = SerialPortState::Disconnected;
-	SensorStatus _gyro_status = SensorStatus::NotFound;
-	SensorStatus _accel_status = SensorStatus::NotFound;
-	SensorStatus _mag_status = SensorStatus::NotFound;
 };
 
 #endif // MAINWINDOW_H

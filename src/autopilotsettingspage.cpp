@@ -1,12 +1,17 @@
 #include "autopilotsettingspage.h"
 
-AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
-		: QWidget{parent}, _layout(new QVBoxLayout(this)),
-			_magnetometer_info_widget(new MagnetometerInfoWidget()),
-			_accelerometer_info_widget(new AccelerometerInfoWidget()),
-			_gyroscope_info_widget(new GyroscopeInfoWidget()),
-			_mcu_info_widget(new McuInfoWidget()),
-			_avionics_widget(new AvionicsWidget()) {
+AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
+																						 MavlinkManager *mavlink_manager)
+		: QWidget{parent},
+			_layout(new QVBoxLayout(this)),
+			_magnetometer_info_widget(
+					new MagnetometerInfoWidget(this, mavlink_manager)),
+			_accelerometer_info_widget(
+					new AccelerometerInfoWidget(this, mavlink_manager)),
+			_gyroscope_info_widget(new GyroscopeInfoWidget(this, mavlink_manager)),
+			_mcu_info_widget(new McuInfoWidget(this, mavlink_manager)),
+			_avionics_widget(new AvionicsWidget(this, mavlink_manager)),
+			_mavlink_manager{mavlink_manager} {
 	_layout->setAlignment(Qt::AlignTop);
 	_layout->addWidget(_magnetometer_info_widget, 0, Qt::AlignLeft);
 	_layout->addWidget(_accelerometer_info_widget, 0, Qt::AlignLeft);
@@ -15,9 +20,7 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 	_layout->addWidget(_avionics_widget, 0, Qt::AlignCenter);
 	_layout->addStretch();
 
-	connect(this, &AutopilotSettingsPage::accelStatusUpdated,
-					_accelerometer_info_widget,
-					&AccelerometerInfoWidget::handleAccelStatusUpdate);
+	// accelerometer ifno widget connections
 	connect(_accelerometer_info_widget, &AccelerometerInfoWidget::startAccelCal,
 					this, &AutopilotSettingsPage::_handleStartAccelCalibration);
 	connect(this, &AutopilotSettingsPage::accelerometerCalibrationCompleted,
@@ -29,9 +32,7 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 					_accelerometer_info_widget,
 					&AccelerometerInfoWidget::handleLvlCalComplete);
 
-	connect(this, &AutopilotSettingsPage::magStatusUpdated,
-					_magnetometer_info_widget,
-					&MagnetometerInfoWidget::handleMagStatusUpdate);
+	// magnetometer info widget connections
 	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::startCalibration,
 					this, &AutopilotSettingsPage::_handleStartMagCalibration);
 	connect(_magnetometer_info_widget, &MagnetometerInfoWidget::cancelCalibration,
@@ -43,70 +44,12 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent)
 					_magnetometer_info_widget,
 					&MagnetometerInfoWidget::handleMagCalReportUpdate);
 
-	connect(this, &AutopilotSettingsPage::gyroStatusUpdated,
-					_gyroscope_info_widget, &GyroscopeInfoWidget::handleGyroStatusUpdate);
+	// gyroscope info widget connections
 	connect(_gyroscope_info_widget, &GyroscopeInfoWidget::startCalibration, this,
 					&AutopilotSettingsPage::_handleStartGyroCalibration);
 	connect(this, &AutopilotSettingsPage::gyroCalibrationCompleted,
 					_gyroscope_info_widget,
 					&GyroscopeInfoWidget::handleGyroCalibrationComplete);
-
-	connect(this, &AutopilotSettingsPage::imu2Updated, _avionics_widget,
-					&AvionicsWidget::handleImu2Update);
-	connect(this, &AutopilotSettingsPage::attitudeUpdated, _avionics_widget,
-					&AvionicsWidget::handleAttitudeUpdate);
-	connect(this, &AutopilotSettingsPage::globalPositionIntUpdated,
-					_avionics_widget, &AvionicsWidget::handleGlobalPositionIntUpdate);
-	connect(this, &AutopilotSettingsPage::vfrHudUpdated, _avionics_widget,
-					&AvionicsWidget::handleVfrHudUpdate);
-}
-
-void AutopilotSettingsPage::handleIMUUpdate(mavlink_raw_imu_t raw_imu) {
-	_magnetometer_info_widget->handleIMUUpdate(raw_imu.xmag, raw_imu.ymag,
-																						 raw_imu.zmag);
-	_accelerometer_info_widget->handleIMUUpdate(raw_imu.xacc, raw_imu.yacc,
-																							raw_imu.zacc);
-	_gyroscope_info_widget->handleIMUUpdate(raw_imu.xgyro, raw_imu.ygyro,
-																					raw_imu.zgyro);
-}
-
-void AutopilotSettingsPage::handleImu2Update(mavlink_scaled_imu2_t imu) {
-	emit imu2Updated(imu);
-}
-
-void AutopilotSettingsPage::handlePowerStatusUpdate(
-		mavlink_power_status_t power_status) {
-	_mcu_info_widget->handlePowerStatusUpdate(power_status.Vcc);
-}
-
-void AutopilotSettingsPage::handleMcuStatusUpdate(
-		mavlink_mcu_status_t mcu_status) {
-	_mcu_info_widget->handleMcuStatusUpdate(mcu_status);
-}
-
-void AutopilotSettingsPage::handleAttitudeUpdate(mavlink_attitude_t attitude) {
-	emit attitudeUpdated(attitude);
-}
-
-void AutopilotSettingsPage::handleGlobalPositionIntUpdate(
-		mavlink_global_position_int_t global_position) {
-	emit globalPositionIntUpdated(global_position);
-}
-
-void AutopilotSettingsPage::handleVfrHudUpdate(mavlink_vfr_hud_t vfr_hud) {
-	emit vfrHudUpdated(vfr_hud);
-}
-
-void AutopilotSettingsPage::handleGyroStatusUpdate(SensorStatus status) {
-	emit gyroStatusUpdated(status);
-}
-
-void AutopilotSettingsPage::handleAccelStatusUpdate(SensorStatus status) {
-	emit accelStatusUpdated(status);
-}
-
-void AutopilotSettingsPage::handleMagStatusUpdate(SensorStatus status) {
-	emit magStatusUpdated(status);
 }
 
 void AutopilotSettingsPage::handleCompleteAccelerometerCalibration(

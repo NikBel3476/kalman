@@ -49,7 +49,8 @@ MainWindow::MainWindow(QWidget *parent)
 					new FirmwareUploader(nullptr, _serial, _mavlink_manager)),
 			_firmware_upload_page{
 					new FirmwareUploadPage(nullptr, _firmware_uploader)},
-			_autopilot_settings_page(new AutopilotSettingsPage()),
+			_autopilot_settings_page(
+					new AutopilotSettingsPage(this, _mavlink_manager)),
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
 			_ap_params_page(new ApParametersPage(this, _mavlink_manager, _autopilot)),
@@ -210,28 +211,6 @@ MainWindow::MainWindow(QWidget *parent)
 					this, &MainWindow::handleFirmwareUpload);
 
 	// autopilot settings page connections
-	connect(this, &MainWindow::IMUUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleIMUUpdate);
-	connect(this, &MainWindow::powerStatusUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handlePowerStatusUpdate);
-	connect(this, &MainWindow::mcuStatusUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleMcuStatusUpdate);
-	connect(this, &MainWindow::imu2Updated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleImu2Update);
-	connect(this, &MainWindow::attitudeUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleAttitudeUpdate);
-	connect(this, &MainWindow::globalPositionIntUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleGlobalPositionIntUpdate);
-	connect(this, &MainWindow::vfrHudUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleVfrHudUpdate);
-
-	connect(this, &MainWindow::gyroStatusUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleGyroStatusUpdate);
-	connect(this, &MainWindow::accelStatusUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleAccelStatusUpdate);
-	connect(this, &MainWindow::magStatusUpdated, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleMagStatusUpdate);
-
 	connect(_autopilot_settings_page,
 					&AutopilotSettingsPage::startAccelCalibration, this,
 					&MainWindow::_handleStartAccelCalibration);
@@ -327,7 +306,6 @@ void MainWindow::_handleMavlinkMessageReceive(
 		QByteArray data(status_str.c_str(),
 										static_cast<uint32_t>(status_str.length()));
 		_console->putData(data);
-		_updateSensorsStatus(sys_status);
 	} break;
 	case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: {
 		mavlink_global_position_int_t global_position;
@@ -367,7 +345,7 @@ void MainWindow::_handleMavlinkMessageReceive(
 		QByteArray data(raw_imu_str.c_str(),
 										static_cast<uint32_t>(raw_imu_str.length()));
 		_console->putData(data);
-		emit IMUUpdated(raw_imu);
+		// emit IMUUpdated(raw_imu);
 	} break;
 	case MAVLINK_MSG_ID_MCU_STATUS: {
 		mavlink_mcu_status_t mcu_status;
@@ -1028,68 +1006,6 @@ void MainWindow::parseCommand(const mavlink_command_long_t &cmd) {
 void MainWindow::reset() {
 	_cal_state = CalibrationState::None;
 	_cal_accel_state = CalibrationAccelState::None;
-}
-
-void MainWindow::_updateSensorsStatus(mavlink_sys_status_t sys_status) {
-	auto current_gyro_status = SensorStatus::NotFound;
-	if (sys_status.onboard_control_sensors_present &
-			MAV_SYS_STATUS_SENSOR_3D_GYRO) {
-		if (sys_status.onboard_control_sensors_enabled &
-				MAV_SYS_STATUS_SENSOR_3D_GYRO) {
-			if (sys_status.onboard_control_sensors_health &
-					MAV_SYS_STATUS_SENSOR_3D_GYRO) {
-				current_gyro_status = SensorStatus::Enabled;
-			} else {
-				current_gyro_status = SensorStatus::Error;
-			}
-		} else {
-			current_gyro_status = SensorStatus::Disabled;
-		}
-	}
-	if (current_gyro_status != _gyro_status) {
-		_gyro_status = current_gyro_status;
-		emit gyroStatusUpdated(_gyro_status);
-	}
-
-	auto current_accel_status = SensorStatus::NotFound;
-	if (sys_status.onboard_control_sensors_present &
-			MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
-		if (sys_status.onboard_control_sensors_enabled &
-				MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
-			if (sys_status.onboard_control_sensors_health &
-					MAV_SYS_STATUS_SENSOR_3D_ACCEL) {
-				current_accel_status = SensorStatus::Enabled;
-			} else {
-				current_accel_status = SensorStatus::Error;
-			}
-		} else {
-			current_accel_status = SensorStatus::Disabled;
-		}
-	}
-	if (current_accel_status != _accel_status) {
-		_accel_status = current_accel_status;
-		emit accelStatusUpdated(_accel_status);
-	}
-
-	auto current_mag_status = SensorStatus::NotFound;
-	if (sys_status.onboard_control_sensors_present &
-			MAV_SYS_STATUS_SENSOR_3D_MAG) {
-		if (sys_status.onboard_control_sensors_enabled &
-				MAV_SYS_STATUS_SENSOR_3D_MAG) {
-			if (sys_status.onboard_control_sensors_health &
-					MAV_SYS_STATUS_SENSOR_3D_MAG) {
-				current_mag_status = SensorStatus::Enabled;
-			} else {
-				current_mag_status = SensorStatus::Error;
-			}
-		} else {
-			current_mag_status = SensorStatus::Disabled;
-		}
-	}
-	if (current_mag_status != _mag_status) {
-		_mag_status = current_accel_status;
-		emit magStatusUpdated(_mag_status);
-	}
 }
 
 void MainWindow::_rebootAp() {

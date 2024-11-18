@@ -1,15 +1,22 @@
 #include "magnetometerinfowidget.h"
 
-MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent)
-		: QWidget{parent}, _layout(new QVBoxLayout(this)),
-			_title_label(new QLabel()), _status_label(new QLabel()),
-			_x_label(new QLabel("x: 0")), _y_label(new QLabel("y: 0")),
+MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent,
+																							 MavlinkManager *mavlink_manager)
+		: QWidget{parent},
+			_layout(new QVBoxLayout(this)),
+			_title_label(new QLabel()),
+			_status_label(new QLabel()),
+			_x_label(new QLabel("x: 0")),
+			_y_label(new QLabel("y: 0")),
 			_z_label(new QLabel("z: 0")),
 			_start_calibration_button(new QPushButton()),
 			_cancel_calibration_button(new QPushButton()),
-			_cal_progress_container(new QWidget()), _cal_attempt_label(new QLabel()),
-			_cal_step_label(new QLabel()), _mag_cal_progress_bar(new QProgressBar()),
-			_cal_result_label(new QLabel()) {
+			_cal_progress_container(new QWidget()),
+			_cal_attempt_label(new QLabel()),
+			_cal_step_label(new QLabel()),
+			_mag_cal_progress_bar(new QProgressBar()),
+			_cal_result_label(new QLabel()),
+			_mavlink_manager{mavlink_manager} {
 	const auto title_layout = new QHBoxLayout();
 	const auto values_layout = new QHBoxLayout();
 	const auto buttons_layout = new QHBoxLayout();
@@ -65,30 +72,10 @@ MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent)
 					&MagnetometerInfoWidget::_handleCalStartButtonPress);
 	connect(_cancel_calibration_button, &QPushButton::pressed, this,
 					&MagnetometerInfoWidget::_handleCalCancelButtonPress);
-}
 
-void MagnetometerInfoWidget::handleIMUUpdate(uint16_t x, uint16_t y,
-																						 uint16_t z) {
-	_x_label->setText(QString("x: %1").arg(x));
-	_y_label->setText(QString("y: %1").arg(y));
-	_z_label->setText(QString("z: %1").arg(z));
-}
-
-void MagnetometerInfoWidget::handleMagStatusUpdate(SensorStatus status) {
-	switch (status) {
-	case SensorStatus::NotFound: {
-		_status_label->setText(tr("Status: Not found"));
-	} break;
-	case SensorStatus::Disabled: {
-		_status_label->setText(tr("Status: disabled"));
-	} break;
-	case SensorStatus::Enabled: {
-		_status_label->setText(tr("Status: enabled"));
-	} break;
-	case SensorStatus::Error: {
-		_status_label->setText(tr("Status: error"));
-	} break;
-	}
+	// mavlink manager connections
+	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
+					&MagnetometerInfoWidget::_handleMavlinkMessageReceive);
 }
 
 void MagnetometerInfoWidget::handleMagCalProgressUpdate(
@@ -118,6 +105,22 @@ void MagnetometerInfoWidget::handleMagCalReportUpdate(
 	_cancel_calibration_button->setEnabled(false);
 }
 
+void MagnetometerInfoWidget::_handleMavlinkMessageReceive(
+		const mavlink_message_t &mavlink_message) {
+	switch (mavlink_message.msgid) {
+	case MAVLINK_MSG_ID_SCALED_IMU2: {
+		mavlink_scaled_imu2_t scaled_imu;
+		mavlink_msg_scaled_imu2_decode(&mavlink_message, &scaled_imu);
+		_handleIMU2Update(scaled_imu);
+	} break;
+	case MAVLINK_MSG_ID_SYS_STATUS: {
+		mavlink_sys_status_t sys_status;
+		mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
+		_handleSysStatusUpdate(sys_status);
+	} break;
+	}
+}
+
 void MagnetometerInfoWidget::_handleCalStartButtonPress() {
 	emit startCalibration();
 	_cal_progress_container->setVisible(true);
@@ -132,4 +135,47 @@ void MagnetometerInfoWidget::_handleCalCancelButtonPress() {
 	_start_calibration_button->setEnabled(true);
 	_cancel_calibration_button->setEnabled(false);
 	_cal_result_label->setVisible(false);
+}
+
+void MagnetometerInfoWidget::_handleIMU2Update(
+		const mavlink_scaled_imu2_t &scaled_imu) {
+	_x_label->setText(QString("x: %1").arg(scaled_imu.xmag));
+	_y_label->setText(QString("y: %1").arg(scaled_imu.ymag));
+	_z_label->setText(QString("z: %1").arg(scaled_imu.zmag));
+}
+
+void MagnetometerInfoWidget::_handleSysStatusUpdate(
+		const mavlink_sys_status_t &sys_status) {
+	auto current_mag_status = SensorStatus::NotFound;
+	if (sys_status.onboard_control_sensors_present &
+			MAV_SYS_STATUS_SENSOR_3D_MAG) {
+		if (sys_status.onboard_control_sensors_enabled &
+				MAV_SYS_STATUS_SENSOR_3D_MAG) {
+			if (sys_status.onboard_control_sensors_health &
+					MAV_SYS_STATUS_SENSOR_3D_MAG) {
+				_mag_status = SensorStatus::Enabled;
+			} else {
+				current_mag_status = SensorStatus::Error;
+			}
+		} else {
+			current_mag_status = SensorStatus::Disabled;
+		}
+	}
+	if (current_mag_status != _mag_status) {
+		_mag_status = current_mag_status;
+		switch (_mag_status) {
+		case SensorStatus::NotFound: {
+			_status_label->setText(tr("Status: Not found"));
+		} break;
+		case SensorStatus::Disabled: {
+			_status_label->setText(tr("Status: disabled"));
+		} break;
+		case SensorStatus::Enabled: {
+			_status_label->setText(tr("Status: enabled"));
+		} break;
+		case SensorStatus::Error: {
+			_status_label->setText(tr("Status: error"));
+		} break;
+		}
+	}
 }

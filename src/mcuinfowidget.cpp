@@ -1,9 +1,12 @@
 #include "mcuinfowidget.h"
 
-McuInfoWidget::McuInfoWidget(QWidget *parent)
-		: QWidget{parent}, m_layout(new QVBoxLayout(this)),
-			m_temperature_label(new QLabel()), m_voltage_label(new QLabel()),
-			m_rail_voltage_label(new QLabel()) {
+McuInfoWidget::McuInfoWidget(QWidget *parent, MavlinkManager *mavlink_manager)
+		: QWidget{parent},
+			m_layout(new QVBoxLayout(this)),
+			m_temperature_label(new QLabel()),
+			m_voltage_label(new QLabel()),
+			m_rail_voltage_label(new QLabel()),
+			_mavlink_manager{mavlink_manager} {
 	auto values_layout = new QHBoxLayout();
 	m_layout->addWidget(new QLabel(tr("MCU information")));
 	m_layout->addLayout(values_layout);
@@ -11,9 +14,36 @@ McuInfoWidget::McuInfoWidget(QWidget *parent)
 	values_layout->addWidget(m_temperature_label);
 	values_layout->addWidget(m_voltage_label);
 	values_layout->addWidget(m_rail_voltage_label);
+
+	// mavlink manager connections
+	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
+					&McuInfoWidget::_handleMavlinkMessageReceive);
 }
 
-void McuInfoWidget::handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status) {
+void McuInfoWidget::_handleMavlinkMessageReceive(
+		const mavlink_message_t &mavlink_message) {
+	switch (mavlink_message.msgid) {
+	case MAVLINK_MSG_ID_POWER_STATUS: {
+		mavlink_power_status_t power_status;
+		mavlink_msg_power_status_decode(&mavlink_message, &power_status);
+		_handlePowerStatusUpdate(power_status);
+	} break;
+	case MAVLINK_MSG_ID_MCU_STATUS: {
+		mavlink_mcu_status_t mcu_status;
+		mavlink_msg_mcu_status_decode(&mavlink_message, &mcu_status);
+		_handleMcuStatusUpdate(mcu_status);
+	} break;
+	}
+}
+
+void McuInfoWidget::_handlePowerStatusUpdate(
+		const mavlink_power_status_t &power_status) {
+	m_rail_voltage_label->setText(
+			QString(tr("Rail voltage: %1 mV")).arg(power_status.Vcc));
+}
+
+void McuInfoWidget::_handleMcuStatusUpdate(
+		const mavlink_mcu_status_t &mcu_status) {
 	m_temperature_label->setText(QString(tr("Temperature: %1.%2 %3"))
 																	 .arg(mcu_status.MCU_temperature / 100)
 																	 .arg(mcu_status.MCU_temperature % 100)
@@ -26,9 +56,4 @@ void McuInfoWidget::handleMcuStatusUpdate(mavlink_mcu_status_t mcu_status) {
 	} else {
 		m_voltage_label->setStyleSheet("");
 	}
-}
-
-void McuInfoWidget::handlePowerStatusUpdate(uint16_t rail_voltage) {
-	m_rail_voltage_label->setText(
-			QString(tr("Rail voltage: %1 mV")).arg(rail_voltage));
 }

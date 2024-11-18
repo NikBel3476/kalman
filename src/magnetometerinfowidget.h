@@ -8,29 +8,33 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include "mavlinkmanager.h"
 #include "sensor.h"
 #include <ardupilotmega/mavlink.h>
 
 class MagnetometerInfoWidget : public QWidget {
 	Q_OBJECT
 public:
-	explicit MagnetometerInfoWidget(QWidget *parent = nullptr);
+	explicit MagnetometerInfoWidget(QWidget *parent,
+																	MavlinkManager *mavlink_manager);
 
 signals:
 	void startCalibration();
 	void cancelCalibration();
 
 public slots:
-	void handleIMUUpdate(uint16_t, uint16_t, uint16_t);
-	void handleMagStatusUpdate(SensorStatus);
 	void handleMagCalProgressUpdate(mavlink_mag_cal_progress_t);
 	void handleMagCalReportUpdate(mavlink_mag_cal_report_t);
 
 private slots:
+	void _handleMavlinkMessageReceive(const mavlink_message_t &);
 	void _handleCalCancelButtonPress();
 	void _handleCalStartButtonPress();
 
 private:
+	void _handleIMU2Update(const mavlink_scaled_imu2_t &);
+	void _handleSysStatusUpdate(const mavlink_sys_status_t &sys_status);
+
 	QVBoxLayout *_layout = nullptr;
 	QLabel *_title_label = nullptr;
 	QLabel *_status_label = nullptr;
@@ -45,6 +49,8 @@ private:
 	QProgressBar *_mag_cal_progress_bar = nullptr;
 	QLabel *_cal_result_label = nullptr;
 
+	MavlinkManager *_mavlink_manager = nullptr;
+	SensorStatus _mag_status = SensorStatus::NotFound;
 	uint8_t _cal_attempt = 0;
 	uint8_t _cal_step = 0;
 };
