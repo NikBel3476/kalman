@@ -9,8 +9,12 @@ static constexpr auto kSerialWriteTimeout = std::chrono::seconds{5};
 
 MavlinkManager::MavlinkManager(QObject *parent, QSerialPort *serial,
 															 const Autopilot *autopilot)
-		: QObject{parent}, _serial{serial}, _serial_write_timer(new QTimer(this)),
-			_autopilot{autopilot}, _mavlink_message{}, _mavlink_status{} {
+		: QObject{parent},
+			_serial{serial},
+			_serial_write_timer(new QTimer(this)),
+			_autopilot{autopilot},
+			_mavlink_message{},
+			_mavlink_status{} {
 	// serial port connections
 	connect(_serial, &QSerialPort::errorOccurred, this,
 					&MavlinkManager::_handleError);
@@ -90,6 +94,7 @@ void MavlinkManager::_writeData(const QByteArray &data) {
 		// _showWriteError(error_msg);
 		emit serialWriteErrorOccured(error_msg);
 	}
+	_serial->flush();
 }
 
 void MavlinkManager::_readData() {
@@ -107,8 +112,9 @@ void MavlinkManager::_readData() {
 
 void MavlinkManager::_handleBytesWritten(qint64 bytes) {
 	_bytesToWrite -= bytes;
-	if (_bytesToWrite == 0)
+	if (_bytesToWrite == 0) {
 		_serial_write_timer->stop();
+	}
 }
 
 // void MavlinkManager::_showWriteError(const QString &message) {

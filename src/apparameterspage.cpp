@@ -1,28 +1,43 @@
 #include "apparameterspage.h"
 
+static constexpr int ap_params_table_column_count = 3;
 static constexpr auto kSendParamTimeout = std::chrono::seconds{1};
+static constexpr auto kApParamsUpdateDelay = std::chrono::seconds{10};
+static constexpr uint8_t _params_upload_attempt_max =
+		5; // params conuter is zero based
 
 ApParametersPage::ApParametersPage(QWidget *parent,
 																	 MavlinkManager *mavlink_manager,
 																	 Autopilot *autopilot)
 		: QWidget{parent},
 			_layout(new QVBoxLayout(this)),
+			_upload_params_progress_wrapper(new QWidget()),
 			_update_params_btn(new QPushButton()),
 			_compare_params_btn(new QPushButton()),
 			_upload_params_btn(new QPushButton()),
 			_ap_params_table(new QTableWidget()),
+			_download_params_progress_bar(new QProgressBar()),
 			_upload_params_progress_bar(new QProgressBar()),
 			_send_param_timer{new QTimer(this)},
+			_update_params_on_ap_connect_timer{new QTimer(this)},
 			_mavlink_manager{mavlink_manager},
 			_autopilot{autopilot} {
 	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(buttons_layout);
 	_layout->addWidget(_ap_params_table);
-	_layout->addWidget(_upload_params_progress_bar);
+	_layout->addWidget(_download_params_progress_bar);
+	_layout->addWidget(_upload_params_progress_wrapper);
 
 	buttons_layout->addWidget(_update_params_btn);
 	buttons_layout->addWidget(_compare_params_btn);
 	buttons_layout->addWidget(_upload_params_btn);
+
+	const auto &upload_params_progress_label = new QLabel();
+	const auto &upload_params_progress_layout = new QHBoxLayout();
+	upload_params_progress_layout->addWidget(upload_params_progress_label);
+	upload_params_progress_layout->addWidget(_upload_params_progress_bar);
+
+	upload_params_progress_label->setText(tr("Wait for upload completion"));
 
 	_update_params_btn->setText(tr("Update"));
 	_update_params_btn->setEnabled(false);
@@ -31,12 +46,20 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 	_upload_params_btn->setText(tr("Upload parameters"));
 	_upload_params_btn->setEnabled(false);
 
-	_ap_params_table->setColumnCount(2);
+	_ap_params_table->setColumnCount(ap_params_table_column_count);
 	_ap_params_table->setHorizontalHeaderLabels(
-			QStringList{tr("Name"), tr("Value")});
+			QStringList{tr("Name"), tr("Value"), tr("Comparing value")});
 	_ap_params_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-	_upload_params_progress_bar->setVisible(false);
+	_download_params_progress_bar->setVisible(false);
+
+	_upload_params_progress_wrapper->setLayout(upload_params_progress_layout);
+	_upload_params_progress_wrapper->setVisible(false);
+
+	_upload_params_progress_bar->setMaximum(_params_upload_attempt_max);
+
+	_send_param_timer->setSingleShot(true);
+	_update_params_on_ap_connect_timer->setSingleShot(true);
 
 	// connections
 	connect(_update_params_btn, &QPushButton::clicked, this,
@@ -45,6 +68,10 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 					&ApParametersPage::_handleCompareParamsButtonClick);
 	connect(_upload_params_btn, &QPushButton::clicked, this,
 					&ApParametersPage::_handleUploadParamsButtonClick);
+	connect(_send_param_timer, &QTimer::timeout, this,
+					&ApParametersPage::_handleParameterSendTimeout);
+	connect(_update_params_on_ap_connect_timer, &QTimer::timeout, this,
+					&ApParametersPage::updateApParameters);
 
 	// mavlink manager connections
 	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
@@ -54,44 +81,53 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 }
 
 void ApParametersPage::clearParamsToUpload() {
-	const auto column_count = _ap_params_table->columnCount();
-	if (column_count == 3) {
-		_ap_params_table->removeColumn(column_count - 1);
+	for (int row_index = 0; row_index < _ap_params_table->rowCount();
+			 row_index++) {
+		const auto blank_table_widget =
+				new QTableWidgetItem("", QTableWidgetItem::Type);
+		_ap_params_table->setItem(row_index, ap_params_table_column_count - 1,
+															blank_table_widget);
 	}
-	_params_to_change.clear();
+	_params_to_upload.clear();
 }
 
-void ApParametersPage::_handleApParamsUploadCompletion(
-		const std::vector<mavlink_param_value_t> &not_written_params) {
-	const auto column_index = 2;
-	for (const auto &param_to_change : _params_to_change) {
-		_ap_params_table->item(param_to_change.param_index, column_index)
-				->setBackground(QBrush(Qt::transparent));
-	}
-	_params_to_change.clear();
-	for (const auto param : not_written_params) {
-		_ap_params_table->item(param.param_index, column_index)
-				->setBackground(QBrush(Qt::red));
-	}
-	if (!not_written_params.empty()) {
-		QMessageBox::warning(
-				this, tr("Warning"),
-				tr("Cannot write all new parameters. Autopilot will be rebooted"));
-	} else {
-		QMessageBox::information(
-				this, tr("Information"),
-				tr("Parameters written succesfully. Autopilot will be rebooted"));
-	}
+void ApParametersPage::clearNotSavedParams() {
+	_not_saved_params.clear();
+}
+
+void ApParametersPage::updateApParameters() {
+	// _update_params_btn->setEnabled(false);
+	_upload_params_btn->setEnabled(false);
+	_compare_params_btn->setEnabled(false);
+	_autopilot->params_state = AutopilotParamsState::Receiving;
+	_ap_params.clear();
+	_ap_params_table->setRowCount(0);
+	_mavlink_manager->sendParamRequestList();
+}
+
+void ApParametersPage::_handleApParamsUploadCompletion() {
 	emit parametersWritten();
-	// _upload_params_btn->setEnabled(true);
+	_upload_params_progress_bar->setValue(_params_upload_attempt_counter);
+	_params_upload_attempt_counter++;
+}
+
+void ApParametersPage::_handleParameterSendTimeout() {
+	QMessageBox::warning(this, tr("Warning"), tr("Parameter write timeout"));
+}
+
+void ApParametersPage::handleAutopilotConnection() {
+	qDebug() << "AUTOPILOT CONNECTED. STATE: "
+					 << static_cast<int>(_autopilot->state);
+	if (!_not_saved_params.empty() &&
+			_autopilot->params_send_state == AutopilotParamsSendState::Sending) {
+		_update_params_on_ap_connect_timer->start(
+				kApParamsUpdateDelay); // wait for autopilot parameters update
+		qDebug() << "NOT_SAVED_PARAMETERS IS NOT EMPTY";
+	}
 }
 
 void ApParametersPage::_handleUpdateParamsButtonClick() {
-	_update_params_btn->setEnabled(false);
-	_upload_params_btn->setEnabled(false);
-	_compare_params_btn->setEnabled(false);
-	// emit requestDownloadParams();
-	_mavlink_manager->sendParamRequestList();
+	updateApParameters();
 }
 
 void ApParametersPage::_handleCompareParamsButtonClick() {
@@ -101,6 +137,8 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 			_update_params_btn->setEnabled(false);
 			_compare_params_btn->setEnabled(false);
 			_upload_params_btn->setEnabled(false);
+			_not_saved_params.clear();
+			_params_to_upload.clear();
 			_parseApParameters(file_content);
 		}
 	};
@@ -108,13 +146,7 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 }
 
 void ApParametersPage::_handleUploadParamsButtonClick() {
-	_upload_params_btn->setEnabled(false);
-	// emit requestUploadApParams(_params_to_change);
-	// _params_to_change.clear();
-
-	_send_param_timer->start(kSendParamTimeout);
-	_autopilot->params_send_state = AutopilotParamsSendState::Sending;
-	_uploadApParam();
+	_uploadParameters();
 }
 
 void ApParametersPage::_handleMavlinkMessageReceive(
@@ -133,57 +165,59 @@ void ApParametersPage::_handleMavlinkMessageReceive(
 void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 	const auto file_str = QString(file_content);
 	static const auto line_regex = QRegularExpression("[\r\n]");
-	static const auto comment_regex = QRegularExpression("^[^#]*");
+	static const auto comment_regex = QRegularExpression("^[^#].*");
 	const auto params_str =
 			file_str.split(line_regex, Qt::SkipEmptyParts).filter(comment_regex);
-	// QStringList filtered_params_str;
-	// std::copy_if(
-	// 		std::execution::par,
-	// 		params_str.begin(),
-	// 		params_str.end(),
-	// 		std::back_inserter(filtered_params_str),
-	// 		[](const auto &p) {
-	// 			return !p.startsWith('#');
-	// 		}
-	// 		);
-	std::unordered_map<QString, float> new_params;
+
+	std::unordered_map<std::string, float> params_from_file;
 	for (const auto &param_str : params_str) {
 		const auto param_value_str = param_str.split(',');
-		new_params[param_value_str[0]] = param_value_str[1].toFloat();
+		auto key = QString(16, '\0');
+		key.replace(0, param_value_str[0].length(), param_value_str[0]);
+		params_from_file[key.toStdString()] = param_value_str[1].toFloat();
 	}
+	_not_saved_params = params_from_file;
+	qDebug() << "NOT_SAVED_PARAMS TOTAL COUNT: " << _not_saved_params.size();
 
 	std::vector<mavlink_param_value_t> comparing_params;
-	for (auto const &[_, ap_param] : _ap_params) {
-		if (new_params.contains(ap_param.param_id) /*&&
-				new_params[ap_param.param_id] != ap_param.param_value*/) {
+	std::vector<std::string> equal_param_ids;
+	std::unordered_map<std::string, float> not_found_params;
+	for (auto const &not_saved_param : _not_saved_params) {
+		if (_ap_params.contains(not_saved_param.first)) {
+			const auto ap_param = _ap_params[not_saved_param.first];
 			auto comparing_param = ap_param;
-			comparing_param.param_value = new_params[ap_param.param_id];
+			comparing_param.param_value = not_saved_param.second;
 			comparing_params.push_back(comparing_param);
-			if (new_params[ap_param.param_id] != ap_param.param_value) {
-				_params_to_change.push_back(comparing_param);
+			if (not_saved_param.second != ap_param.param_value) {
+				_params_to_upload.push_back(comparing_param);
+			} else {
+				equal_param_ids.push_back(not_saved_param.first);
 			}
+		} else {
+			not_found_params.insert(not_saved_param);
 		}
 	}
 
-	if (_params_to_change.empty()) {
-		QMessageBox::information(this, tr("Informataion"),
-														 tr("Parameters are matching"));
+	for (const auto &equal_param_id : equal_param_ids) {
+		_not_saved_params.erase(equal_param_id);
+	}
+
+	_ap_params_table->setRowCount(static_cast<int>(_ap_params.size()));
+	if (_params_to_upload.empty()) {
+		if (_not_saved_params.empty()) {
+			QMessageBox::information(this, tr("Informataion"),
+															 tr("Parameters are matching"));
+		} else {
+			QMessageBox::information(this, tr("Warning"),
+															 tr("Not all parameters found"));
+		}
+		qDebug() << "NOT SAVED PARAMS SIZE: " << _not_saved_params.size();
+		for (const auto &not_saved_param : _not_saved_params) {
+			qDebug() << "PARAM " << not_saved_param.first << "NOT FOUND";
+		}
 	} else {
-		const auto column_count = 3;
-		// for (int i = 0; i < _ap_params_table->rowCount(); i++) {
-		// 	const auto table_item = _ap_params_table->item(i, column_count - 1);
-		// 	if (table_item != nullptr) {
-		// 		table_item->setText("");
-		// 	}
-		// }
-		_ap_params_table->removeColumn(column_count - 1);
-		_ap_params_table->setColumnCount(column_count);
-		const auto loaded_values_label =
-				new QTableWidgetItem(tr("Comparing value"));
-		_ap_params_table->setHorizontalHeaderItem(column_count - 1,
-																							loaded_values_label);
-		for (auto &comparing_param : comparing_params) {
-			const auto new_param_value_item = new QTableWidgetItem(
+		for (const auto &comparing_param : comparing_params) {
+			const auto &new_param_value_item = new QTableWidgetItem(
 					QString::number(comparing_param.param_value), QTableWidgetItem::Type);
 			for (const auto &[_, ap_param] : _ap_params) {
 				if (ap_param.param_index == comparing_param.param_index &&
@@ -191,78 +225,250 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 					new_param_value_item->setBackground(QBrush(Qt::darkRed));
 				}
 			}
-			_ap_params_table->setItem(comparing_param.param_index, column_count - 1,
+			_ap_params_table->setItem(comparing_param.param_index,
+																ap_params_table_column_count - 1,
 																new_param_value_item);
 		}
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Parameters are not matching"));
 		_upload_params_btn->setEnabled(true);
 	}
+
+	// show not found params
+	auto item_index = _ap_params_table->rowCount();
+	_ap_params_table->setRowCount(_ap_params_table->rowCount() +
+																static_cast<int>(not_found_params.size()));
+	for (const auto &[not_found_param_id, not_found_param_value] :
+			 not_found_params) {
+		const auto &param_id_item = new QTableWidgetItem(
+				QString::fromStdString(not_found_param_id), QTableWidgetItem::Type);
+		param_id_item->setBackground(QBrush(Qt::transparent));
+		_ap_params_table->setItem(item_index, 0, param_id_item);
+
+		const auto &ap_param_value_item =
+				new QTableWidgetItem(tr("Not found"), QTableWidgetItem::Type);
+		ap_param_value_item->setBackground(QBrush(Qt::transparent));
+		_ap_params_table->setItem(item_index, 1, ap_param_value_item);
+
+		const auto &not_found_param_item = new QTableWidgetItem(
+				QString::number(not_found_param_value), QTableWidgetItem::Type);
+		not_found_param_item->setBackground(QBrush(Qt::darkRed));
+		_ap_params_table->setItem(item_index, ap_params_table_column_count - 1,
+															not_found_param_item);
+		item_index++;
+	}
+
 	_update_params_btn->setEnabled(true);
 	_compare_params_btn->setEnabled(true);
+	_reset();
 }
 
 void ApParametersPage::_uploadApParam() {
-	if (_params_to_change.empty()) {
+	if (_params_to_upload.empty()) {
+		_send_param_timer->stop();
+		_autopilot->params_send_state = AutopilotParamsSendState::None;
 		return;
 	}
-	auto param = _params_to_change.back();
+	auto param = _params_to_upload.back();
 	_mavlink_manager->sendParamSet(param);
-}
-
-void ApParametersPage::_handleApAllParamsReceive() {
-	_autopilot->params_state = AutopilotParamsState::Received;
 }
 
 void ApParametersPage::_handleApParamReceive(
 		mavlink_param_value_t param_value) {
 	const auto written_param_index = 65535;
-	if (param_value.param_index == written_param_index) {
-		// this is a written value, return right param index
-		param_value.param_index =
-				_ap_params[std::string(param_value.param_id)].param_index;
+	if (param_value.param_index == written_param_index &&
+			_autopilot->params_state != AutopilotParamsState::Receiving) {
+		// param write ack
+		_handleParamUploadAck(param_value);
+		return;
+	}
+
+	if (param_value.param_count != _params_total_count) {
+		_params_total_count_have_been_changed = true;
+		_params_total_count = param_value.param_count;
+		qDebug() << "PARAM TOTAL COUNT CHANGED";
 	}
 	if (param_value.param_index == 0) {
-		_params_total_count = param_value.param_count;
 		_ap_params_table->setRowCount(_params_total_count);
-		_upload_params_progress_bar->setMaximum(_params_total_count);
-		_upload_params_progress_bar->setVisible(true);
+		_download_params_progress_bar->setMaximum(_params_total_count);
+		_download_params_progress_bar->setVisible(true);
+		qDebug() << "PARAMS TOTAL COUNT: " << param_value.param_count;
+		qDebug() << "AP PARAMS SIZE: " << _ap_params.size();
 	}
-	auto table_item_name = new QTableWidgetItem(
-			QString::fromUtf8(param_value.param_id), QTableWidgetItem::Type);
-	auto table_item_value = new QTableWidgetItem(
+	// update values inside table
+	const auto &table_item_name = new QTableWidgetItem(
+			QString::fromUtf8(param_value.param_id, 16), QTableWidgetItem::Type);
+	const auto &table_item_value = new QTableWidgetItem(
 			QString::number(param_value.param_value), QTableWidgetItem::Type);
 	_ap_params_table->setItem(param_value.param_index, 0, table_item_name);
 	_ap_params_table->setItem(param_value.param_index, 1, table_item_value);
-	_ap_params[std::string(param_value.param_id)] = param_value;
-	_params_received++;
-	_upload_params_progress_bar->setValue(static_cast<int32_t>(_params_received));
-	if (_params_received == _params_total_count) {
-		// emit apAllParamsReceived();
-		_handleApAllParamsReceive();
+	_ap_params[std::string(param_value.param_id, 16)] = param_value;
+	_download_params_progress_bar->setValue(
+			static_cast<int32_t>(_ap_params.size()));
+
+	if (_ap_params.size() == _params_total_count) {
+		// check saved parameters from last write operation
+		for (const auto &ap_param : _ap_params) {
+			const auto &param_id = std::string(ap_param.second.param_id, 16);
+			if (_not_saved_params.contains(param_id)) {
+				auto not_saved_param_value = _not_saved_params[param_id];
+				auto ap_param_value = ap_param.second.param_value;
+				if (not_saved_param_value == ap_param_value) {
+					_not_saved_params.erase(param_id);
+					qDebug() << "PARAM SAVED: " << param_id;
+					_params_have_been_saved = true;
+				}
+			}
+		}
+		_autopilot->params_state = AutopilotParamsState::Received;
 		_update_params_btn->setEnabled(true);
 		_compare_params_btn->setEnabled(true);
-		_upload_params_progress_bar->setVisible(false);
-		_params_received = 0;
-	}
+		_download_params_progress_bar->setVisible(false);
+		qDebug() << "ALL PARAMETERS RECEIVED";
+		qDebug() << "NOT SAVED PARAMS SIZE: " << _not_saved_params.size();
+		if (!_not_saved_params.empty() &&
+				_autopilot->params_send_state == AutopilotParamsSendState::Sending) {
+			// TODO: move loop to separate function
+			for (auto const &not_saved_param : _not_saved_params) {
+				if (_ap_params.contains(not_saved_param.first)) {
+					const auto &ap_param = _ap_params[not_saved_param.first];
+					auto comparing_param = ap_param;
 
-	if (_autopilot->params_send_state == AutopilotParamsSendState::Sending) {
-		_send_param_timer->start(kSendParamTimeout);
-		const auto param = param_value;
-		qDebug() << "PARAM UPLOADED ID: " << param.param_id
-						 << "VALUE: " << param.param_value << '\n';
-		const auto uploaded_param = _params_to_change.back();
-		if (uploaded_param.param_value != param.param_value) {
-			_not_written_params.push_back(uploaded_param);
+					comparing_param.param_value = not_saved_param.second;
+					if (not_saved_param.second != ap_param.param_value) {
+						_params_to_upload.push_back(comparing_param);
+					}
+				} else {
+					qDebug() << "PARAM " << not_saved_param.first << "NOT FOUND";
+				}
+			}
+
+			if (_params_upload_attempt_counter >= _params_upload_attempt_max) {
+				qDebug() << "PARAMS UPLOAD MAX ATTEMPT NUMBER REACHED";
+				QMessageBox::warning(this, tr("Warning"),
+														 tr("Not all parameters saved"));
+				_autopilot->params_send_state = AutopilotParamsSendState::None;
+				for (const auto &cannot_save_param : _cannot_save_params) {
+					qDebug() << cannot_save_param.param_id << "CANNOT SAVE"
+									 << cannot_save_param.param_index;
+				}
+				_showUploadResult();
+				clearParamsToUpload();
+				_reset();
+				return;
+			}
+
+			qDebug() << "PARAMS TO UPLOAD SIZE: " << _params_to_upload.size();
+			qDebug() << "PARAMS HAVE BEEN SAVED " << _params_have_been_saved;
+			if (_params_to_upload.empty()) {
+				if (_params_have_been_saved) {
+					qDebug() << "PARAMS TO UPLOAD IS EMPTY. REBOOTING...";
+					_params_have_been_saved = false;
+					_handleApParamsUploadCompletion();
+				} else if (_params_total_count_have_been_changed) {
+					qDebug() << "PARAMS TOTAL COUNT CHANGED. REBOOTING...";
+					_params_total_count_have_been_changed = false;
+					_handleApParamsUploadCompletion();
+				} else {
+					if (_not_saved_params.empty()) {
+						QMessageBox::information(this, tr("Information"),
+																		 tr("Parameters saved"));
+					} else {
+						QMessageBox::warning(this, tr("Warning"),
+																 tr("Not all parameters saved"));
+					}
+					_autopilot->params_send_state = AutopilotParamsSendState::None;
+					for (const auto &cannot_save_param : _cannot_save_params) {
+						qDebug() << cannot_save_param.param_id << "CANNOT SAVE"
+										 << cannot_save_param.param_index;
+					}
+					_showUploadResult();
+					clearParamsToUpload();
+					_reset();
+				}
+				return;
+			}
+			_uploadParameters();
+			_params_have_been_saved = false;
+			return;
 		}
-		_params_to_change.pop_back();
-		if (_params_to_change.empty()) {
-			_autopilot->params_send_state = AutopilotParamsSendState::None;
-			// emit apParamsUploaded(_not_written_params);
-			_handleApParamsUploadCompletion(_not_written_params);
+	}
+}
+
+void ApParametersPage::_handleParamUploadAck(mavlink_param_value_t &param) {
+	if (_autopilot->params_send_state == AutopilotParamsSendState::Sending &&
+			!_params_to_upload.empty()) {
+		_send_param_timer->start(kSendParamTimeout);
+		const auto param_to_upload = _params_to_upload.back();
+		if (param_to_upload.param_value != param.param_value) {
+			_not_saved_params.erase(std::string(param.param_id, 16));
+			_cannot_save_params.push_back(param_to_upload);
+		}
+
+		_params_to_upload.pop_back();
+		if (_params_to_upload.empty()) {
+			_send_param_timer->stop();
+			_handleApParamsUploadCompletion();
 			_not_written_params.clear();
 		} else {
 			_uploadApParam();
 		}
 	}
+}
+
+void ApParametersPage::_uploadParameters() {
+	_upload_params_btn->setEnabled(false);
+	_upload_params_progress_wrapper->setVisible(true);
+	// _upload_params_progress_bar->setValue(_params_upload_attempt_counter);
+
+	_send_param_timer->start(kSendParamTimeout);
+	_autopilot->params_send_state = AutopilotParamsSendState::Sending;
+	// _params_upload_attempt_counter++;
+	qDebug() << "PARAMS TO UPLOAD SIZE: " << _params_to_upload.size();
+	qDebug() << "PARAMS UPLOAD ATTEMPT: " << _params_upload_attempt_counter;
+	if (_params_to_upload.empty()) {
+		return;
+	}
+	_uploadApParam();
+}
+
+void ApParametersPage::_showUploadResult() {
+	_upload_params_progress_wrapper->setVisible(false);
+	_cannot_save_params.insert(_cannot_save_params.cend(),
+														 _params_to_upload.cbegin(),
+														 _params_to_upload.cend());
+	for (const auto &not_saved_param : _cannot_save_params) {
+		const auto not_saved_param_item = new QTableWidgetItem(
+				QString::number(not_saved_param.param_value), QTableWidgetItem::Type);
+		not_saved_param_item->setBackground(QBrush(Qt::darkRed));
+		_ap_params_table->setItem(
+				_ap_params[std::string(not_saved_param.param_id, 16)].param_index,
+				ap_params_table_column_count - 1, not_saved_param_item);
+	}
+	auto item_index = _ap_params_table->rowCount();
+	_ap_params_table->setRowCount(_ap_params_table->rowCount() +
+																static_cast<int>(_not_saved_params.size()));
+	for (const auto &[not_found_param_id, not_found_param_value] :
+			 _not_saved_params) {
+		const auto &param_id_item = new QTableWidgetItem(
+				QString::fromStdString(not_found_param_id), QTableWidgetItem::Type);
+		param_id_item->setBackground(QBrush(Qt::transparent));
+		_ap_params_table->setItem(item_index, 0, param_id_item);
+
+		const auto &ap_param_value_item =
+				new QTableWidgetItem(tr("Not found"), QTableWidgetItem::Type);
+		ap_param_value_item->setBackground(QBrush(Qt::transparent));
+		_ap_params_table->setItem(item_index, 1, ap_param_value_item);
+
+		const auto &not_found_param_item = new QTableWidgetItem(
+				QString::number(not_found_param_value), QTableWidgetItem::Type);
+		not_found_param_item->setBackground(QBrush(Qt::darkRed));
+		_ap_params_table->setItem(item_index, ap_params_table_column_count - 1,
+															not_found_param_item);
+		item_index++;
+	}
+}
+
+void ApParametersPage::_reset() {
+	_params_upload_attempt_counter = 0;
 }

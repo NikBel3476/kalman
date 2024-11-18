@@ -100,6 +100,7 @@ signals:
 	// void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
 	void apStateUpdated(AutopilotState);
+	void autopilotConnected();
 
 private slots:
 	void fillPortsInfo();
@@ -111,6 +112,7 @@ private slots:
 	void handleBytesWritten(qint64);
 	void handleWriteTimeout();
 	void handleHeartbeatTimeout();
+	void handleSerialReconnectTimeout();
 	void handleCalibrationDialogButton();
 
 	void _login(const QString &login, const QString &password);
@@ -129,6 +131,8 @@ private slots:
 	// void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
 	void _handleMavlinkMessageReceive(const mavlink_message_t &);
+	void _handleApParametersWrite();
+	void _handleRebootActionTrigger();
 
 private:
 	void initActionsConnections();
@@ -181,9 +185,12 @@ private:
 
 	qint64 _bytesToWrite = 0;
 	QTimer *_serial_write_timer = nullptr;
+	int _current_port_box_index = 0;
 	Settings _port_settings;
 	QTimer *_heartbeat_timer = nullptr;
 	QTimer *_send_param_timer = nullptr;
+	QTimer *_serial_reconnect_timer = nullptr;
+	QTimer *_serial_reconnect_delay_timer = nullptr;
 	std::vector<mavlink_param_value_t> _params_to_upload;
 	std::vector<mavlink_param_value_t> _not_written_params;
 

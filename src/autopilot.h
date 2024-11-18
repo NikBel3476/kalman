@@ -10,6 +10,7 @@ enum class AutopilotState {
 };
 enum class AutopilotParamsState {
 	None,
+	Receiving,
 	Received
 };
 enum class AutopilotParamsSendState {

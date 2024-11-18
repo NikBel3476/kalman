@@ -14,8 +14,10 @@
 #include <format>
 #include <string>
 
-static constexpr auto kHeartbeatTimeout = std::chrono::seconds{3};
+static constexpr auto kHeartbeatTimeout = std::chrono::seconds{7};
+static constexpr auto kReconnectTimeout = std::chrono::seconds{10};
 static constexpr auto kSerialReconnectTimeout = std::chrono::seconds{5};
+static constexpr auto kSerialReconnectDelayTimeout = std::chrono::seconds{1};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
 MainWindow::MainWindow(QWidget *parent)
@@ -54,7 +56,9 @@ MainWindow::MainWindow(QWidget *parent)
 			_serial_write_timer(new QTimer(this)),
 			_port_settings{},
 			_heartbeat_timer(new QTimer(this)),
-			_send_param_timer(new QTimer(this)) {
+			_send_param_timer(new QTimer(this)),
+			_serial_reconnect_timer(new QTimer(this)),
+			_serial_reconnect_delay_timer(new QTimer(this)) {
 	setWindowTitle("Autopilot selfcheck");
 	setMinimumSize(600, 800);
 	setGeometry(QRect(0, 0, 600, 800));
@@ -161,6 +165,8 @@ MainWindow::MainWindow(QWidget *parent)
 	_serial_write_timer->setSingleShot(true);
 	_heartbeat_timer->setSingleShot(true);
 	_send_param_timer->setSingleShot(true);
+	_serial_reconnect_timer->setSingleShot(true);
+	_serial_reconnect_delay_timer->setSingleShot(true);
 
 	new QShortcut(Qt::CTRL | Qt::Key_H, this, [this]() {
 		_action_open_console->setVisible(true);
@@ -174,9 +180,12 @@ MainWindow::MainWindow(QWidget *parent)
 
 	connect(_msg_cal_box_button, &QPushButton::clicked, this,
 					&MainWindow::handleCalibrationDialogButton);
-
 	connect(_serial_write_timer, &QTimer::timeout, this,
 					&MainWindow::handleWriteTimeout);
+	connect(_serial_reconnect_timer, &QTimer::timeout, this,
+					&MainWindow::handleSerialReconnectTimeout);
+	connect(_serial_reconnect_delay_timer, &QTimer::timeout, this,
+					&MainWindow::_trySerialConnect);
 
 	// heartbeat timer connections
 	connect(_heartbeat_timer, &QTimer::timeout, this,
@@ -254,8 +263,10 @@ MainWindow::MainWindow(QWidget *parent)
 					&AutopilotSettingsPage::handleGyroCalibrationComplete);
 
 	// autopilot parameters page connections
+	connect(this, &MainWindow::autopilotConnected, _ap_params_page,
+					&ApParametersPage::handleAutopilotConnection);
 	connect(_ap_params_page, &ApParametersPage::parametersWritten, this,
-					&MainWindow::_rebootAp);
+					&MainWindow::_handleApParametersWrite);
 }
 
 MainWindow::~MainWindow() = default;
@@ -296,9 +307,11 @@ void MainWindow::_handleMavlinkMessageReceive(
 		_heartbeat_timer->start(kHeartbeatTimeout);
 		if (_autopilot->state == AutopilotState::None) {
 			_autopilot->state = AutopilotState::Alive;
+			_serial_reconnect_timer->stop();
 			_ap_status_label->setText(tr("Autopilot connected"));
 			_action_open_settings->setEnabled(true);
 			_action_open_ap_params->setEnabled(true);
+			emit autopilotConnected();
 		}
 	} break;
 	case MAVLINK_MSG_ID_SYS_STATUS: {
@@ -518,6 +531,17 @@ void MainWindow::_handleMavlinkMessageReceive(
 	}
 }
 
+void MainWindow::_handleApParametersWrite() {
+	_rebootAp();
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
+	_central_widget->setCurrentWidget(_ap_params_page);
+}
+
+void MainWindow::_handleRebootActionTrigger() {
+	_ap_params_page->clearNotSavedParams();
+	_rebootAp();
+}
+
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
 	if (_firmware_uploader->upload_state != FirmwareUploadState::None) {
 		return;
@@ -562,7 +586,7 @@ void MainWindow::handleWriteTimeout() {
 void MainWindow::_login(const QString &username, const QString &password) {
 	qDebug() << "Login event\n" << username << '\n' << password << '\n';
 	// TODO: add authentication
-	fillPortsInfo();
+	// fillPortsInfo();
 	_trySerialConnect();
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_toolbar->setVisible(true);
@@ -590,8 +614,10 @@ void MainWindow::_openConsole() {
 void MainWindow::_openApParamsPage() {
 	_central_widget->setCurrentWidget(_ap_params_page);
 	if (_autopilot->params_state == AutopilotParamsState::None) {
-		_mavlink_manager->sendParamRequestList();
+		_autopilot->params_state = AutopilotParamsState::Receiving;
+		// _mavlink_manager->sendParamRequestList();
 		_ap_params_page->clearParamsToUpload();
+		_ap_params_page->updateApParameters();
 	}
 }
 
@@ -607,6 +633,19 @@ void MainWindow::handleHeartbeatTimeout() {
 	_action_open_ap_params->setEnabled(false);
 	_autopilot->params_state = AutopilotParamsState::None;
 	// closeSerialPort();
+}
+
+void MainWindow::handleSerialReconnectTimeout() {
+	closeSerialPort();
+	if (_current_port_box_index < _ports_box->count() - 1) {
+		_current_port_box_index++;
+		_trySerialConnect();
+	} else {
+		_current_port_box_index = 0;
+		QMessageBox::information(
+				this, tr("Connection failed"),
+				tr("Autopilot not found. Please try to connect manually"));
+	}
 }
 
 void MainWindow::_handleStartAccelCalibration() {
@@ -727,7 +766,7 @@ void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 	case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 		switch (cmd.result) {
 		case MAV_RESULT_ACCEPTED: {
-			closeSerialPort();
+			// closeSerialPort();
 		} break;
 		default:
 			break;
@@ -752,7 +791,8 @@ void MainWindow::initActionsConnections() {
 					&MainWindow::_openApParamsPage);
 	connect(_action_open_console, &QAction::triggered, this,
 					&MainWindow::_openConsole);
-	connect(_action_reboot_ap, &QAction::triggered, this, &MainWindow::_rebootAp);
+	connect(_action_reboot_ap, &QAction::triggered, this,
+					&MainWindow::_handleRebootActionTrigger);
 	connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
 }
 
@@ -826,21 +866,39 @@ void MainWindow::fillPortsInfo() {
 }
 
 void MainWindow::_trySerialConnect() {
-	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	for (int i = 0; i < _ports_box->count(); i++) {
-		setPortSettings(i);
-		if (port_regex.match(_port_settings.name).hasMatch()) {
-			openSerialPort();
-			_heartbeat_timer->start(kHeartbeatTimeout);
-			while (_heartbeat_timer->isActive()) {
-				if (_autopilot->state == AutopilotState::Alive) {
-					_ports_box->setCurrentIndex(i);
-					return;
-				}
-				QApplication::processEvents();
-			}
-		}
+	if (_serial->isOpen()) {
+		qDebug() << "Serial already open. Cannot connect";
+		return;
 	}
+	fillPortsInfo();
+	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
+	setPortSettings(_current_port_box_index);
+	if (port_regex.match(_port_settings.name).hasMatch()) {
+		qDebug() << "Try connect to " << _port_settings.name;
+		_ports_box->setCurrentIndex(_current_port_box_index);
+		openSerialPort();
+		_serial_reconnect_timer->start(kSerialReconnectTimeout);
+	}
+
+	// for (int i = 0; i < _ports_box->count(); i++) {
+	// 	setPortSettings(i);
+	// 	if (port_regex.match(_port_settings.name).hasMatch()) {
+	// 		qDebug() << "Try connect to " << _port_settings.name;
+	// 		openSerialPort();
+	// 		_serial_reconnect_timer->start(kSerialReconnectTimeout);
+	// 		while (_serial_reconnect_timer->isActive()) {
+	// 			if (_autopilot->state == AutopilotState::Alive) {
+	// 				qDebug() << "AUTOPILOT CONNECTED";
+	// 				_ports_box->setCurrentIndex(i);
+	// 				emit autopilotConnected();
+	// 				return;
+	// 			}
+	// 			QApplication::processEvents(QEventLoop::AllEvents, 1000);
+	// 			// qDebug() << "UPDATE";
+	// 		}
+	// 		closeSerialPort();
+	// 	}
+	// }
 }
 
 void MainWindow::openSerialPort() {
@@ -875,7 +933,6 @@ void MainWindow::closeSerialPort() {
 	if (_serial->isOpen()) {
 		_serial->close();
 	}
-	// _console->setEnabled(false);
 	_ports_box->setEnabled(true);
 	_action_refresh->setEnabled(true);
 	_action_connect->setEnabled(true);
@@ -1036,14 +1093,16 @@ void MainWindow::_updateSensorsStatus(mavlink_sys_status_t sys_status) {
 }
 
 void MainWindow::_rebootAp() {
+	qDebug() << "REBOOT AUTOPILOT";
 	const auto command = MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN;
 	const uint8_t confirmation = 0;
 	const float param1 = 1;
 	_mavlink_manager->sendCmdLong(command, confirmation, param1);
 	_autopilot->state = AutopilotState::None;
-	_autopilot->params_state = AutopilotParamsState::None;
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_heartbeat_timer->stop();
+	_serial->flush();
+	closeSerialPort();
 }
 
 void MainWindow::_handleFirmwareUploadCompletion(FirmwareUploadResult result) {
