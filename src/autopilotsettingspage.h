@@ -29,18 +29,14 @@ signals:
 	void accelerometerCalibrationCompleted(CalibrationResult);
 	void startLevelCalibration();
 	void levelCalibrationCompleted();
-	void startGyroCalibration();
-	void gyroCalibrationCompleted();
 
 public slots:
 	void handleCompleteAccelerometerCalibration(CalibrationResult);
 	void handleCompleteLevelCalibration();
-	void handleGyroCalibrationComplete();
 
 private slots:
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
-	void _handleStartGyroCalibration();
 
 private:
 	QVBoxLayout *_layout = nullptr;

@@ -46,12 +46,6 @@ GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent,
 					&GyroscopeInfoWidget::_handleMavlinkMessageReceive);
 }
 
-void GyroscopeInfoWidget::handleGyroCalibrationComplete() {
-	_cal_result_label->setText(tr("Success"));
-	_cal_result_label->setVisible(true);
-	_cal_start_btn->setEnabled(true);
-}
-
 void GyroscopeInfoWidget::_handleMavlinkMessageReceive(
 		const mavlink_message_t &mavlink_message) {
 	switch (mavlink_message.msgid) {
@@ -64,6 +58,11 @@ void GyroscopeInfoWidget::_handleMavlinkMessageReceive(
 		mavlink_sys_status_t sys_status;
 		mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
 		_handleSysStatusUpdate(sys_status);
+	} break;
+	case MAVLINK_MSG_ID_COMMAND_ACK: {
+		mavlink_command_ack_t cmd_ack;
+		mavlink_msg_command_ack_decode(&mavlink_message, &cmd_ack);
+		_handleCommandAck(cmd_ack);
 	} break;
 	}
 }
@@ -78,7 +77,13 @@ void GyroscopeInfoWidget::_handleIMU2Update(
 void GyroscopeInfoWidget::_handleCalStartBtnPress() {
 	_cal_start_btn->setEnabled(false);
 	_cal_result_label->setVisible(false);
-	emit startCalibration();
+
+	const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
+	const uint8_t confirmation = 0;
+	const float param1 = 1; // gyroscope calibration
+	_mavlink_manager->sendCmdLong(command, confirmation, param1);
+	_cal_gyro_state = CalibrationState::InProgress;
+	qDebug("Gyro calibration started\n");
 }
 
 void GyroscopeInfoWidget::_handleSysStatusUpdate(
@@ -115,4 +120,27 @@ void GyroscopeInfoWidget::_handleSysStatusUpdate(
 		} break;
 		}
 	}
+}
+
+void GyroscopeInfoWidget::_handleCommandAck(const mavlink_command_ack_t &cmd) {
+	switch (cmd.command) {
+	case MAV_CMD_PREFLIGHT_CALIBRATION: {
+		switch (cmd.result) {
+		case MAV_RESULT_ACCEPTED: {
+			if (_cal_gyro_state == CalibrationState::InProgress) {
+				_cal_gyro_state = CalibrationState::None;
+				emit _handleGyroCalibrationComplete();
+			}
+		} break;
+		default:
+			break;
+		}
+	} break;
+	}
+}
+
+void GyroscopeInfoWidget::_handleGyroCalibrationComplete() {
+	_cal_result_label->setText(tr("Success"));
+	_cal_result_label->setVisible(true);
+	_cal_start_btn->setEnabled(true);
 }

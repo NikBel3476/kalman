@@ -31,22 +31,11 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 	connect(this, &AutopilotSettingsPage::levelCalibrationCompleted,
 					_accelerometer_info_widget,
 					&AccelerometerInfoWidget::handleLvlCalComplete);
-
-	// gyroscope info widget connections
-	connect(_gyroscope_info_widget, &GyroscopeInfoWidget::startCalibration, this,
-					&AutopilotSettingsPage::_handleStartGyroCalibration);
-	connect(this, &AutopilotSettingsPage::gyroCalibrationCompleted,
-					_gyroscope_info_widget,
-					&GyroscopeInfoWidget::handleGyroCalibrationComplete);
 }
 
 void AutopilotSettingsPage::handleCompleteAccelerometerCalibration(
 		CalibrationResult result) {
 	emit accelerometerCalibrationCompleted(result);
-}
-
-void AutopilotSettingsPage::handleGyroCalibrationComplete() {
-	emit gyroCalibrationCompleted();
 }
 
 void AutopilotSettingsPage::_handleStartAccelCalibration() {
@@ -59,8 +48,4 @@ void AutopilotSettingsPage::_handleStartLevelCalibration() {
 
 void AutopilotSettingsPage::handleCompleteLevelCalibration() {
 	emit levelCalibrationCompleted();
-}
-
-void AutopilotSettingsPage::_handleStartGyroCalibration() {
-	emit startGyroCalibration();
 }

@@ -225,12 +225,6 @@ MainWindow::MainWindow(QWidget *parent)
 					_autopilot_settings_page,
 					&AutopilotSettingsPage::handleCompleteLevelCalibration);
 
-	connect(_autopilot_settings_page,
-					&AutopilotSettingsPage::startGyroCalibration, this,
-					&MainWindow::_handleStartGyroCalibration);
-	connect(this, &MainWindow::gyroCalibrationCompleted, _autopilot_settings_page,
-					&AutopilotSettingsPage::handleGyroCalibrationComplete);
-
 	// autopilot parameters page connections
 	connect(this, &MainWindow::autopilotConnected, _ap_params_page,
 					&ApParametersPage::handleAutopilotConnection);
@@ -639,16 +633,6 @@ void MainWindow::_handleStartLevelCalibration() {
 	qDebug("Level calibration started\n");
 }
 
-void MainWindow::_handleStartGyroCalibration() {
-	const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
-	const uint8_t confirmation = 0;
-	const float param1 = 1; // gyroscope calibration
-	_mavlink_manager->sendCmdLong(command, confirmation, param1);
-	_cal_state = CalibrationState::InProgress;
-	_cal_gyro_state = CalibrationState::InProgress;
-	qDebug("Gyro calibration started\n");
-}
-
 void MainWindow::handleCalibrationDialogButton() {
 	if (_cal_state == CalibrationState::None) {
 		return;
@@ -693,10 +677,6 @@ void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 			if (_cal_lvl_state == CalibrationLevelState::InProgress) {
 				_cal_lvl_state = CalibrationLevelState::None;
 				emit levelCalibrationCompleted();
-			}
-			if (_cal_gyro_state == CalibrationState::InProgress) {
-				_cal_gyro_state = CalibrationState::None;
-				emit gyroCalibrationCompleted();
 			}
 		} break;
 		default:

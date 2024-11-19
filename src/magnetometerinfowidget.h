@@ -12,11 +12,6 @@
 #include "sensor.h"
 #include <ardupilotmega/mavlink.h>
 
-enum class CalibrationState {
-	None,
-	InProgress
-};
-
 class MagnetometerInfoWidget : public QWidget {
 	Q_OBJECT
 public:

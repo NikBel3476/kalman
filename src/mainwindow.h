@@ -87,7 +87,6 @@ signals:
 	void mcuStatusUpdated(mavlink_mcu_status_t);
 	void accelerometerCalibrationCompleted(CalibrationResult);
 	void levelCalibrationCompleted();
-	void gyroCalibrationCompleted();
 	// void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
 	void apStateUpdated(AutopilotState);
@@ -115,7 +114,6 @@ private slots:
 	void _rebootAp();
 	void _handleStartAccelCalibration();
 	void _handleStartLevelCalibration();
-	void _handleStartGyroCalibration();
 	// void _handleApAllParamsReceive();
 	// void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);

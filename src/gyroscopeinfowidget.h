@@ -17,10 +17,6 @@ public:
 															 MavlinkManager *mavlink_manager);
 
 signals:
-	void startCalibration();
-
-public slots:
-	void handleGyroCalibrationComplete();
 
 private slots:
 	void _handleMavlinkMessageReceive(const mavlink_message_t &);
@@ -29,6 +25,9 @@ private slots:
 private:
 	void _handleIMU2Update(const mavlink_scaled_imu2_t &);
 	void _handleSysStatusUpdate(const mavlink_sys_status_t &sys_status);
+	void _handleCommandAck(const mavlink_command_ack_t &cmd);
+
+	void _handleGyroCalibrationComplete();
 
 	QVBoxLayout *_layout = nullptr;
 	QLabel *_title_label = nullptr;
@@ -41,6 +40,7 @@ private:
 
 	MavlinkManager *_mavlink_manager = nullptr;
 	SensorStatus _gyro_status = SensorStatus::NotFound;
+	CalibrationState _cal_gyro_state = CalibrationState::None;
 };
 
 #endif // GYROSCOPEINFOWIDGET_H
