@@ -13,4 +13,20 @@ enum class CalibrationState {
 	InProgress
 };
 
+enum class CalibrationAccelState {
+	None,
+	Level,
+	LevelDone,
+	LeftSide,
+	LeftSideDone,
+	RightSide,
+	RightSideDone,
+	NoseUp,
+	NoseUpDone,
+	NoseDown,
+	NoseDownDone,
+	Back,
+	BackDone
+};
+
 #endif // SENSOR_H

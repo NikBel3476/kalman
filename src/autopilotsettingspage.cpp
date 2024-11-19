@@ -19,33 +19,4 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 	_layout->addWidget(_mcu_info_widget, 0, Qt::AlignLeft);
 	_layout->addWidget(_avionics_widget, 0, Qt::AlignCenter);
 	_layout->addStretch();
-
-	// accelerometer ifno widget connections
-	connect(_accelerometer_info_widget, &AccelerometerInfoWidget::startAccelCal,
-					this, &AutopilotSettingsPage::_handleStartAccelCalibration);
-	connect(this, &AutopilotSettingsPage::accelerometerCalibrationCompleted,
-					_accelerometer_info_widget,
-					&AccelerometerInfoWidget::handleAccelCalComplete);
-	connect(_accelerometer_info_widget, &AccelerometerInfoWidget::startLevelCal,
-					this, &AutopilotSettingsPage::_handleStartLevelCalibration);
-	connect(this, &AutopilotSettingsPage::levelCalibrationCompleted,
-					_accelerometer_info_widget,
-					&AccelerometerInfoWidget::handleLvlCalComplete);
-}
-
-void AutopilotSettingsPage::handleCompleteAccelerometerCalibration(
-		CalibrationResult result) {
-	emit accelerometerCalibrationCompleted(result);
-}
-
-void AutopilotSettingsPage::_handleStartAccelCalibration() {
-	emit startAccelCalibration();
-}
-
-void AutopilotSettingsPage::_handleStartLevelCalibration() {
-	emit startLevelCalibration();
-}
-
-void AutopilotSettingsPage::handleCompleteLevelCalibration() {
-	emit levelCalibrationCompleted();
 }

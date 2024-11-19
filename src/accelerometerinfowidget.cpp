@@ -12,6 +12,8 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(
 			_accel_cal_btn(new QPushButton()),
 			_lvl_cal_btn(new QPushButton()),
 			_cal_result_label(new QLabel()),
+			_msg_cal_box(new QMessageBox(this)),
+			_msg_cal_box_button(_msg_cal_box->addButton(QMessageBox::Ok)),
 			_mavlink_manager{mavlink_manager} {
 	const auto values_layout = new QHBoxLayout();
 	const auto title_layout = new QHBoxLayout();
@@ -43,33 +45,19 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(
 	_accel_cal_btn->setText(tr("Calibration"));
 	_lvl_cal_btn->setText(tr("Level calibration"));
 
+	_msg_cal_box->setWindowTitle(tr("Calibration"));
+
+	// connections
 	connect(_accel_cal_btn, &QPushButton::pressed, this,
 					&AccelerometerInfoWidget::_handleAccelCalBtnPress);
 	connect(_lvl_cal_btn, &QPushButton::pressed, this,
 					&AccelerometerInfoWidget::_handleLvlCalBtnPress);
+	connect(_msg_cal_box_button, &QPushButton::clicked, this,
+					&AccelerometerInfoWidget::_handleCalibrationDialogButton);
+
+	// mavlink manager connections
 	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
 					&AccelerometerInfoWidget::_handleMavlinkMessageReceive);
-}
-
-void AccelerometerInfoWidget::handleAccelCalComplete(CalibrationResult result) {
-	_accel_cal_btn->setEnabled(true);
-	_lvl_cal_btn->setEnabled(true);
-	switch (result) {
-	case CalibrationResult::Success: {
-		_cal_result_label->setText(tr("Success"));
-	} break;
-	case CalibrationResult::Failed: {
-		_cal_result_label->setText(tr("Failed"));
-	}
-	}
-	_cal_result_label->setVisible(true);
-}
-
-void AccelerometerInfoWidget::handleLvlCalComplete() {
-	_accel_cal_btn->setEnabled(true);
-	_lvl_cal_btn->setEnabled(true);
-	_cal_result_label->setText(tr("Success"));
-	_cal_result_label->setVisible(true);
 }
 
 void AccelerometerInfoWidget::_handleMavlinkMessageReceive(
@@ -85,6 +73,16 @@ void AccelerometerInfoWidget::_handleMavlinkMessageReceive(
 		mavlink_msg_sys_status_decode(&mavlink_message, &sys_status);
 		_handleSysStatusUpdate(sys_status);
 	} break;
+	case MAVLINK_MSG_ID_COMMAND_LONG: {
+		mavlink_command_long_t cmd;
+		mavlink_msg_command_long_decode(&mavlink_message, &cmd);
+		_parseCommand(cmd);
+	} break;
+	case MAVLINK_MSG_ID_COMMAND_ACK: {
+		mavlink_command_ack_t cmd_ack;
+		mavlink_msg_command_ack_decode(&mavlink_message, &cmd_ack);
+		_handleCommandAck(cmd_ack);
+	} break;
 	}
 }
 
@@ -92,14 +90,35 @@ void AccelerometerInfoWidget::_handleAccelCalBtnPress() {
 	_accel_cal_btn->setEnabled(false);
 	_lvl_cal_btn->setEnabled(false);
 	_cal_result_label->setVisible(false);
-	emit startAccelCal();
+
+	const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
+	const uint8_t confirmation = 0;
+	const float param1 = 0;
+	const float param2 = 0;
+	const float param3 = 0;
+	const float param4 = 0;
+	const float param5 = 1; // accelerometer calibration
+	_mavlink_manager->sendCmdLong(command, confirmation, param1, param2, param3,
+																param4, param5);
+	_cal_state = CalibrationState::InProgress;
+	qDebug("Accel calibration started\n");
 }
 
 void AccelerometerInfoWidget::_handleLvlCalBtnPress() {
 	_accel_cal_btn->setEnabled(false);
 	_lvl_cal_btn->setEnabled(false);
 	_cal_result_label->setVisible(false);
-	emit startLevelCal();
+
+	const auto command = MAV_CMD_PREFLIGHT_CALIBRATION;
+	const uint8_t confirmation = 0;
+	const float param1 = 0;
+	const float param2 = 0;
+	const float param3 = 0;
+	const float param4 = 0;
+	const float param5 = 2; // level calibration
+	_mavlink_manager->sendCmdLong(command, confirmation, param1, param2, param3,
+																param4, param5);
+	_cal_lvl_state = CalibrationState::InProgress;
 }
 
 void AccelerometerInfoWidget::_handleIMU2Update(
@@ -143,4 +162,154 @@ void AccelerometerInfoWidget::_handleSysStatusUpdate(
 		} break;
 		}
 	}
+}
+
+void AccelerometerInfoWidget::_parseCommand(const mavlink_command_long_t &cmd) {
+	switch (cmd.command) {
+	case MAV_CMD_ACCELCAL_VEHICLE_POS: {
+		if (_cal_state == CalibrationState::InProgress) {
+			switch (static_cast<ACCELCAL_VEHICLE_POS>(static_cast<int>(cmd.param1))) {
+			case ACCELCAL_VEHICLE_POS_LEVEL: {
+				_cal_acc_state = CalibrationAccelState::Level;
+				_msg_cal_box->setText(
+						tr("Place vehicle in level position and then press OK"));
+			} break;
+			case ACCELCAL_VEHICLE_POS_LEFT: {
+				_cal_acc_state = CalibrationAccelState::LeftSide;
+				_msg_cal_box->setText(
+						tr("Place vehicle on the left side and then press OK"));
+			} break;
+			case ACCELCAL_VEHICLE_POS_RIGHT: {
+				_cal_acc_state = CalibrationAccelState::RightSide;
+				_msg_cal_box->setText(
+						tr("Place vehicle on the right side and then press OK"));
+			} break;
+			case ACCELCAL_VEHICLE_POS_NOSEUP: {
+				_cal_acc_state = CalibrationAccelState::NoseUp;
+				_msg_cal_box->setText(
+						tr("Place vehicle in noseup position and then press OK"));
+			} break;
+			case ACCELCAL_VEHICLE_POS_NOSEDOWN: {
+				_cal_acc_state = CalibrationAccelState::NoseDown;
+				_msg_cal_box->setText(
+						tr("Place vehicle in nosedown position and then press OK"));
+			} break;
+			case ACCELCAL_VEHICLE_POS_BACK: {
+				_cal_acc_state = CalibrationAccelState::Back;
+				_msg_cal_box->setText(
+						tr("Place vehicle on the back side and then press OK"));
+			} break;
+			case ACCELCAL_VEHICLE_POS_SUCCESS: {
+				_cal_state = CalibrationState::None;
+				_cal_acc_state = CalibrationAccelState::None;
+				_msg_cal_box->setText(tr("Calibration completed"));
+				_handleAccelCalComplete(CalibrationResult::Success);
+			} break;
+			case ACCELCAL_VEHICLE_POS_FAILED: {
+				_cal_state = CalibrationState::None;
+				_cal_acc_state = CalibrationAccelState::None;
+				_msg_cal_box->setText(tr("Calibration failed"));
+				_handleAccelCalComplete(CalibrationResult::Failed);
+			} break;
+			case ACCELCAL_VEHICLE_POS_ENUM_END:
+				break;
+			}
+			_msg_cal_box->show();
+		}
+	} break;
+	default:
+		break;
+	}
+}
+
+void AccelerometerInfoWidget::_handleAccelCalComplete(
+		CalibrationResult result) {
+	_accel_cal_btn->setEnabled(true);
+	_lvl_cal_btn->setEnabled(true);
+	switch (result) {
+	case CalibrationResult::Success: {
+		_cal_result_label->setText(tr("Success"));
+	} break;
+	case CalibrationResult::Failed: {
+		_cal_result_label->setText(tr("Failed"));
+	}
+	}
+	_cal_result_label->setVisible(true);
+}
+
+void AccelerometerInfoWidget::_handleCalibrationDialogButton() {
+	if (_cal_state == CalibrationState::None) {
+		return;
+	}
+	float vehicle_position_param;
+	switch (_cal_acc_state) {
+	case CalibrationAccelState::Level: {
+		_cal_acc_state = CalibrationAccelState::LeftSide;
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_LEVEL;
+	} break;
+	case CalibrationAccelState::LeftSide: {
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_LEFT;
+	} break;
+	case CalibrationAccelState::RightSide: {
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_RIGHT;
+	} break;
+	case CalibrationAccelState::NoseDown: {
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEDOWN;
+	} break;
+	case CalibrationAccelState::NoseUp: {
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_NOSEUP;
+	} break;
+	case CalibrationAccelState::Back: {
+		vehicle_position_param = ACCELCAL_VEHICLE_POS_BACK;
+	} break;
+	case CalibrationAccelState::None:
+	default:
+		_msg_cal_box->close();
+		return;
+	}
+
+	const auto command = MAV_CMD_ACCELCAL_VEHICLE_POS;
+	const auto confirmation = 0;
+	_mavlink_manager->sendCmdLong(command, confirmation, vehicle_position_param);
+}
+
+void AccelerometerInfoWidget::_handleCommandAck(
+		const mavlink_command_ack_t &cmd) {
+	switch (cmd.command) {
+	case MAV_CMD_PREFLIGHT_CALIBRATION: {
+		switch (cmd.result) {
+		case MAV_RESULT_ACCEPTED: {
+			if (_cal_lvl_state == CalibrationState::InProgress) {
+				_cal_lvl_state = CalibrationState::None;
+				_handleLvlCalComplete(CalibrationResult::Success);
+			}
+		} break;
+		case MAV_RESULT_FAILED: {
+			if (_cal_lvl_state == CalibrationState::InProgress) {
+				_cal_lvl_state = CalibrationState::None;
+				_handleLvlCalComplete(CalibrationResult::Failed);
+			}
+		}
+		default:
+			break;
+		}
+	} break;
+	default:
+		break;
+	}
+}
+
+void AccelerometerInfoWidget::_handleLvlCalComplete(
+		const CalibrationResult &cal_result) {
+	_accel_cal_btn->setEnabled(true);
+	_lvl_cal_btn->setEnabled(true);
+	switch (cal_result) {
+	case CalibrationResult::Success: {
+		_cal_result_label->setText(tr("Success"));
+	} break;
+	case CalibrationResult::Failed: {
+		_cal_result_label->setText(tr("Success"));
+	} break;
+	}
+	_cal_result_label->setVisible(true);
 }

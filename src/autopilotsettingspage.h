@@ -25,18 +25,6 @@ signals:
 	void attitudeUpdated(mavlink_attitude_t);
 	void globalPositionIntUpdated(mavlink_global_position_int_t);
 	void vfrHudUpdated(mavlink_vfr_hud_t);
-	void startAccelCalibration();
-	void accelerometerCalibrationCompleted(CalibrationResult);
-	void startLevelCalibration();
-	void levelCalibrationCompleted();
-
-public slots:
-	void handleCompleteAccelerometerCalibration(CalibrationResult);
-	void handleCompleteLevelCalibration();
-
-private slots:
-	void _handleStartAccelCalibration();
-	void _handleStartLevelCalibration();
 
 private:
 	QVBoxLayout *_layout = nullptr;

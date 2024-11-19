@@ -35,25 +35,6 @@ enum class SerialPortState {
 	Connected,
 	Disconnected
 };
-// enum class CalibrationState {
-// 	None,
-// 	InProgress
-// };
-enum class CalibrationAccelState {
-	None,
-	Level,
-	LevelDone,
-	LeftSide,
-	LeftSideDone,
-	RightSide,
-	RightSideDone,
-	NoseUp,
-	NoseUpDone,
-	NoseDown,
-	NoseDownDone,
-	Back,
-	BackDone
-};
 enum class CalibrationLevelState {
 	None,
 	InProgress
@@ -85,8 +66,6 @@ signals:
 	void globalPositionIntUpdated(mavlink_global_position_int_t);
 	void powerStatusUpdated(mavlink_power_status_t);
 	void mcuStatusUpdated(mavlink_mcu_status_t);
-	void accelerometerCalibrationCompleted(CalibrationResult);
-	void levelCalibrationCompleted();
 	// void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
 	void apStateUpdated(AutopilotState);
@@ -103,7 +82,6 @@ private slots:
 	void handleWriteTimeout();
 	void handleHeartbeatTimeout();
 	void handleSerialReconnectTimeout();
-	void handleCalibrationDialogButton();
 
 	void _login(const QString &login, const QString &password);
 	void _logout();
@@ -112,8 +90,6 @@ private slots:
 	void _openApParamsPage();
 	void _openSettingsPage();
 	void _rebootAp();
-	void _handleStartAccelCalibration();
-	void _handleStartLevelCalibration();
 	// void _handleApAllParamsReceive();
 	// void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
@@ -130,8 +106,6 @@ private:
 	void setPortSettings(int);
 	void _findBootloader();
 	void initPortsBoxEventsConnections();
-	void parseCommand(const mavlink_command_long_t &);
-	void reset();
 	void _handleCommandAck(mavlink_command_ack_t &);
 	void _setApState(AutopilotState);
 	void _trySerialConnect();
@@ -153,8 +127,6 @@ private:
 	QLabel *_ap_status_label = nullptr;
 	Console *_console = nullptr;
 	AuthenticationPage *_authentication_page = nullptr;
-	QMessageBox *_msg_cal_box = nullptr;
-	QPushButton *_msg_cal_box_button = nullptr;
 
 	Autopilot *_autopilot = nullptr;
 	QSerialPort *_serial = nullptr;
@@ -181,7 +153,6 @@ private:
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;
 	CalibrationAccelState _cal_accel_state = CalibrationAccelState::None;
-	CalibrationState _cal_gyro_state = CalibrationState::None;
 	SerialPortState _serial_port_state = SerialPortState::Disconnected;
 };
 
