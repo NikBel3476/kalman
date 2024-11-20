@@ -32,7 +32,7 @@ MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent,
 	title_layout->addStretch();
 
 	_title_label->setText(tr("Magnetometer"));
-	_status_label->setText(tr("Stats: not found"));
+	_status_label->setText(tr("Status: not found"));
 
 	// Values section
 	values_layout->addWidget(_x_label);
@@ -156,7 +156,7 @@ void MagnetometerInfoWidget::_handleSysStatusUpdate(
 				MAV_SYS_STATUS_SENSOR_3D_MAG) {
 			if (sys_status.onboard_control_sensors_health &
 					MAV_SYS_STATUS_SENSOR_3D_MAG) {
-				_mag_status = SensorStatus::Enabled;
+				current_mag_status = SensorStatus::Enabled;
 			} else {
 				current_mag_status = SensorStatus::Error;
 			}

@@ -4,7 +4,9 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QObject>
+#include <QRegularExpression>
 #include <QSerialPort>
+#include <QSerialPortInfo>
 #include <QTimer>
 #include <algorithm>
 #include <array>

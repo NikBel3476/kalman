@@ -511,8 +511,7 @@ void MainWindow::handleBytesWritten(qint64 bytes) {
 }
 
 void MainWindow::handleWriteTimeout() {
-	const QString error = tr("Write operation timed out for port %1.\n"
-													 "Error: %2")
+	const QString error = tr("Write operation timed out for port %1.\nError: %2")
 														.arg(_serial->portName(), _serial->errorString());
 	showWriteError(error);
 }

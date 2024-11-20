@@ -84,10 +84,10 @@ void FirmwareUploadPage::_handleDroneTypeBoxChange(int index) {
 }
 
 void FirmwareUploadPage::_handleUploadButtonPress() {
-	emit uploadFirmwareStarted(_drone_type);
 	auto fileContentReady = [this](const QString &file_name,
 																 const QByteArray &file_content) {
 		if (!file_name.isEmpty()) {
+			emit uploadFirmwareStarted(_drone_type);
 			_firmware_uploader->upload(file_content);
 		}
 	};

@@ -398,10 +398,20 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 		_sendReboot();
 		_closeSerialPort();
 		QApplication::processEvents();
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 	} else {
 		return FindBootloaderResult::SerialPortError;
 	}
+
+	auto infos = QSerialPortInfo::availablePorts();
+	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
+	for (const auto &port_info : infos) {
+		if (port_regex.match(port_info.portName()).hasMatch()) {
+			_serial->setPortName(port_info.portName());
+			break;
+		}
+	}
+	qDebug() << "Try connect to " << _serial->portName();
 
 	// attempt to connect on baud 115200
 	_serial->setBaudRate(QSerialPort::Baud115200);
@@ -425,7 +435,16 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 	_sendReboot();
 	_closeSerialPort();
 	QApplication::processEvents();
-	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+	infos = QSerialPortInfo::availablePorts();
+	for (const auto &port_info : infos) {
+		if (port_regex.match(port_info.portName()).hasMatch()) {
+			_serial->setPortName(port_info.portName());
+			break;
+		}
+	}
+	qDebug() << "Try connect to " << _serial->portName();
 
 	// attempt to connect on baud 57600
 	_serial->setBaudRate(QSerialPort::Baud57600);

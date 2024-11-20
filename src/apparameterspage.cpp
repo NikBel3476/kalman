@@ -331,8 +331,10 @@ void ApParametersPage::_handleApParamReceive(
 		_download_params_progress_bar->setVisible(false);
 		qDebug() << "ALL PARAMETERS RECEIVED";
 		qDebug() << "NOT SAVED PARAMS SIZE: " << _not_saved_params.size();
-		if (!_not_saved_params.empty() &&
-				_autopilot->params_send_state == AutopilotParamsSendState::Sending) {
+		if (_autopilot->params_send_state != AutopilotParamsSendState::Sending) {
+			return;
+		}
+		if (!_not_saved_params.empty()) {
 			// TODO: move loop to separate function
 			for (auto const &not_saved_param : _not_saved_params) {
 				if (_ap_params.contains(not_saved_param.first)) {
@@ -354,8 +356,8 @@ void ApParametersPage::_handleApParamReceive(
 														 tr("Not all parameters saved"));
 				_autopilot->params_send_state = AutopilotParamsSendState::None;
 				for (const auto &[_, cannot_save_param] : _cannot_save_params) {
-					qDebug() << cannot_save_param.param_id << "CANNOT SAVE"
-									 << cannot_save_param.param_index;
+					qDebug() << std::string(cannot_save_param.param_id, 16)
+									 << "CANNOT SAVE" << cannot_save_param.param_index;
 				}
 				_showUploadResult();
 				_reset();
@@ -383,8 +385,8 @@ void ApParametersPage::_handleApParamReceive(
 					}
 					_autopilot->params_send_state = AutopilotParamsSendState::None;
 					for (const auto &[_, cannot_save_param] : _cannot_save_params) {
-						qDebug() << cannot_save_param.param_id << "CANNOT SAVE"
-										 << cannot_save_param.param_index;
+						qDebug() << std::string(cannot_save_param.param_id, 16)
+										 << "CANNOT SAVE" << cannot_save_param.param_index;
 					}
 					_showUploadResult();
 					_reset();
@@ -394,6 +396,10 @@ void ApParametersPage::_handleApParamReceive(
 			_uploadParameters();
 			_params_have_been_saved = false;
 			return;
+		} else { // _not_saved_params is empty
+			QMessageBox::information(this, tr("Information"), tr("Parameters saved"));
+			_showUploadResult();
+			_reset();
 		}
 	}
 }
@@ -439,6 +445,7 @@ void ApParametersPage::_uploadParameters() {
 
 void ApParametersPage::_showUploadResult() {
 	_upload_params_progress_wrapper->setVisible(false);
+	_upload_params_progress_bar->setValue(0);
 	for (const auto &param_to_upload : _params_to_upload) {
 		_cannot_save_params[std::string(param_to_upload.param_id, 16)] =
 				param_to_upload;

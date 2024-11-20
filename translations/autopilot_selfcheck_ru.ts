@@ -65,7 +65,7 @@
 	</message>
 	<message>
 		<source>Warning</source>
-		<translation>Предупреждение</translation>
+		<translation>Внимание</translation>
 	</message>
 	<message>
 		<source>Connected to %1</source>
@@ -87,6 +87,10 @@
 		<source>No device permissions or it is already in use</source>
 		<translation>Нет прав доступа к устройству или оно уже используется</translation>
 	</message>
+    <message>
+        <source>Write operation timed out for port %1.\nError: %2</source>
+        <translation>Превышено время записи для порта %1.\nОшибка: %2</translation>
+    </message>
 	<message>
 		<source>Place vehicle in level position and then press OK</source>
 		<translation>Поставьте автопилот в уроверь с полом и нажмите ОК</translation>
