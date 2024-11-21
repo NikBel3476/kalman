@@ -60,6 +60,7 @@ private:
 	QPushButton *_update_params_btn = nullptr;
 	QPushButton *_compare_params_btn = nullptr;
 	QPushButton *_upload_params_btn = nullptr;
+	QLabel *_file_name_label = nullptr;
 	QTableWidget *_ap_params_table = nullptr;
 	QProgressBar *_download_params_progress_bar = nullptr;
 	QProgressBar *_upload_params_progress_bar = nullptr;

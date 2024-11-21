@@ -15,6 +15,7 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 			_update_params_btn(new QPushButton()),
 			_compare_params_btn(new QPushButton()),
 			_upload_params_btn(new QPushButton()),
+			_file_name_label(new QLabel()),
 			_ap_params_table(new QTableWidget()),
 			_download_params_progress_bar(new QProgressBar()),
 			_upload_params_progress_bar(new QProgressBar()),
@@ -24,7 +25,7 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 			_autopilot{autopilot} {
 	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(buttons_layout);
-	_layout->addWidget(_ap_params_table);
+	_layout->addWidget(_file_name_label), _layout->addWidget(_ap_params_table);
 	_layout->addWidget(_download_params_progress_bar);
 	_layout->addWidget(_upload_params_progress_wrapper);
 
@@ -45,6 +46,8 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 	_compare_params_btn->setEnabled(false);
 	_upload_params_btn->setText(tr("Upload parameters"));
 	_upload_params_btn->setEnabled(false);
+
+	_file_name_label->setVisible(false);
 
 	_ap_params_table->setColumnCount(ap_params_table_column_count);
 	_ap_params_table->setHorizontalHeaderLabels(
@@ -112,7 +115,7 @@ void ApParametersPage::_handleApParamsUploadCompletion() {
 }
 
 void ApParametersPage::_handleParameterSendTimeout() {
-	QMessageBox::warning(this, tr("Warning"), tr("Parameter write timeout"));
+	// QMessageBox::warning(this, tr("Warning"), tr("Parameter write timeout"));
 }
 
 void ApParametersPage::handleAutopilotConnection() {
@@ -137,6 +140,10 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 			_update_params_btn->setEnabled(false);
 			_compare_params_btn->setEnabled(false);
 			_upload_params_btn->setEnabled(false);
+			_file_name_label->setText(
+					tr("Comparing file: %1")
+							.arg(file_name.mid(file_name.lastIndexOf('/') + 1)));
+			_file_name_label->setVisible(true);
 			clearNotSavedParams();
 			clearParamsToUpload();
 			_parseApParameters(file_content);
@@ -217,12 +224,15 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 		}
 	} else {
 		for (const auto &comparing_param : comparing_params) {
-			const auto &new_param_value_item = new QTableWidgetItem(
-					QString::number(comparing_param.param_value), QTableWidgetItem::Type);
+			const auto param_name = QString::number(comparing_param.param_value);
+			const auto param_name_formatted =
+					param_name.left(param_name.indexOf('\0'));
+			const auto &new_param_value_item =
+					new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 			for (const auto &[_, ap_param] : _ap_params) {
 				if (ap_param.param_index == comparing_param.param_index &&
 						ap_param.param_value != comparing_param.param_value) {
-					new_param_value_item->setBackground(QBrush(Qt::darkRed));
+					new_param_value_item->setBackground(QBrush(Qt::red));
 				}
 			}
 			_ap_params_table->setItem(comparing_param.param_index,
@@ -240,8 +250,10 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 																static_cast<int>(not_found_params.size()));
 	for (const auto &[not_found_param_id, not_found_param_value] :
 			 not_found_params) {
-		const auto &param_id_item = new QTableWidgetItem(
-				QString::fromStdString(not_found_param_id), QTableWidgetItem::Type);
+		const auto param_name = QString::fromStdString(not_found_param_id);
+		const auto param_name_formatted = param_name.left(param_name.indexOf('\0'));
+		const auto &param_id_item =
+				new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 		param_id_item->setBackground(QBrush(Qt::transparent));
 		_ap_params_table->setItem(item_index, 0, param_id_item);
 
@@ -252,7 +264,7 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 
 		const auto &not_found_param_item = new QTableWidgetItem(
 				QString::number(not_found_param_value), QTableWidgetItem::Type);
-		not_found_param_item->setBackground(QBrush(Qt::darkRed));
+		not_found_param_item->setBackground(QBrush(Qt::red));
 		_ap_params_table->setItem(item_index, ap_params_table_column_count - 1,
 															not_found_param_item);
 		item_index++;
@@ -296,8 +308,10 @@ void ApParametersPage::_handleApParamReceive(
 		qDebug() << "AP PARAMS SIZE: " << _ap_params.size();
 	}
 	// update values inside table
-	const auto &table_item_name = new QTableWidgetItem(
-			QString::fromUtf8(param_value.param_id, 16), QTableWidgetItem::Type);
+	const auto param_name = QString::fromUtf8(param_value.param_id, 16);
+	const auto param_name_formatted = param_name.left(param_name.indexOf('\0'));
+	const auto &table_item_name =
+			new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 	const auto &table_item_value = new QTableWidgetItem(
 			QString::number(param_value.param_value), QTableWidgetItem::Type);
 	_ap_params_table->setItem(param_value.param_index, 0, table_item_name);
@@ -398,6 +412,7 @@ void ApParametersPage::_handleApParamReceive(
 			return;
 		} else { // _not_saved_params is empty
 			QMessageBox::information(this, tr("Information"), tr("Parameters saved"));
+			_autopilot->params_send_state = AutopilotParamsSendState::None;
 			_showUploadResult();
 			_reset();
 		}
@@ -454,7 +469,7 @@ void ApParametersPage::_showUploadResult() {
 	for (const auto &[_, not_saved_param] : _cannot_save_params) {
 		const auto not_saved_param_item = new QTableWidgetItem(
 				QString::number(not_saved_param.param_value), QTableWidgetItem::Type);
-		not_saved_param_item->setBackground(QBrush(Qt::darkRed));
+		not_saved_param_item->setBackground(QBrush(Qt::red));
 		_ap_params_table->setItem(
 				_ap_params[std::string(not_saved_param.param_id, 16)].param_index,
 				ap_params_table_column_count - 1, not_saved_param_item);
@@ -464,8 +479,10 @@ void ApParametersPage::_showUploadResult() {
 																static_cast<int>(_not_saved_params.size()));
 	for (const auto &[not_found_param_id, not_found_param_value] :
 			 _not_saved_params) {
-		const auto &param_id_item = new QTableWidgetItem(
-				QString::fromStdString(not_found_param_id), QTableWidgetItem::Type);
+		const auto param_name = QString::fromStdString(not_found_param_id);
+		const auto param_name_formatted = param_name.left(param_name.indexOf('\0'));
+		const auto &param_id_item =
+				new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 		param_id_item->setBackground(QBrush(Qt::transparent));
 		_ap_params_table->setItem(item_index, 0, param_id_item);
 
@@ -476,7 +493,7 @@ void ApParametersPage::_showUploadResult() {
 
 		const auto &not_found_param_item = new QTableWidgetItem(
 				QString::number(not_found_param_value), QTableWidgetItem::Type);
-		not_found_param_item->setBackground(QBrush(Qt::darkRed));
+		not_found_param_item->setBackground(QBrush(Qt::red));
 		_ap_params_table->setItem(item_index, ap_params_table_column_count - 1,
 															not_found_param_item);
 		item_index++;

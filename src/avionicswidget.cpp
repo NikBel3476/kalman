@@ -10,9 +10,9 @@ AvionicsWidget::AvionicsWidget(QWidget *parent, MavlinkManager *mavlink_manager)
 			_mavlink_manager{mavlink_manager} {
 	_layout->addWidget(_eadi);
 
-	_eadi->setMaximumSize(300, 300);
-	_eadi->setMinimumSize(300, 300);
-	_eadi->setGeometry(QRect(0, 0, 300, 300));
+	_eadi->setMaximumSize(500, 500);
+	_eadi->setMinimumSize(500, 500);
+	_eadi->setGeometry(QRect(0, 0, 500, 500));
 	_eadi->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	_eadi->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	_eadi->setInteractive(false);

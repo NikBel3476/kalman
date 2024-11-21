@@ -60,8 +60,8 @@ MainWindow::MainWindow(QWidget *parent)
 			_serial_reconnect_timer(new QTimer(this)),
 			_serial_reconnect_delay_timer(new QTimer(this)) {
 	setWindowTitle("Autopilot selfcheck");
-	setMinimumSize(600, 800);
-	setGeometry(QRect(0, 0, 600, 800));
+	setMinimumSize(600, 1000);
+	setGeometry(QRect(0, 0, 600, 1000));
 
 	// Main window content
 	addToolBar(_toolbar);

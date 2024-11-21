@@ -518,6 +518,10 @@
 	    <source>Wait for upload completion</source>
 		<translation>Ожидайте завершения загрузки</translation>
 	</message>
+	<message>
+	    <source>Comparing file: %1</source>
+		<translation>Сравниваемый файл: %1</translation>
+	</message>
 </context>
 <context>
     <name>MavlinkManager</name>
