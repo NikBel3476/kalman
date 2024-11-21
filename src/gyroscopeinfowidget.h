@@ -23,6 +23,7 @@ private slots:
 	void _handleCalStartBtnPress();
 
 private:
+	void _handleIMUUpdate(const mavlink_scaled_imu_t &);
 	void _handleIMU2Update(const mavlink_scaled_imu2_t &);
 	void _handleSysStatusUpdate(const mavlink_sys_status_t &sys_status);
 	void _handleCommandAck(const mavlink_command_ack_t &cmd);
@@ -32,9 +33,12 @@ private:
 	QVBoxLayout *_layout = nullptr;
 	QLabel *_title_label = nullptr;
 	QLabel *_status_label = nullptr;
-	QLabel *_x_label = nullptr;
-	QLabel *_y_label = nullptr;
-	QLabel *_z_label = nullptr;
+	QLabel *_x_imu_label = nullptr;
+	QLabel *_y_imu_label = nullptr;
+	QLabel *_z_imu_label = nullptr;
+	QLabel *_x_imu2_label = nullptr;
+	QLabel *_y_imu2_label = nullptr;
+	QLabel *_z_imu2_label = nullptr;
 	QPushButton *_cal_start_btn = nullptr;
 	QLabel *_cal_result_label = nullptr;
 

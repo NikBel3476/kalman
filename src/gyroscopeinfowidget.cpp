@@ -6,19 +6,26 @@ GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent,
 			_layout(new QVBoxLayout(this)),
 			_title_label(new QLabel()),
 			_status_label(new QLabel()),
-			_x_label(new QLabel("x: 0")),
-			_y_label(new QLabel("y: 0")),
-			_z_label(new QLabel("z: 0")),
+			_x_imu_label(new QLabel("imu_x: 0")),
+			_y_imu_label(new QLabel("imu_y: 0")),
+			_z_imu_label(new QLabel("imu_z: 0")),
+			_x_imu2_label(new QLabel("imu2_x: 0")),
+			_y_imu2_label(new QLabel("imu2_y: 0")),
+			_z_imu2_label(new QLabel("imu2_z: 0")),
 			_cal_start_btn(new QPushButton()),
 			_cal_result_label(new QLabel()),
 			_mavlink_manager{mavlink_manager} {
 	const auto title_layout = new QHBoxLayout();
-	const auto values_layout = new QHBoxLayout();
+	const auto imu_values_layout = new QHBoxLayout();
+	const auto imu2_values_layout = new QHBoxLayout();
 	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(title_layout);
-	_layout->addLayout(values_layout);
+	_layout->addLayout(imu_values_layout);
+	_layout->addLayout(imu2_values_layout);
 	_layout->addLayout(buttons_layout);
 	_layout->addWidget(_cal_result_label);
+	_layout->setSpacing(5);
+	_layout->setContentsMargins(0, 0, 0, 0);
 
 	// Title section
 	title_layout->addWidget(_title_label);
@@ -28,15 +35,28 @@ GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent,
 	_status_label->setText(tr("Status: not found"));
 
 	// Values section
-	values_layout->addWidget(_x_label);
-	values_layout->addWidget(_y_label);
-	values_layout->addWidget(_z_label);
+	imu_values_layout->addWidget(_x_imu_label);
+	imu_values_layout->addWidget(_y_imu_label);
+	imu_values_layout->addWidget(_z_imu_label);
+
+	imu2_values_layout->addWidget(_x_imu2_label);
+	imu2_values_layout->addWidget(_y_imu2_label);
+	imu2_values_layout->addWidget(_z_imu2_label);
+
+	_x_imu_label->setMinimumWidth(80);
+	_y_imu_label->setMinimumWidth(80);
+	_z_imu_label->setMinimumWidth(80);
+	_x_imu2_label->setMinimumWidth(80);
+	_y_imu2_label->setMinimumWidth(80);
+	_z_imu2_label->setMinimumWidth(80);
 
 	// Buttons section
 	buttons_layout->addWidget(_cal_start_btn);
 	buttons_layout->addStretch();
 
 	_cal_start_btn->setText(tr("Calibration"));
+
+	_cal_result_label->setVisible(false);
 
 	connect(_cal_start_btn, &QPushButton::pressed, this,
 					&GyroscopeInfoWidget::_handleCalStartBtnPress);
@@ -49,6 +69,12 @@ GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent,
 void GyroscopeInfoWidget::_handleMavlinkMessageReceive(
 		const mavlink_message_t &mavlink_message) {
 	switch (mavlink_message.msgid) {
+	case MAVLINK_MSG_ID_SCALED_IMU: {
+		qDebug() << "SCALED IMU RECEIVED";
+		mavlink_scaled_imu_t scaled_imu;
+		mavlink_msg_scaled_imu_decode(&mavlink_message, &scaled_imu);
+		_handleIMUUpdate(scaled_imu);
+	} break;
 	case MAVLINK_MSG_ID_SCALED_IMU2: {
 		mavlink_scaled_imu2_t scaled_imu;
 		mavlink_msg_scaled_imu2_decode(&mavlink_message, &scaled_imu);
@@ -67,11 +93,18 @@ void GyroscopeInfoWidget::_handleMavlinkMessageReceive(
 	}
 }
 
+void GyroscopeInfoWidget::_handleIMUUpdate(
+		const mavlink_scaled_imu_t &scaled_imu) {
+	_x_imu_label->setText(QString("imu_x: %1").arg(scaled_imu.xgyro));
+	_y_imu_label->setText(QString("imu_y: %1").arg(scaled_imu.ygyro));
+	_z_imu_label->setText(QString("imu_z: %1").arg(scaled_imu.zgyro));
+}
+
 void GyroscopeInfoWidget::_handleIMU2Update(
 		const mavlink_scaled_imu2_t &scaled_imu) {
-	_x_label->setText(QString("x: %1").arg(scaled_imu.xgyro));
-	_y_label->setText(QString("y: %1").arg(scaled_imu.ygyro));
-	_z_label->setText(QString("z: %1").arg(scaled_imu.zgyro));
+	_x_imu2_label->setText(QString("imu2_x: %1").arg(scaled_imu.xgyro));
+	_y_imu2_label->setText(QString("imu2_y: %1").arg(scaled_imu.ygyro));
+	_z_imu2_label->setText(QString("imu2_z: %1").arg(scaled_imu.zgyro));
 }
 
 void GyroscopeInfoWidget::_handleCalStartBtnPress() {

@@ -23,10 +23,10 @@ private:
 	void _handlePowerStatusUpdate(const mavlink_power_status_t &);
 	void _handleMcuStatusUpdate(const mavlink_mcu_status_t &);
 
-	QVBoxLayout *m_layout = nullptr;
-	QLabel *m_temperature_label = nullptr;
-	QLabel *m_voltage_label = nullptr;
-	QLabel *m_rail_voltage_label = nullptr;
+	QVBoxLayout *_layout = nullptr;
+	QLabel *_temperature_label = nullptr;
+	QLabel *_voltage_label = nullptr;
+	QLabel *_rail_voltage_label = nullptr;
 
 	MavlinkManager *_mavlink_manager = nullptr;
 };

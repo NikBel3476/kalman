@@ -2,18 +2,20 @@
 
 McuInfoWidget::McuInfoWidget(QWidget *parent, MavlinkManager *mavlink_manager)
 		: QWidget{parent},
-			m_layout(new QVBoxLayout(this)),
-			m_temperature_label(new QLabel()),
-			m_voltage_label(new QLabel()),
-			m_rail_voltage_label(new QLabel()),
+			_layout(new QVBoxLayout(this)),
+			_temperature_label(new QLabel()),
+			_voltage_label(new QLabel()),
+			_rail_voltage_label(new QLabel()),
 			_mavlink_manager{mavlink_manager} {
 	auto values_layout = new QHBoxLayout();
-	m_layout->addWidget(new QLabel(tr("MCU information")));
-	m_layout->addLayout(values_layout);
+	_layout->addWidget(new QLabel(tr("MCU information")));
+	_layout->addLayout(values_layout);
+	_layout->setSpacing(0);
+	_layout->setContentsMargins(0, 0, 0, 0);
 
-	values_layout->addWidget(m_temperature_label);
-	values_layout->addWidget(m_voltage_label);
-	values_layout->addWidget(m_rail_voltage_label);
+	values_layout->addWidget(_temperature_label);
+	values_layout->addWidget(_voltage_label);
+	values_layout->addWidget(_rail_voltage_label);
 
 	// mavlink manager connections
 	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
@@ -38,22 +40,22 @@ void McuInfoWidget::_handleMavlinkMessageReceive(
 
 void McuInfoWidget::_handlePowerStatusUpdate(
 		const mavlink_power_status_t &power_status) {
-	m_rail_voltage_label->setText(
+	_rail_voltage_label->setText(
 			QString(tr("Rail voltage: %1 mV")).arg(power_status.Vcc));
 }
 
 void McuInfoWidget::_handleMcuStatusUpdate(
 		const mavlink_mcu_status_t &mcu_status) {
-	m_temperature_label->setText(QString(tr("Temperature: %1.%2 %3"))
-																	 .arg(mcu_status.MCU_temperature / 100)
-																	 .arg(mcu_status.MCU_temperature % 100)
-																	 .arg(QChar(0260) + 'C'));
-	m_voltage_label->setText(
+	_temperature_label->setText(QString(tr("Temperature: %1.%2 %3"))
+																	.arg(mcu_status.MCU_temperature / 100)
+																	.arg(mcu_status.MCU_temperature % 100)
+																	.arg(QChar(0260) + 'C'));
+	_voltage_label->setText(
 			QString(tr("Voltage: %1 mV")).arg(mcu_status.MCU_voltage));
 	if (mcu_status.MCU_voltage < mcu_status.MCU_voltage_min ||
 			mcu_status.MCU_voltage > mcu_status.MCU_voltage_max) {
-		m_voltage_label->setStyleSheet("border: 3px solid red");
+		_voltage_label->setStyleSheet("border: 3px solid red");
 	} else {
-		m_voltage_label->setStyleSheet("");
+		_voltage_label->setStyleSheet("");
 	}
 }

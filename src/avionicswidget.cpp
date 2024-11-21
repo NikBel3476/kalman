@@ -67,4 +67,5 @@ void AvionicsWidget::_handleGlobalPositionIntUpdate(
 
 void AvionicsWidget::_handleVfrHudUpdate(const mavlink_vfr_hud_t vfr_hud) {
 	_eadi->setAirspeed(vfr_hud.airspeed);
+	_eadi->setAltitude(vfr_hud.alt);
 }
