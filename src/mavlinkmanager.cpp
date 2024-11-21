@@ -88,8 +88,7 @@ void MavlinkManager::_writeData(const QByteArray &data) {
 		_serial_write_timer->start(kSerialWriteTimeout);
 	} else {
 		const auto error_msg =
-				tr("Failed to write all data to port %1.\n"
-					 "Error: %2")
+				tr("Failed to write all data to port %1.\nError: %2")
 						.arg(_serial->portName(), _serial->errorString());
 		// _showWriteError(error_msg);
 		emit serialWriteErrorOccured(error_msg);

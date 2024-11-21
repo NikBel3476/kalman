@@ -234,8 +234,7 @@ void FirmwareUploader::_writeData(const QByteArray &data) {
 		_bytes_to_write += written;
 		_serial_write_timer->start(kWriteTimeout);
 	} else {
-		const auto error = tr("Failed to write all data to port %1.\n"
-													"Error: %2")
+		const auto error = tr("Failed to write all data to port %1.\nError: %2")
 													 .arg(_serial->portName(), _serial->errorString());
 		QMessageBox::critical(nullptr, tr("Serial port error"), error);
 	}

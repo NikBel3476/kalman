@@ -80,10 +80,6 @@
 		<translation>Автопилот отключён</translation>
 	</message>
 	<message>
-		<source>Failed to write all data to port %1.\n Error: %2</source>
-		<translation>Не удалось записать все данные в порт %1.\n Ошибка: %2</translation>
-	</message>
-	<message>
 		<source>No device permissions or it is already in use</source>
 		<translation>Нет прав доступа к устройству или оно уже используется</translation>
 	</message>
@@ -91,38 +87,78 @@
         <source>Write operation timed out for port %1.\nError: %2</source>
         <translation>Превышено время записи для порта %1.\nОшибка: %2</translation>
     </message>
-	<message>
-		<source>Place vehicle in level position and then press OK</source>
-		<translation>Поставьте автопилот в уроверь с полом и нажмите ОК</translation>
-	</message>
-	<message>
-		<source>Place vehicle on the left side and then press OK</source>
-		<translation>Поставьте автопилот левой стороной вниз и нажмите ОК</translation>
-	</message>
-	<message>
-		<source>Place vehicle on the right side and then press OK</source>
-		<translation>Поставьте автопилот правой стороной вниз и нажмите ОК</translation>
-	</message>
-	<message>
-		<source>Place vehicle in noseup position and then press OK</source>
-		<translation>Поставьте автопилот носом вверх и нажмите ОК</translation>
-	</message>
-	<message>
-		<source>Place vehicle in nosedown position and then press OK</source>
-		<translation>Поставьте автопилот носом вниз и нажмите ОК</translation>
-	</message>
-	<message>
-		<source>Place vehicle on the back side and then press OK</source>
-		<translation>Поставьте автопилот вниз головой и нажмите ОК</translation>
-	</message>
-	<message>
-		<source>Calibration completed</source>
-		<translation>Калибровка завершена</translation>
-	</message>
-	<message>
-		<source>Calibration failed</source>
-		<translation>Не удалось откалибровать</translation>
-	</message>
+    <message>
+        <source>Firmware file error</source>
+        <translation>Ошибка файла прошивки</translation>
+    </message>
+    <message>
+        <source>Firmware image not found</source>
+        <translation>Не найден образ прошивки</translation>
+    </message>
+    <message>
+        <source>Firmware size not found</source>
+        <translation>Не найден размер прошивки</translation>
+    </message>
+    <message>
+        <source>Board id not found</source>
+        <translation>Не найден идентификатор платы</translation>
+    </message>
+    <message>
+        <source>Image decoding error</source>
+        <translation>Ошибка декодирования образа</translation>
+    </message>
+    <message>
+        <source>Bootloader error</source>
+        <translation>Ошибка загрузчика</translation>
+    </message>
+    <message>
+        <source>Bootloader not found</source>
+        <translation>Загрузчик не найден</translation>
+    </message>
+    <message>
+        <source>Incompatible board</source>
+        <translation>Несовместимая плата</translation>
+    </message>
+    <message>
+        <source>Unsupported board</source>
+        <translation>Неподдерживаемая плата</translation>
+    </message>
+    <message>
+        <source>Unsupported bootloader</source>
+        <translation>Неподдерживаемый загрузчик</translation>
+    </message>
+    <message>
+        <source>Erase error</source>
+        <translation>Ошибка очистки</translation>
+    </message>
+    <message>
+        <source>Board erase failed</source>
+        <translation>Ошибка очистки платы</translation>
+    </message>
+    <message>
+        <source>Program error</source>
+        <translation>Ошибка прошивки</translation>
+    </message>
+    <message>
+        <source>Firmware program failed</source>
+        <translation>Не удалось загрузить прошивку</translation>
+    </message>
+    <message>
+        <source>Too large firmware size</source>
+        <translation>Слишком большой размер прошивки</translation>
+    </message>
+    <message>
+        <source>Verification error</source>
+        <translation>Ошибка проверки</translation>
+    </message>
+    <message>
+        <source>Firmware verification failed</source>
+        <translation>Не удалось проверить прошивку</translation>
+    </message>
+    <message>
+        <source>Firmware upload error</source>
+        <translation>Ошибка загрузки прошивки</translation>
+    </message>
 </context>
 <context>
     <name>Console</name>
@@ -159,6 +195,85 @@
 	<message>
 		<source>Upload firmware</source>
 		<translation>Загрузить прошивку</translation>
+	</message>
+	<message>
+		<source>Rebooting...</source>
+		<translation>Перезагрузка...</translation>
+	</message>
+	<message>
+		<source>Searching bootloader...</source>
+		<translation>Поиск загрузчика...</translation>
+	</message>
+	<message>
+		<source>Erasing...</source>
+		<translation>Очистка...</translation>
+	</message>
+	<message>
+		<source>Flashing...</source>
+		<translation>Прошивка...</translation>
+	</message>
+	<message>
+		<source>Upload successfully completed</source>
+		<translation>Загрузка успешно завершена</translation>
+	</message>
+	<message>
+		<source>Upload failed</source>
+		<translation>Не удалось загрузить</translation>
+	</message>
+	<message>
+		<source>Firmware image not found</source>
+		<translation>Не найден образ прошивки</translation>
+	</message>
+	<message>
+		<source>Firmware size not found</source>
+		<translation>Не найден размер прошивки</translation>
+	</message>
+	<message>
+		<source>Board id not found</source>
+		<translation>Не найден идентификатор платы</translation>
+	</message>
+	<message>
+		<source>Bootloader not found</source>
+		<translation>Не найден загрузчик</translation>
+	</message>
+	<message>
+		<source>Too large firmware</source>
+		<translation>Слишком большой размер прошивки</translation>
+	</message>
+	<message>
+		<source>Decode fail</source>
+		<translation>Не удалось расшифровать</translation>
+	</message>
+	<message>
+		<source>Erase fail</source>
+		<translation>Не удалось очистить</translation>
+	</message>
+	<message>
+		<source>Program fail</source>
+		<translation>Не удалось прошить</translation>
+	</message>
+	<message>
+		<source>Verification fail</source>
+		<translation>Не удалось проверить</translation>
+	</message>
+	<message>
+		<source>Unsupported board</source>
+		<translation>Неподдерживаемая плата</translation>
+	</message>
+	<message>
+		<source>Unsupported bootloader</source>
+		<translation>Неподдерживаемый загрузчик</translation>
+	</message>
+	<message>
+		<source>Incompatible board type</source>
+		<translation>Несовместимый тип платы</translation>
+	</message>
+</context>
+<context>
+    <name>FirmwareUploader</name>
+	<message>
+		<source>Failed to write all data to port %1.\nError: %2</source>
+		<translation>Не удалось записать все данные в порт %1.\nОшибка: %2</translation>
 	</message>
 </context>
 <context>
@@ -198,6 +313,38 @@
 	<message>
 	    <source>Status: error</source>
 		<translation>Статус: ошибка</translation>
+	</message>
+	<message>
+		<source>Place vehicle in level position and then press OK</source>
+		<translation>Поставьте автопилот в уроверь с полом и нажмите ОК</translation>
+	</message>
+	<message>
+		<source>Place vehicle on the left side and then press OK</source>
+		<translation>Поставьте автопилот левой стороной вниз и нажмите ОК</translation>
+	</message>
+	<message>
+		<source>Place vehicle on the right side and then press OK</source>
+		<translation>Поставьте автопилот правой стороной вниз и нажмите ОК</translation>
+	</message>
+	<message>
+		<source>Place vehicle in noseup position and then press OK</source>
+		<translation>Поставьте автопилот носом вверх и нажмите ОК</translation>
+	</message>
+	<message>
+		<source>Place vehicle in nosedown position and then press OK</source>
+		<translation>Поставьте автопилот носом вниз и нажмите ОК</translation>
+	</message>
+	<message>
+		<source>Place vehicle on the back side and then press OK</source>
+		<translation>Поставьте автопилот вниз головой и нажмите ОК</translation>
+	</message>
+	<message>
+		<source>Calibration completed</source>
+		<translation>Калибровка завершена</translation>
+	</message>
+	<message>
+		<source>Calibration failed</source>
+		<translation>Не удалось откалибровать</translation>
 	</message>
 </context>
 <context>
@@ -332,6 +479,10 @@
 		<translation>Внимание</translation>
 	</message>
 	<message>
+		<source>Parameter write timeout</source>
+		<translation>Истекло время ожидания записи параметра</translation>
+	</message>
+	<message>
 		<source>Parameters are matching</source>
 		<translation>Параметры совпадают</translation>
 	</message>
@@ -340,12 +491,39 @@
 		<translation>Параметры не совпадают</translation>
 	</message>
 	<message>
+		<source>Not all parameters found</source>
+		<translation>Не все параметры найдены</translation>
+	</message>
+	<message>
+		<source>Not found</source>
+		<translation>Не найдено</translation>
+	</message>
+	<message>
 		<source>Cannot write all new parameters</source>
 		<translation>Не удалось записать все новые параметры</translation>
 	</message>
 	<message>
+		<source>Parameters saved</source>
+		<translation>Параметры сохранены</translation>
+	</message>
+	<message>
+		<source>Not all parameters saved</source>
+		<translation>Не все параметры сохранены</translation>
+	</message>
+	<message>
 	    <source>Parameters written succesfully. Autopilot must be rebooted</source>
 		<translation>Параметры успешно записаны. Автопилот должен быть перезагружен</translation>
+	</message>
+	<message>
+	    <source>Wait for upload completion</source>
+		<translation>Ожидайте завершения загрузки</translation>
+	</message>
+</context>
+<context>
+    <name>MavlinkManager</name>
+	<message>
+		<source>Failed to write all data to port %1.\nError: %2</source>
+		<translation>Не удалось записать все данные в порт %1.\nОшибка: %2</translation>
 	</message>
 </context>
 </TS>

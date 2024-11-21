@@ -39,7 +39,7 @@ FirmwareUploadPage::FirmwareUploadPage(QWidget *parent,
 	_drone_type_box->setVisible(false);
 
 	_firmware_upload_status_label->setAlignment(Qt::AlignCenter);
-	_firmware_upload_status_label->setText(tr("test"));
+	_firmware_upload_status_label->setText("");
 	_firmware_upload_status_label->setVisible(false);
 
 	_progress_bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
