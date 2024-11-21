@@ -316,7 +316,7 @@
 	</message>
 	<message>
 		<source>Place vehicle in level position and then press OK</source>
-		<translation>Поставьте автопилот в уроверь с полом и нажмите ОК</translation>
+		<translation>Поставьте автопилот в уровень с полом и нажмите ОК</translation>
 	</message>
 	<message>
 		<source>Place vehicle on the left side and then press OK</source>
