@@ -19,6 +19,7 @@
 #include "autopilotsettingspage.h"
 #include "firmwareuploader.h"
 #include "firmwareuploadpage.h"
+#include "mavftppage.h"
 #include "mavlinkmanager.h"
 #include "sensor.h"
 
@@ -88,6 +89,7 @@ private slots:
 	void handleFirmwareUpload(DroneType);
 	void _openConsole();
 	void _openApParamsPage();
+	void _openMavftpPage();
 	void _openSettingsPage();
 	void _rebootAp();
 	// void _handleApAllParamsReceive();
@@ -118,6 +120,7 @@ private:
 	QAction *_action_clear = nullptr;
 	QAction *_action_open_settings = nullptr;
 	QAction *_action_open_ap_params = nullptr;
+	QAction *_action_open_mavftp_page = nullptr;
 	QAction *_action_open_console = nullptr;
 	QAction *_action_reboot_ap = nullptr;
 	QAction *_action_logout = nullptr;
@@ -136,6 +139,7 @@ private:
 	FirmwareUploadPage *_firmware_upload_page = nullptr;
 	AutopilotSettingsPage *_autopilot_settings_page = nullptr;
 	ApParametersPage *_ap_params_page = nullptr;
+	MavftpPage *_mavftp_page = nullptr;
 	// QQuickView *_qml_view = nullptr;
 	// QWidget *_qml_container = nullptr;
 

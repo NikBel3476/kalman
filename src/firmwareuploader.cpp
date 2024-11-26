@@ -572,7 +572,6 @@ QByteArray FirmwareUploader::_crc(uint32_t padlen) {
 	const char state_bytes[4] = {
 			static_cast<char>(state), static_cast<char>(state >> 8),
 			static_cast<char>(state >> 16), static_cast<char>(state >> 24)};
-	// return QByteArray(state_bytes, 4);
 	return {state_bytes, 4};
 }
 

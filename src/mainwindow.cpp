@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_clear(new QAction(_toolbar)),
 			_action_open_settings(new QAction(_toolbar)),
 			_action_open_ap_params(new QAction(_toolbar)),
+			_action_open_mavftp_page(new QAction(_toolbar)),
 			_action_open_console(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
 			_action_logout(new QAction(_toolbar)),
@@ -53,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
 			_ap_params_page(new ApParametersPage(this, _mavlink_manager, _autopilot)),
+			_mavftp_page(new MavftpPage(this, _mavlink_manager)),
 			_serial_write_timer(new QTimer(this)),
 			_port_settings{},
 			_heartbeat_timer(new QTimer(this)),
@@ -79,6 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_disconnect);
 	_toolbar->addAction(_action_open_settings);
 	_toolbar->addAction(_action_open_ap_params);
+	_toolbar->addAction(_action_open_mavftp_page);
 	_toolbar->addAction(_action_reboot_ap);
 	_toolbar->addAction(_action_open_console);
 	_toolbar->addAction(_action_clear);
@@ -118,6 +121,11 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_open_ap_params->setToolTip(tr("Parameters"));
 	_action_open_ap_params->setEnabled(false);
 
+	_action_open_mavftp_page->setIcon(QIcon(":/images/folder.png"));
+	_action_open_mavftp_page->setText("Mavftp");
+	_action_open_mavftp_page->setToolTip("Mavftp");
+	_action_open_mavftp_page->setEnabled(false);
+
 	_action_open_console->setIcon(QIcon(":/images/terminal.png"));
 	_action_open_console->setText(tr("Console"));
 	_action_open_console->setToolTip(tr("Console"));
@@ -138,6 +146,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_central_widget->addWidget(_firmware_upload_page);
 	_central_widget->addWidget(_autopilot_settings_page);
 	_central_widget->addWidget(_ap_params_page);
+	_central_widget->addWidget(_mavftp_page);
 
 	_central_widget->setCurrentWidget(_authentication_page);
 
@@ -252,6 +261,7 @@ void MainWindow::_handleMavlinkMessageReceive(
 			_ap_status_label->setText(tr("Autopilot connected"));
 			_action_open_settings->setEnabled(true);
 			_action_open_ap_params->setEnabled(true);
+			_action_open_mavftp_page->setEnabled(true);
 			emit autopilotConnected();
 		}
 	} break;
@@ -554,6 +564,10 @@ void MainWindow::_openApParamsPage() {
 	}
 }
 
+void MainWindow::_openMavftpPage() {
+	_central_widget->setCurrentWidget(_mavftp_page);
+}
+
 void MainWindow::_openSettingsPage() {
 	_central_widget->setCurrentWidget(_autopilot_settings_page);
 }
@@ -564,6 +578,7 @@ void MainWindow::handleHeartbeatTimeout() {
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
+	_action_open_mavftp_page->setEnabled(false);
 	_autopilot->params_state = AutopilotParamsState::None;
 	// closeSerialPort();
 }
@@ -609,6 +624,8 @@ void MainWindow::initActionsConnections() {
 					&MainWindow::_openSettingsPage);
 	connect(_action_open_ap_params, &QAction::triggered, this,
 					&MainWindow::_openApParamsPage);
+	connect(_action_open_mavftp_page, &QAction::triggered, this,
+					&MainWindow::_openMavftpPage);
 	connect(_action_open_console, &QAction::triggered, this,
 					&MainWindow::_openConsole);
 	connect(_action_reboot_ap, &QAction::triggered, this,
@@ -738,6 +755,7 @@ void MainWindow::closeSerialPort() {
 	_action_disconnect->setEnabled(false);
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
+	_action_open_mavftp_page->setEnabled(false);
 	_action_reboot_ap->setEnabled(false);
 	showStatusMessage(tr("Disconnected"));
 	_central_widget->setCurrentWidget(_firmware_upload_page);

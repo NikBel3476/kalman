@@ -179,6 +179,7 @@ set(resource_files
 	"images/parameters.png"
 	"images/terminal.png"
 	"images/reboot.png"
+	"images/folder.png"
 	"qml/AuthenticationForm.qml"
 )
 

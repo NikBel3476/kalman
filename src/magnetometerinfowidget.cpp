@@ -100,7 +100,6 @@ void MagnetometerInfoWidget::_handleMavlinkMessageReceive(
 		const mavlink_message_t &mavlink_message) {
 	switch (mavlink_message.msgid) {
 	case MAVLINK_MSG_ID_SCALED_IMU: {
-		qDebug() << "SCALED IMU RECEIVED";
 		mavlink_scaled_imu_t scaled_imu;
 		mavlink_msg_scaled_imu_decode(&mavlink_message, &scaled_imu);
 		_handleIMUUpdate(scaled_imu);

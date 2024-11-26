@@ -58,6 +58,80 @@ void MavlinkManager::sendParamRequestList() {
 	_writeData(data);
 }
 
+void MavlinkManager::requestListDirectory(const std::string &path) {
+	qDebug() << "REQUEST LIST DIRECTORY: " << path;
+
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::ListDirectory;
+	message.size = path.size();
+	message.offset = ftp_offset;
+	memcpy(message.payload, path.c_str(), path.length());
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestCreateFile(const std::string &file_path) {
+	qDebug() << "REQUEST CREATE FILE" << file_path.c_str();
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::CreateFile;
+	message.size = file_path.length();
+	memcpy(message.payload, file_path.c_str(), file_path.length());
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestCreateDirectory(const std::string &dir_path) {
+	qDebug() << "REQUEST CREATE DIRECTORY" << dir_path;
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::CreateDirectory;
+	message.size = dir_path.length();
+	memcpy(message.payload, dir_path.c_str(), dir_path.length());
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestTerminateSession() {
+	qDebug() << "REQUEST TERMINATE SESSION";
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::TerminateSession;
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestResetSessions() {
+	qDebug() << "REQUEST RESET SESSIONS";
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::ResetSessions;
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestWriteFile(const std::vector<char> &file_data,
+																			uint8_t session, uint32_t offset) {
+	qDebug() << "REQUEST WRITE FILE";
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::WriteFile;
+	message.session = session;
+	message.offset = offset;
+	message.size = file_data.size();
+	memcpy(message.payload, file_data.data(), file_data.size());
+	qDebug() << "WRITE FILE OFFSET: " << message.offset
+					 << "\nPAYLOAD: " << message.payload
+					 << "\nPAYLOAD SIZE: " << file_data.size();
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestCalcFileCrc32(const std::string &path) {
+	qDebug() << "REQUEST CALC CRC32";
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::CalcFileCRC32;
+	message.size = path.length();
+	memcpy(message.payload, path.c_str(), path.length());
+
+	_sendFtpMessage(message);
+}
+
 void MavlinkManager::_handleError(QSerialPort::SerialPortError error) {
 	// switch (error) {
 	// case QSerialPort::ResourceError: {
@@ -119,3 +193,24 @@ void MavlinkManager::_handleBytesWritten(qint64 bytes) {
 // void MavlinkManager::_showWriteError(const QString &message) {
 // 	QMessageBox::warning(this, tr("Warning"), message);
 // }
+
+void MavlinkManager::_sendFtpMessage(FtpMessage &message) {
+	ftp_message_sequence = (ftp_message_sequence + 1) % 0xFFFF;
+	message.sequence = ftp_message_sequence;
+
+	mavlink_file_transfer_protocol_t ftpMessage;
+	ftpMessage.target_network = 0;
+	ftpMessage.target_system = TARGET_SYSTEM_ID;
+	ftpMessage.target_component = TARGET_COMP_ID;
+	memcpy(ftpMessage.payload, &message, sizeof(FtpMessage));
+
+	mavlink_message_t mavlink_message;
+	const auto msg_len = mavlink_msg_file_transfer_protocol_encode(
+			SYSTEM_ID, COMP_ID, &mavlink_message, &ftpMessage);
+
+	std::vector<uint8_t> buf;
+	buf.reserve(msg_len);
+	const auto buf_len = mavlink_msg_to_send_buffer(&buf[0], &mavlink_message);
+	QByteArray data((char *)buf.data(), static_cast<qsizetype>(buf_len));
+	_writeData(data);
+}

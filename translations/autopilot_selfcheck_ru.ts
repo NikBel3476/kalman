@@ -530,4 +530,11 @@
 		<translation>Не удалось записать все данные в порт %1.\nОшибка: %2</translation>
 	</message>
 </context>
+<context>
+    <name>MavftpPage</name>
+    <message>
+        <source>Upload lua scripts</source>
+        <translation>Загрузить lua скрипты</translation>
+    </message>
+</context>
 </TS>
