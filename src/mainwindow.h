@@ -76,7 +76,6 @@ signals:
 	void globalPositionIntUpdated(mavlink_global_position_int_t);
 	void powerStatusUpdated(mavlink_power_status_t);
 	void mcuStatusUpdated(mavlink_mcu_status_t);
-	// void apParamValueReceived(mavlink_param_value_t);
 	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
 	void apStateUpdated(AutopilotState);
 	void autopilotConnected();
@@ -100,16 +99,14 @@ private slots:
 	void _openApParamsPage();
 	void _openMavftpPage();
 	void _openSettingsPage();
+	void _openFirmwareUploadPage();
 	void _rebootAp();
-	// void _handleApAllParamsReceive();
-	// void _handleUploadApParamsRequest(std::vector<mavlink_param_value_t>);
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
 	void _handleMavlinkMessageReceive(const mavlink_message_t &);
 	void _handleApParametersWrite();
 	void _handleRebootActionTrigger();
 
 private:
-	void initActionsConnections();
 	void initSerialPortEventsConnections();
 
 	void showStatusMessage(const QString &);
@@ -131,6 +128,7 @@ private:
 	QAction *_action_open_ap_params = nullptr;
 	QAction *_action_open_mavftp_page = nullptr;
 	QAction *_action_open_console = nullptr;
+	QAction *_action_open_firmware_page = nullptr;
 	QAction *_action_reboot_ap = nullptr;
 	QAction *_action_logout = nullptr;
 	QStackedWidget *_central_widget = nullptr;

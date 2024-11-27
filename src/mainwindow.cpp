@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_open_ap_params(new QAction(_toolbar)),
 			_action_open_mavftp_page(new QAction(_toolbar)),
 			_action_open_console(new QAction(_toolbar)),
+			_action_open_firmware_page(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
 			_action_logout(new QAction(_toolbar)),
 			_central_widget(new QStackedWidget()),
@@ -28,8 +29,6 @@ MainWindow::MainWindow(QWidget *parent)
 			_ap_name_label(new QLabel()),
 			_console(new Console),
 			_authentication_page(new AuthenticationPage()),
-			// _firmware_upload_page(new FirmwareUploadPage(nullptr,
-			// _firmware_uploader)),
 			_autopilot(new Autopilot(this)),
 			_serial(new QSerialPort()),
 			_mavlink_manager(new MavlinkManager(this, _serial, _autopilot)),
@@ -50,8 +49,8 @@ MainWindow::MainWindow(QWidget *parent)
 			_serial_reconnect_timer(new QTimer(this)),
 			_serial_reconnect_delay_timer(new QTimer(this)) {
 	setWindowTitle("Autopilot selfcheck");
-	setMinimumSize(600, 900);
-	setGeometry(QRect(0, 0, 600, 900));
+	setMinimumSize(600, 950);
+	setGeometry(QRect(0, 0, 600, 950));
 
 	// Main window content
 	addToolBar(_toolbar);
@@ -70,6 +69,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_open_settings);
 	_toolbar->addAction(_action_open_ap_params);
 	_toolbar->addAction(_action_open_mavftp_page);
+	_toolbar->addAction(_action_open_firmware_page);
 	_toolbar->addAction(_action_reboot_ap);
 	_toolbar->addAction(_action_open_console);
 	_toolbar->addAction(_action_clear);
@@ -109,6 +109,16 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_open_ap_params->setToolTip(tr("Parameters"));
 	_action_open_ap_params->setEnabled(false);
 
+	_action_open_firmware_page->setIcon(QIcon(":/images/firmware.png"));
+	_action_open_firmware_page->setText(tr("Upload firmware"));
+	_action_open_firmware_page->setToolTip(tr("Upload firmware"));
+	_action_open_firmware_page->setEnabled(false);
+
+	_action_reboot_ap->setIcon(QIcon(":/images/reboot.png"));
+	_action_reboot_ap->setText(tr("Reboot"));
+	_action_reboot_ap->setToolTip(tr("Reboot"));
+	_action_reboot_ap->setEnabled(false);
+
 	_action_open_mavftp_page->setIcon(QIcon(":/images/folder.png"));
 	_action_open_mavftp_page->setText("Mavftp");
 	_action_open_mavftp_page->setToolTip("Mavftp");
@@ -119,11 +129,6 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_open_console->setToolTip(tr("Console"));
 	_action_open_console->setEnabled(true);
 	_action_open_console->setVisible(false);
-
-	_action_reboot_ap->setIcon(QIcon(":/images/reboot.png"));
-	_action_reboot_ap->setText(tr("Reboot"));
-	_action_reboot_ap->setToolTip(tr("Reboot"));
-	_action_reboot_ap->setEnabled(false);
 
 	_action_logout->setText(tr("Logout"));
 	_action_logout->setToolTip(tr("Logout"));
@@ -151,7 +156,6 @@ MainWindow::MainWindow(QWidget *parent)
 	_statusbar->addWidget(_ap_status_label);
 	_statusbar->addPermanentWidget(_ap_os_label);
 	_statusbar->addPermanentWidget(_ap_name_label);
-	_statusbar->setVisible(false);
 
 	_serial_status_label->setText(tr("Disconnected"));
 
@@ -169,18 +173,38 @@ MainWindow::MainWindow(QWidget *parent)
 	});
 
 	// Connections
-	initActionsConnections();
 	initSerialPortEventsConnections();
 	initPortsBoxEventsConnections();
 
+	// actions connections
+	connect(_action_refresh, &QAction::triggered, this,
+					&MainWindow::fillPortsInfo);
+	connect(_action_connect, &QAction::triggered, this,
+					&MainWindow::openSerialPort);
+	connect(_action_disconnect, &QAction::triggered, this,
+					&MainWindow::closeSerialPort);
+	connect(_action_clear, &QAction::triggered, _console, &Console::clear);
+	connect(_action_open_settings, &QAction::triggered, this,
+					&MainWindow::_openSettingsPage);
+	connect(_action_open_ap_params, &QAction::triggered, this,
+					&MainWindow::_openApParamsPage);
+	connect(_action_open_mavftp_page, &QAction::triggered, this,
+					&MainWindow::_openMavftpPage);
+	connect(_action_open_firmware_page, &QAction::triggered, this,
+					&MainWindow::_openFirmwareUploadPage);
+	connect(_action_reboot_ap, &QAction::triggered, this,
+					&MainWindow::_handleRebootActionTrigger);
+	connect(_action_open_console, &QAction::triggered, this,
+					&MainWindow::_openConsole);
+	connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
+
+	// timers connections
 	connect(_serial_write_timer, &QTimer::timeout, this,
 					&MainWindow::handleWriteTimeout);
 	connect(_serial_reconnect_timer, &QTimer::timeout, this,
 					&MainWindow::handleSerialReconnectTimeout);
 	connect(_serial_reconnect_delay_timer, &QTimer::timeout, this,
 					&MainWindow::_trySerialConnect);
-
-	// heartbeat timer connections
 	connect(_heartbeat_timer, &QTimer::timeout, this,
 					&MainWindow::handleHeartbeatTimeout);
 
@@ -252,6 +276,7 @@ void MainWindow::_handleMavlinkMessageReceive(
 			_action_open_settings->setEnabled(true);
 			_action_open_ap_params->setEnabled(true);
 			_action_open_mavftp_page->setEnabled(true);
+			_action_open_firmware_page->setEnabled(true);
 			emit autopilotConnected();
 			_mavlink_manager->sendCmdLong(MAV_CMD_DO_SEND_BANNER, 0);
 		}
@@ -377,11 +402,11 @@ void MainWindow::_handleMavlinkMessageReceive(
 			const uint8_t statustext_max_length = 50;
 			const auto text =
 					QString::fromUtf8(statustext.text, statustext_max_length);
-			const auto ap_name_regex = QRegularExpression("(FincoPlane|Arduplane).*");
+			static const auto ap_name_regex = QRegularExpression("(Finco|Ardu).*");
 			if (ap_name_regex.match(text).hasMatch()) {
 				_ap_name_label->setText(text);
 			}
-			const auto ap_os_regex = QRegularExpression("ChibiOS.*");
+			static const auto ap_os_regex = QRegularExpression("ChibiOS.*");
 			if (ap_os_regex.match(text).hasMatch()) {
 				_ap_os_label->setText(text);
 			}
@@ -538,7 +563,6 @@ void MainWindow::_login(const QString &username, const QString &password) {
 	_trySerialConnect();
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_toolbar->setVisible(true);
-	_statusbar->setVisible(true);
 }
 
 void MainWindow::_logout() {
@@ -577,6 +601,10 @@ void MainWindow::_openSettingsPage() {
 	_central_widget->setCurrentWidget(_autopilot_settings_page);
 }
 
+void MainWindow::_openFirmwareUploadPage() {
+	_central_widget->setCurrentWidget(_firmware_upload_page);
+}
+
 void MainWindow::handleHeartbeatTimeout() {
 	// QMessageBox::critical(this, tr("Error"), tr("Heartbeat error"));
 	_autopilot->state = AutopilotState::None;
@@ -584,6 +612,7 @@ void MainWindow::handleHeartbeatTimeout() {
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
 	_action_open_mavftp_page->setEnabled(false);
+	_action_open_firmware_page->setEnabled(false);
 	_autopilot->params_state = AutopilotParamsState::None;
 	// closeSerialPort();
 }
@@ -615,27 +644,6 @@ void MainWindow::_handleCommandAck(mavlink_command_ack_t &cmd) {
 	default:
 		break;
 	}
-}
-
-void MainWindow::initActionsConnections() {
-	connect(_action_refresh, &QAction::triggered, this,
-					&MainWindow::fillPortsInfo);
-	connect(_action_connect, &QAction::triggered, this,
-					&MainWindow::openSerialPort);
-	connect(_action_disconnect, &QAction::triggered, this,
-					&MainWindow::closeSerialPort);
-	connect(_action_clear, &QAction::triggered, _console, &Console::clear);
-	connect(_action_open_settings, &QAction::triggered, this,
-					&MainWindow::_openSettingsPage);
-	connect(_action_open_ap_params, &QAction::triggered, this,
-					&MainWindow::_openApParamsPage);
-	connect(_action_open_mavftp_page, &QAction::triggered, this,
-					&MainWindow::_openMavftpPage);
-	connect(_action_open_console, &QAction::triggered, this,
-					&MainWindow::_openConsole);
-	connect(_action_reboot_ap, &QAction::triggered, this,
-					&MainWindow::_handleRebootActionTrigger);
-	connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
 }
 
 void MainWindow::initSerialPortEventsConnections() {
@@ -761,6 +769,7 @@ void MainWindow::closeSerialPort() {
 	_action_open_settings->setEnabled(false);
 	_action_open_ap_params->setEnabled(false);
 	_action_open_mavftp_page->setEnabled(false);
+	_action_open_firmware_page->setEnabled(false);
 	_action_reboot_ap->setEnabled(false);
 	showStatusMessage(tr("Disconnected"));
 	_central_widget->setCurrentWidget(_firmware_upload_page);

@@ -393,6 +393,10 @@
 		<source>Status: error</source>
 		<translation>Статус: ошибка</translation>
 	</message>
+	<message>
+		<source>Magnetic field: %1</source>
+		<translation>Магнитное поле: %1</translation>
+	</message>
 </context>
 <context>
 	<name>GyroscopeInfoWidget</name>

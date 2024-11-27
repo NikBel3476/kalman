@@ -1,5 +1,7 @@
 #include "mavftppage.h"
 
+const int MIN_PAGE_WIDTH = 150;
+const int MAX_PAGE_WIDTH = 250;
 static constexpr auto lua_scripts_ftp_directory = "/APM/scripts/";
 static constexpr auto FTP_PAYLOAD_SIZE = 80;
 
@@ -8,9 +10,14 @@ MavftpPage::MavftpPage(QWidget *parent, MavlinkManager *mavlink_manager)
 			_layout(new QVBoxLayout(this)),
 			_upload_lua_button(new QPushButton()),
 			_mavlink_manager{mavlink_manager} {
+	_layout->setAlignment(Qt::AlignCenter);
 	_layout->addWidget(_upload_lua_button);
 
 	_upload_lua_button->setText(tr("Upload lua scripts"));
+	_upload_lua_button->setSizePolicy(
+			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
+	_upload_lua_button->setMinimumWidth(MIN_PAGE_WIDTH);
+	_upload_lua_button->setMaximumWidth(MAX_PAGE_WIDTH);
 
 	// connections
 	connect(_upload_lua_button, &QPushButton::clicked, this,

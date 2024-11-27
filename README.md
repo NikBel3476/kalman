@@ -14,7 +14,7 @@ Program for autopilot calibration
 
 #### Cmake
 1. clone the repository - `git clone <repository_url>`
-2. configure cmake - `cmake -B build`
+2. configure cmake - `cmake -B build -G Ninja`
 3. build - `cmake --build build --parallel`
 4. run the executable - `./build/autopilot_selfcheck`
 

@@ -16,6 +16,7 @@
 #include <thread>
 #include <vector>
 
+#include "crc.h"
 #include "mavlinkmanager.h"
 
 static constexpr uint8_t PROG_MULTI_MAX = 252;
@@ -141,8 +142,6 @@ private:
 	SyncResult _programMulti(const QByteArray &bytes);
 	void _sendReboot();
 	void _reboot();
-	QByteArray _crc(uint32_t padlen);
-	uint32_t _crc32(QByteArray &bytes, uint32_t initial_state = 0);
 	bool _verify_v3();
 };
 

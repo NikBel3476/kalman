@@ -180,6 +180,7 @@ set(resource_files
 	"images/terminal.png"
 	"images/reboot.png"
 	"images/folder.png"
+	"images/firmware.png"
 	"qml/AuthenticationForm.qml"
 )
 
