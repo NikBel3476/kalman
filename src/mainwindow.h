@@ -1,15 +1,24 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QAction>
 #include <QComboBox>
+#include <QLabel>
+#include <QLayout>
 #include <QList>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QSerialPort>
+#include <QSerialPortInfo>
 #include <QShortcut>
 #include <QStackedWidget>
+#include <QStatusBar>
+#include <QTimer>
+#include <QToolBar>
 #include <QtQuick/QQuickView>
+#include <chrono>
 #include <format>
+#include <string>
 
 #include <ardupilotmega/mavlink.h>
 
@@ -128,6 +137,8 @@ private:
 	QStatusBar *_statusbar = nullptr;
 	QLabel *_serial_status_label = nullptr;
 	QLabel *_ap_status_label = nullptr;
+	QLabel *_ap_os_label = nullptr;
+	QLabel *_ap_name_label = nullptr;
 	Console *_console = nullptr;
 	AuthenticationPage *_authentication_page = nullptr;
 

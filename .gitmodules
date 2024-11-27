@@ -1,4 +1,0 @@
-[submodule "src/qflightinstruments"]
-	path = src/qflightinstruments
-	url = https://github.com/NikBel3476/QFlightinstruments.git
-	branch = master

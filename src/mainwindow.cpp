@@ -1,21 +1,7 @@
 #include "mainwindow.h"
 #include "console.h"
 
-#include <QAction>
-#include <QComboBox>
-#include <QLabel>
-#include <QLayout>
-#include <QMessageBox>
-#include <QSerialPortInfo>
-#include <QStatusBar>
-#include <QTimer>
-#include <QToolBar>
-#include <chrono>
-#include <format>
-#include <string>
-
 static constexpr auto kHeartbeatTimeout = std::chrono::seconds{7};
-static constexpr auto kReconnectTimeout = std::chrono::seconds{10};
 static constexpr auto kSerialReconnectTimeout = std::chrono::seconds{5};
 static constexpr auto kSerialReconnectDelayTimeout = std::chrono::seconds{1};
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
@@ -37,7 +23,9 @@ MainWindow::MainWindow(QWidget *parent)
 			_central_widget(new QStackedWidget()),
 			_statusbar(new QStatusBar()),
 			_serial_status_label(new QLabel),
-			_ap_status_label(new QLabel),
+			_ap_status_label(new QLabel()),
+			_ap_os_label(new QLabel()),
+			_ap_name_label(new QLabel()),
 			_console(new Console),
 			_authentication_page(new AuthenticationPage()),
 			// _firmware_upload_page(new FirmwareUploadPage(nullptr,
@@ -161,6 +149,8 @@ MainWindow::MainWindow(QWidget *parent)
 	// status bar content
 	_statusbar->addWidget(_serial_status_label);
 	_statusbar->addWidget(_ap_status_label);
+	_statusbar->addPermanentWidget(_ap_os_label);
+	_statusbar->addPermanentWidget(_ap_name_label);
 	_statusbar->setVisible(false);
 
 	_serial_status_label->setText(tr("Disconnected"));
@@ -263,6 +253,7 @@ void MainWindow::_handleMavlinkMessageReceive(
 			_action_open_ap_params->setEnabled(true);
 			_action_open_mavftp_page->setEnabled(true);
 			emit autopilotConnected();
+			_mavlink_manager->sendCmdLong(MAV_CMD_DO_SEND_BANNER, 0);
 		}
 	} break;
 	case MAVLINK_MSG_ID_SYS_STATUS: {
@@ -375,12 +366,26 @@ void MainWindow::_handleMavlinkMessageReceive(
 		mavlink_statustext_t statustext;
 		mavlink_msg_statustext_decode(&mavlink_message, &statustext);
 		auto statustext_str =
-				std::format("ID: {} CHUNK_SEQ: {} SEVERITY: {} TEXT: {}\n",
+				std::format("STATUSTEXT ID: {} CHUNK_SEQ: {} SEVERITY: {} TEXT: {}\n",
 										std::to_string(statustext.id), statustext.chunk_seq,
 										statustext.severity, statustext.text);
 		QByteArray data(statustext_str.c_str(),
 										static_cast<uint32_t>(statustext_str.length()));
 		_console->putData(data);
+
+		if (statustext.severity == MAV_SEVERITY_INFO) {
+			const uint8_t statustext_max_length = 50;
+			const auto text =
+					QString::fromUtf8(statustext.text, statustext_max_length);
+			const auto ap_name_regex = QRegularExpression("(FincoPlane|Arduplane).*");
+			if (ap_name_regex.match(text).hasMatch()) {
+				_ap_name_label->setText(text);
+			}
+			const auto ap_os_regex = QRegularExpression("ChibiOS.*");
+			if (ap_os_regex.match(text).hasMatch()) {
+				_ap_os_label->setText(text);
+			}
+		}
 	} break;
 	case MAVLINK_MSG_ID_MAG_CAL_PROGRESS: {
 		mavlink_mag_cal_progress_t mag_cal_progress;
@@ -762,6 +767,8 @@ void MainWindow::closeSerialPort() {
 	_heartbeat_timer->stop();
 	_autopilot->state = AutopilotState::None;
 	_ap_status_label->setText(tr("Autopilot disconnected"));
+	_ap_os_label->clear();
+	_ap_name_label->clear();
 	_serial_port_state = SerialPortState::Disconnected;
 	fillPortsInfo();
 	emit serialDisconnected();

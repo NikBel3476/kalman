@@ -13,13 +13,14 @@ Program for autopilot calibration
 ### Project building
 
 #### Cmake
-1. clone the repository - `git clone --recursive <repository_url>`
+1. clone the repository - `git clone <repository_url>`
 2. configure cmake - `cmake -B build`
-3. build - `cmake --build build`
+3. build - `cmake --build build --parallel`
 4. run the executable - `./build/autopilot_selfcheck`
 
 To create archive:  
-`cpack --config "build/CPackConfig.cmake"`
+`cpack --config "build/CPackConfig.cmake"` - Linux  
+`cpack --config "build/CPackConfig.cmake" -G 7Z` - Windows
 
 Note: on windows qt must be in the PATH variable or passed with `-DCMAKE_PREFIX_PATH=<path_to_qt>` on configuration step
 
