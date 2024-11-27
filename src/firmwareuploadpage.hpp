@@ -10,7 +10,7 @@
 #include <QVariant>
 #include <QWidget>
 
-#include "firmwareuploader.h"
+#include "firmwareuploader.hpp"
 
 enum class DroneType {
 	SingleWing,

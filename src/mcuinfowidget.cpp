@@ -1,4 +1,4 @@
-#include "mcuinfowidget.h"
+#include "mcuinfowidget.hpp"
 
 McuInfoWidget::McuInfoWidget(QWidget *parent, MavlinkManager *mavlink_manager)
 		: QWidget{parent},

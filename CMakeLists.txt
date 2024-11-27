@@ -97,7 +97,7 @@ qt_standard_project_setup(
 
 file(GLOB source_files
 	${PROJECT_SOURCE_DIR}/src/*.cpp
-	${PROJECT_SOURCE_DIR}/src/*.h
+	${PROJECT_SOURCE_DIR}/src/*.hpp
 	${PROJECT_SOURCE_DIR}/qml/*.qml
 )
 

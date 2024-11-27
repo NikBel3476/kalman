@@ -1,4 +1,4 @@
-#include "magnetometerinfowidget.h"
+#include "magnetometerinfowidget.hpp"
 
 MagnetometerInfoWidget::MagnetometerInfoWidget(QWidget *parent,
 																							 MavlinkManager *mavlink_manager)

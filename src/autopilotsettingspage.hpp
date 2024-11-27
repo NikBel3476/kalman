@@ -6,13 +6,13 @@
 
 #include <ardupilotmega/mavlink.h>
 
-#include "accelerometerinfowidget.h"
-#include "avionicswidget.h"
-#include "gyroscopeinfowidget.h"
-#include "magnetometerinfowidget.h"
-#include "mavlinkmanager.h"
-#include "mcuinfowidget.h"
-#include "sensor.h"
+#include "accelerometerinfowidget.hpp"
+#include "avionicswidget.hpp"
+#include "gyroscopeinfowidget.hpp"
+#include "magnetometerinfowidget.hpp"
+#include "mavlinkmanager.hpp"
+#include "mcuinfowidget.hpp"
+#include "sensor.hpp"
 
 class AutopilotSettingsPage : public QWidget {
 	Q_OBJECT

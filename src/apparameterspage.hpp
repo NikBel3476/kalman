@@ -18,7 +18,7 @@
 
 #include <ardupilotmega/mavlink.h>
 
-#include "mavlinkmanager.h"
+#include "mavlinkmanager.hpp"
 
 class ApParametersPage : public QWidget {
 	Q_OBJECT

@@ -1,4 +1,4 @@
-#include "mavlinkmanager.h"
+#include "mavlinkmanager.hpp"
 
 static const uint8_t SYSTEM_ID = 255;
 static const uint8_t COMP_ID = MAV_COMP_ID_MISSIONPLANNER;

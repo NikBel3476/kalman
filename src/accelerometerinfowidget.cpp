@@ -1,4 +1,4 @@
-#include "accelerometerinfowidget.h"
+#include "accelerometerinfowidget.hpp"
 
 AccelerometerInfoWidget::AccelerometerInfoWidget(
 		QWidget *parent, MavlinkManager *mavlink_manager)

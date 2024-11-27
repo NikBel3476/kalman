@@ -1,4 +1,4 @@
-#include "firmwareuploadpage.h"
+#include "firmwareuploadpage.hpp"
 
 const int MIN_PAGE_WIDTH = 150;
 const int MAX_PAGE_WIDTH = 250;

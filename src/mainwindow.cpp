@@ -1,5 +1,5 @@
-#include "mainwindow.h"
-#include "console.h"
+#include "mainwindow.hpp"
+#include "console.hpp"
 
 static constexpr auto kHeartbeatTimeout = std::chrono::seconds{7};
 static constexpr auto kSerialReconnectTimeout = std::chrono::seconds{5};

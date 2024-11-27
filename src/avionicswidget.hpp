@@ -6,7 +6,7 @@
 #include <QWidget>
 #include <cmath>
 
-#include "mavlinkmanager.h"
+#include "mavlinkmanager.hpp"
 #include <ardupilotmega/mavlink.h>
 #include <qfi_EADI.h>
 

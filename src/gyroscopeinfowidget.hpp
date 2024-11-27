@@ -7,8 +7,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "mavlinkmanager.h"
-#include "sensor.h"
+#include "mavlinkmanager.hpp"
+#include "sensor.hpp"
 
 class GyroscopeInfoWidget : public QWidget {
 	Q_OBJECT

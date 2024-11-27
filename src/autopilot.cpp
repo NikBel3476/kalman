@@ -1,3 +1,4 @@
-#include "autopilot.h"
+#include "autopilot.hpp"
 
-Autopilot::Autopilot(QObject *parent) : QObject{parent} {}
+Autopilot::Autopilot(QObject *parent)
+		: QObject{parent} {}

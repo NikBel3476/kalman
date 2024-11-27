@@ -16,8 +16,8 @@
 #include <thread>
 #include <vector>
 
-#include "crc.h"
-#include "mavlinkmanager.h"
+#include "crc.hpp"
+#include "mavlinkmanager.hpp"
 
 static constexpr uint8_t PROG_MULTI_MAX = 252;
 

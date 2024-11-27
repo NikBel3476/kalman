@@ -1,4 +1,4 @@
-#include "avionicswidget.h"
+#include "avionicswidget.hpp"
 
 static constexpr auto kRedrawTimeout = std::chrono::milliseconds{50}; // 20 FPS
 

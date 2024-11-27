@@ -1,11 +1,13 @@
-#include "authenticationpage.h"
+#include "authenticationpage.hpp"
 
 const static int MIN_FORM_WIDTH = 150;
 const static int MAX_FORM_WIDTH = 250;
 
 AuthenticationPage::AuthenticationPage(QWidget *parent)
-		: QWidget{parent}, m_layout(new QVBoxLayout(this)),
-			m_username_input(new QLineEdit()), m_password_input(new QLineEdit()),
+		: QWidget{parent},
+			m_layout(new QVBoxLayout(this)),
+			m_username_input(new QLineEdit()),
+			m_password_input(new QLineEdit()),
 			m_login_button(new QPushButton()) {
 	m_layout->setAlignment(Qt::AlignCenter);
 

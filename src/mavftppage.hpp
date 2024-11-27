@@ -1,7 +1,6 @@
 #ifndef MAVFTPPPAGEH
 #define MAVFTPPPAGEH
 
-#include "crc.h"
 #include <QFileDialog>
 #include <QFileSystemModel>
 #include <QHeaderView>
@@ -17,7 +16,8 @@
 #include <stack>
 #include <string>
 
-#include "mavlinkmanager.h"
+#include "crc.hpp"
+#include "mavlinkmanager.hpp"
 
 class MavftpPage : public QWidget {
 	Q_OBJECT

@@ -22,15 +22,15 @@
 
 #include <ardupilotmega/mavlink.h>
 
-#include "apparameterspage.h"
-#include "authenticationpage.h"
-#include "autopilot.h"
-#include "autopilotsettingspage.h"
-#include "firmwareuploader.h"
-#include "firmwareuploadpage.h"
-#include "mavftppage.h"
-#include "mavlinkmanager.h"
-#include "sensor.h"
+#include "apparameterspage.hpp"
+#include "authenticationpage.hpp"
+#include "autopilot.hpp"
+#include "autopilotsettingspage.hpp"
+#include "firmwareuploader.hpp"
+#include "firmwareuploadpage.hpp"
+#include "mavftppage.hpp"
+#include "mavlinkmanager.hpp"
+#include "sensor.hpp"
 
 QT_BEGIN_NAMESPACE
 

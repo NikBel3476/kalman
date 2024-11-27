@@ -1,4 +1,4 @@
-#include "autopilotsettingspage.h"
+#include "autopilotsettingspage.hpp"
 
 AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 																						 MavlinkManager *mavlink_manager)

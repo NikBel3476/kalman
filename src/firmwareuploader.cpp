@@ -1,4 +1,4 @@
-#include "firmwareuploader.h"
+#include "firmwareuploader.hpp"
 
 static constexpr char REBOOT = '0';
 static constexpr char INFO_BL_REV = '\x01';

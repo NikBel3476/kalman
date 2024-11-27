@@ -10,7 +10,7 @@
 
 #include <ardupilotmega/mavlink.h>
 
-#include "autopilot.h"
+#include "autopilot.hpp"
 
 struct FtpMessage {
 #pragma pack(push, 1)

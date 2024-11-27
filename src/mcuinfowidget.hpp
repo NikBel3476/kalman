@@ -6,7 +6,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "mavlinkmanager.h"
+#include "mavlinkmanager.hpp"
 #include <ardupilotmega/mavlink.h>
 
 class McuInfoWidget : public QWidget {

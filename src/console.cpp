@@ -1,8 +1,9 @@
-#include "console.h"
+#include "console.hpp"
 
 #include <QScrollBar>
 
-Console::Console(QWidget *parent) : QPlainTextEdit(parent) {
+Console::Console(QWidget *parent)
+		: QPlainTextEdit(parent) {
 	setWindowTitle(tr("Mavlink messages"));
 	// document()->setMaximumBlockCount(100);
 	QPalette p = palette();

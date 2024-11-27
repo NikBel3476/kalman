@@ -1,4 +1,4 @@
-#include "gyroscopeinfowidget.h"
+#include "gyroscopeinfowidget.hpp"
 
 GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent,
 																				 MavlinkManager *mavlink_manager)

@@ -1,4 +1,4 @@
-#include "apparameterspage.h"
+#include "apparameterspage.hpp"
 
 static constexpr int ap_params_table_column_count = 3;
 static constexpr auto kSendParamTimeout = std::chrono::seconds{1};
