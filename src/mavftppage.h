@@ -39,17 +39,19 @@ private:
 
 	QVBoxLayout *_layout = nullptr;
 	QPushButton *_upload_lua_button = nullptr;
-	QTreeView *_tree_view = nullptr;
 
 	MavlinkManager *_mavlink_manager = nullptr;
 
 	std::vector<QString> _fs_item_list;
-	std::unordered_map<QString, QString> _files_to_upload;
+	std::unordered_map<QString, QString>
+			_files_to_upload; // key - file name | value - full file path on host
+												// system
 	std::pair<QString, std::string>
-			_uploading_file; // first - file name | second - file content chunks
+			_uploading_file; // first - file name | second - file content
 	size_t _uploading_chunk_index = 0;
 	uint8_t _file_upload_session = 0;
 	std::pair<QString, std::string> _file_to_crc_check;
+	bool _files_upload_success = false;
 };
 
 #endif // MAVFTPPAGE_H

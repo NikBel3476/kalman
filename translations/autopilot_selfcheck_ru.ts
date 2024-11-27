@@ -536,5 +536,37 @@
         <source>Upload lua scripts</source>
         <translation>Загрузить lua скрипты</translation>
     </message>
+    <message>
+        <source>Select lua scripts</source>
+        <translation>Выберите lua скрипты</translation>
+    </message>
+    <message>
+        <source>Select lua scripts</source>
+        <translation>Выберите lua скрипты</translation>
+    </message>
+    <message>
+        <source>Information</source>
+        <translation>Информация</translation>
+    </message>
+    <message>
+        <source>Files uploaded</source>
+        <translation>Файлы загружены</translation>
+    </message>
+    <message>
+        <source>Warning</source>
+        <translation>Внимание</translation>
+    </message>
+    <message>
+        <source>Verification %1 failed</source>
+        <translation>Проверка %1 не удалась</translation>
+    </message>
+    <message>
+        <source>Failed to create scripts directory</source>
+        <translation>Не удалось создать папку скриптов</translation>
+    </message>
+    <message>
+        <source>Failed to create %1 file</source>
+        <translation>Не удалось создать файл %1</translation>
+    </message>
 </context>
 </TS>
