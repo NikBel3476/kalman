@@ -8,14 +8,15 @@ Program for autopilot calibration
 
 * qt 6.5 or above
 * cmake 3.16 or above
+* gcc or clang (for linux)
 * microsoft visual studio 2022 (for windows)
 
 ### Project building
 
 #### Cmake
 1. clone the repository - `git clone <repository_url>`
-2. configure cmake - `cmake -B build -G Ninja`
-3. build - `cmake --build build --parallel`
+2. configure cmake - `cmake -B build`
+3. build - `cmake --build build --parallel --config Release`
 4. run the executable - `./build/autopilot_selfcheck`
 
 To create archive:  

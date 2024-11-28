@@ -92,7 +92,8 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 	case FtpMessage::Opcode::ListDirectory: {
 		qDebug() << "LIST DIRECTORY ACK";
 		const auto payload_str = std::string((char *)message.payload, 239);
-		for (const auto &str : QString::fromStdString(payload_str).split('\0')) {
+		for (const auto &str :
+				 QString::fromStdString(payload_str).split(QChar('\0'))) {
 			if (str.startsWith('D') || str.startsWith('F') || str.startsWith('S')) {
 				_fs_item_list.push_back(str);
 				qDebug() << str;

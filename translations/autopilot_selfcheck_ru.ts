@@ -354,12 +354,12 @@
 		<translation>Поставьте автопилот вниз головой и нажмите ОК</translation>
 	</message>
 	<message>
-		<source>Calibration completed</source>
-		<translation>Калибровка завершена</translation>
+		<source>Accelerometer calibration completed</source>
+		<translation>Калибровка акселерометра завершена</translation>
 	</message>
 	<message>
-		<source>Calibration failed</source>
-		<translation>Не удалось откалибровать</translation>
+		<source>Accelerometer calibration failed</source>
+		<translation>Не удалось откалибровать акселерометр</translation>
 	</message>
 </context>
 <context>

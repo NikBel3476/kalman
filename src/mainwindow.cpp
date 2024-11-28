@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_mavlink_manager(new MavlinkManager(this, _serial, _autopilot)),
 			_firmware_uploader(
 					new FirmwareUploader(nullptr, _serial, _mavlink_manager)),
-			_console(new Console(this, _mavlink_manager)),
+			_console(new Console(nullptr, _mavlink_manager)),
 			_authentication_page(new AuthenticationPage()),
 			_firmware_upload_page{
 					new FirmwareUploadPage(nullptr, _firmware_uploader)},
@@ -274,11 +274,11 @@ void MainWindow::_handleMavlinkMessageReceive(
 					QString::fromUtf8(statustext.text, statustext_max_length);
 			static const auto ap_name_regex = QRegularExpression("(Finco|Ardu).*");
 			if (ap_name_regex.match(text).hasMatch()) {
-				_ap_name_label->setText(text);
+				_ap_name_label->setText(text.left(text.indexOf('\0')));
 			}
 			static const auto ap_os_regex = QRegularExpression("ChibiOS.*");
 			if (ap_os_regex.match(text).hasMatch()) {
-				_ap_os_label->setText(text);
+				_ap_os_label->setText(text.left(text.indexOf('\0')));
 			}
 		}
 	} break;

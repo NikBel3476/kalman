@@ -251,12 +251,12 @@ void AccelerometerInfoWidget::_parseCommand(const mavlink_command_long_t &cmd) {
 		} break;
 		case ACCELCAL_VEHICLE_POS_SUCCESS: {
 			_cal_accel_state = CalibrationAccelState::None;
-			_msg_cal_box->setText(tr("Calibration completed"));
+			_msg_cal_box->setText(tr("Accelerometer calibration completed"));
 			_handleAccelCalComplete(CalibrationResult::Success);
 		} break;
 		case ACCELCAL_VEHICLE_POS_FAILED: {
 			_cal_accel_state = CalibrationAccelState::None;
-			_msg_cal_box->setText(tr("Calibration failed"));
+			_msg_cal_box->setText(tr("Accelerometer calibration failed"));
 			_handleAccelCalComplete(CalibrationResult::Failed);
 		} break;
 		case ACCELCAL_VEHICLE_POS_ENUM_END:

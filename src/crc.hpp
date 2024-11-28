@@ -2,6 +2,8 @@
 #define CRC_H
 
 #include <QByteArray>
+#include <array>
+#include <cstdint>
 
 class Crc {
 public:
