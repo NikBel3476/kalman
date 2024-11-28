@@ -277,6 +277,17 @@
 	</message>
 </context>
 <context>
+    <name>AutopilotSettingsPage</name>
+	<message>
+		<source>Altitude: %1 m</source>
+		<translation>Высота: 1 м</translation>
+	</message>
+	<message>
+		<source>Absolute pressure: %1</source>
+		<translation>Абсолютное давление: %1</translation>
+	</message>
+</context>
+<context>
 	<name>AccelerometerInfoWidget</name>
 	<message>
 		<source>Accelerometer</source>

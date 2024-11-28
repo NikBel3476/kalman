@@ -29,10 +29,13 @@ signals:
 private slots:
 	void _handleMavlinkMessageReceive(const mavlink_message_t &mavlink_message);
 	void _handleVfrHudUpdate(const mavlink_vfr_hud_t &);
+	void
+	_handleScaledPressureUpdate(const mavlink_scaled_pressure_t &scaled_pressure);
 
 private:
 	QVBoxLayout *_layout = nullptr;
 	QLabel *_altitude_label = nullptr;
+	QLabel *_scaled_pressure_label = nullptr;
 	MagnetometerInfoWidget *_magnetometer_info_widget = nullptr;
 	AccelerometerInfoWidget *_accelerometer_info_widget = nullptr;
 	GyroscopeInfoWidget *_gyroscope_info_widget = nullptr;
