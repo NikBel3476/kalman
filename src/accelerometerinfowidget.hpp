@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -28,6 +29,7 @@ private slots:
 	void _handleMavlinkMessageReceive(const mavlink_message_t &mavlink_message);
 	void _handleAccelCalBtnPress();
 	void _handleLvlCalBtnPress();
+	void _handleLevelCalibrationTimeout();
 
 private:
 	void _handleIMUUpdate(const mavlink_scaled_imu_t &scaled_imu);
@@ -57,9 +59,9 @@ private:
 
 	MavlinkManager *_mavlink_manager = nullptr;
 	SensorStatus _acc_status = SensorStatus::NotFound;
-	CalibrationState _cal_state = CalibrationState::None;
-	CalibrationAccelState _cal_acc_state = CalibrationAccelState::None;
+	CalibrationAccelState _cal_accel_state = CalibrationAccelState::None;
 	CalibrationState _cal_lvl_state = CalibrationState::None;
+	QTimer *_level_calibration_timer = nullptr;
 };
 
 #endif // ACCELEROMETERINFOWIDGET_H

@@ -69,14 +69,6 @@ public:
 signals:
 	void serialConnected();
 	void serialDisconnected();
-	void IMUUpdated(mavlink_raw_imu_t);
-	void imu2Updated(mavlink_scaled_imu2_t);
-	void attitudeUpdated(mavlink_attitude_t);
-	void vfrHudUpdated(mavlink_vfr_hud_t);
-	void globalPositionIntUpdated(mavlink_global_position_int_t);
-	void powerStatusUpdated(mavlink_power_status_t);
-	void mcuStatusUpdated(mavlink_mcu_status_t);
-	void apParamsUploaded(const std::vector<mavlink_param_value_t> &);
 	void apStateUpdated(AutopilotState);
 	void autopilotConnected();
 
@@ -114,7 +106,6 @@ private:
 	void setPortSettings(int);
 	void _findBootloader();
 	void initPortsBoxEventsConnections();
-	void _handleCommandAck(mavlink_command_ack_t &);
 	void _setApState(AutopilotState);
 	void _trySerialConnect();
 
@@ -137,14 +128,14 @@ private:
 	QLabel *_ap_status_label = nullptr;
 	QLabel *_ap_os_label = nullptr;
 	QLabel *_ap_name_label = nullptr;
-	Console *_console = nullptr;
-	AuthenticationPage *_authentication_page = nullptr;
 
 	Autopilot *_autopilot = nullptr;
 	QSerialPort *_serial = nullptr;
 	MavlinkManager *_mavlink_manager = nullptr;
 	FirmwareUploader *_firmware_uploader = nullptr;
 
+	Console *_console = nullptr;
+	AuthenticationPage *_authentication_page = nullptr;
 	FirmwareUploadPage *_firmware_upload_page = nullptr;
 	AutopilotSettingsPage *_autopilot_settings_page = nullptr;
 	ApParametersPage *_ap_params_page = nullptr;

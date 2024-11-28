@@ -1,7 +1,7 @@
 #ifndef AUTOPILOTSETTINGSPAGE_H
 #define AUTOPILOTSETTINGSPAGE_H
 
-#include <QVBoxLayout>
+#include <QGridLayout>
 #include <QWidget>
 
 #include <ardupilotmega/mavlink.h>
@@ -33,7 +33,7 @@ private slots:
 	_handleScaledPressureUpdate(const mavlink_scaled_pressure_t &scaled_pressure);
 
 private:
-	QVBoxLayout *_layout = nullptr;
+	QGridLayout *_layout = nullptr;
 	QLabel *_altitude_label = nullptr;
 	QLabel *_scaled_pressure_label = nullptr;
 	MagnetometerInfoWidget *_magnetometer_info_widget = nullptr;
