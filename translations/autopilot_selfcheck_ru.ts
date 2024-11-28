@@ -294,6 +294,10 @@
 		<translation>Акселерометр</translation>
 	</message>
 	<message>
+		<source>Strength: %1</source>
+		<translation>Сила: %1</translation>
+	</message>
+	<message>
 		<source>Calibration</source>
 		<translation>Калибровка</translation>
 	</message>

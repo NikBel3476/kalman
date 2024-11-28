@@ -4,8 +4,9 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(
 		QWidget *parent, MavlinkManager *mavlink_manager)
 		: QWidget{parent},
 			_layout(new QVBoxLayout(this)),
-			_title_label(new QLabel()),
-			_status_label(new QLabel()),
+			_title_label(new QLabel(tr("Accelerometer"))),
+			_status_label(new QLabel(tr("Status: not found"))),
+			_accel_strength_label(new QLabel(tr("Strength: %1").arg(0))),
 			_x_imu_label(new QLabel("imu_x: 0")),
 			_y_imu_label(new QLabel("imu_y: 0")),
 			_z_imu_label(new QLabel("imu_z: 0")),
@@ -23,6 +24,7 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(
 	const auto imu2_values_layout = new QHBoxLayout();
 	const auto buttons_layout = new QHBoxLayout();
 	_layout->addLayout(title_layout);
+	_layout->addWidget(_accel_strength_label);
 	_layout->addLayout(imu_values_layout);
 	_layout->addLayout(imu2_values_layout);
 	_layout->addLayout(buttons_layout);
@@ -33,9 +35,6 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(
 	// Title section
 	title_layout->addWidget(_title_label);
 	title_layout->addWidget(_status_label);
-
-	_title_label->setText(tr("Accelerometer"));
-	_status_label->setText(tr("Status: not found"));
 
 	// Values section
 	imu_values_layout->addWidget(_x_imu_label);
@@ -156,6 +155,12 @@ void AccelerometerInfoWidget::_handleIMU2Update(
 	_x_imu2_label->setText(QString("imu2_x: %1").arg(scaled_imu.xacc));
 	_y_imu2_label->setText(QString("imu2_y: %1").arg(scaled_imu.yacc));
 	_z_imu2_label->setText(QString("imu2_z: %1").arg(scaled_imu.zacc));
+
+	const auto accel_strength =
+			std::sqrt(std::pow(scaled_imu.xacc, 2) + std::pow(scaled_imu.yacc, 2) +
+								std::pow(scaled_imu.zacc, 2)) /
+			1000.0;
+	_accel_strength_label->setText(tr("Strength: %1").arg(accel_strength));
 }
 
 void AccelerometerInfoWidget::_handleSysStatusUpdate(

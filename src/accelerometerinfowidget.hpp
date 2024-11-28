@@ -42,6 +42,7 @@ private:
 	QVBoxLayout *_layout = nullptr;
 	QLabel *_title_label = nullptr;
 	QLabel *_status_label = nullptr;
+	QLabel *_accel_strength_label = nullptr;
 	QLabel *_x_imu_label = nullptr;
 	QLabel *_y_imu_label = nullptr;
 	QLabel *_z_imu_label = nullptr;
