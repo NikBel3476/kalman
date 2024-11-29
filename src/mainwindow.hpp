@@ -67,8 +67,6 @@ public:
 	};
 
 signals:
-	void serialConnected();
-	void serialDisconnected();
 	void apStateUpdated(AutopilotState);
 	void autopilotConnected();
 
@@ -132,7 +130,6 @@ private:
 	Autopilot *_autopilot = nullptr;
 	QSerialPort *_serial = nullptr;
 	MavlinkManager *_mavlink_manager = nullptr;
-	FirmwareUploader *_firmware_uploader = nullptr;
 
 	Console *_console = nullptr;
 	AuthenticationPage *_authentication_page = nullptr;

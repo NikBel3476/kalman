@@ -159,6 +159,10 @@
         <source>Firmware upload error</source>
         <translation>Ошибка загрузки прошивки</translation>
     </message>
+    <message>
+        <source>Serial port error</source>
+        <translation>Ошибка последовательного порта</translation>
+    </message>
 </context>
 <context>
     <name>Console</name>

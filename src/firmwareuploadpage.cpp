@@ -3,15 +3,13 @@
 const int MIN_PAGE_WIDTH = 150;
 const int MAX_PAGE_WIDTH = 250;
 
-FirmwareUploadPage::FirmwareUploadPage(QWidget *parent,
-																			 FirmwareUploader *firmware_uploader)
+FirmwareUploadPage::FirmwareUploadPage(QWidget *parent)
 		: QWidget{parent},
 			_layout(new QVBoxLayout(this)),
 			_drone_type_box(new QComboBox()),
 			_firmware_upload_button(new QPushButton()),
 			_firmware_upload_status_label(new QLabel()),
-			_progress_bar(new QProgressBar()),
-			_firmware_uploader(firmware_uploader) {
+			_progress_bar(new QProgressBar()) {
 	_layout->setAlignment(Qt::AlignCenter);
 	_layout->addWidget(_drone_type_box);
 	_layout->addWidget(_firmware_upload_button);
@@ -29,7 +27,6 @@ FirmwareUploadPage::FirmwareUploadPage(QWidget *parent,
 			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 	_firmware_upload_button->setMinimumWidth(MIN_PAGE_WIDTH);
 	_firmware_upload_button->setMaximumWidth(MAX_PAGE_WIDTH);
-	_firmware_upload_button->setVisible(false);
 
 	_drone_type = DroneType::SingleWing;
 	_drone_type_box->addItem(tr("Single wing"),
@@ -47,32 +44,11 @@ FirmwareUploadPage::FirmwareUploadPage(QWidget *parent,
 	_progress_bar->setRange(0, 100);
 	_progress_bar->setVisible(false);
 
+	// connections
 	connect(_drone_type_box, &QComboBox::currentIndexChanged, this,
 					&FirmwareUploadPage::_handleDroneTypeBoxChange);
 	connect(_firmware_upload_button, &QPushButton::pressed, this,
 					&FirmwareUploadPage::_handleUploadButtonPress);
-
-	// firmware uploader connections
-	connect(_firmware_uploader, &FirmwareUploader::stateUpdated, this,
-					&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
-	connect(_firmware_uploader, &FirmwareUploader::flashProgressUpdated, this,
-					&FirmwareUploadPage::_handleFlashProgressUpdate);
-	connect(_firmware_uploader, &FirmwareUploader::eraseProgressUpdated, this,
-					&FirmwareUploadPage::_handleEraseProgressUpdate);
-	connect(_firmware_uploader, &FirmwareUploader::uploadCompleted, this,
-					&FirmwareUploadPage::_handleFirmwareUploadCompletion);
-}
-
-void FirmwareUploadPage::handleSerialConnection() {
-	qDebug() << "Serial connected\n";
-	// _drone_type_box->setVisible(true);
-	_firmware_upload_button->setVisible(true);
-}
-
-void FirmwareUploadPage::handleSerialDisconnection() {
-	qDebug() << "Serial disconnected\n";
-	// _drone_type_box->setVisible(false);
-	_firmware_upload_button->setVisible(false);
 }
 
 void FirmwareUploadPage::_handleDroneTypeBoxChange(int index) {
@@ -87,8 +63,24 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 	auto fileContentReady = [this](const QString &file_name,
 																 const QByteArray &file_content) {
 		if (!file_name.isEmpty()) {
-			emit uploadFirmwareStarted(_drone_type);
-			_firmware_uploader->upload(file_content);
+			const auto thread = QThread::create([this, file_content]() {
+				const auto firmware_uploader = new FirmwareUploader();
+				emit uploadFirmwareStarted(_drone_type);
+
+				// TODO: add disconnections
+				connect(firmware_uploader, &FirmwareUploader::stateUpdated, this,
+								&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
+				connect(firmware_uploader, &FirmwareUploader::flashProgressUpdated,
+								this, &FirmwareUploadPage::_handleFlashProgressUpdate);
+				connect(firmware_uploader, &FirmwareUploader::eraseProgressUpdated,
+								this, &FirmwareUploadPage::_handleEraseProgressUpdate);
+				connect(firmware_uploader, &FirmwareUploader::uploadCompleted, this,
+								&FirmwareUploadPage::_handleFirmwareUploadCompletion);
+
+				firmware_uploader->upload(file_content);
+			});
+
+			thread->start();
 		}
 	};
 	QFileDialog::getOpenFileContent("*.apj", fileContentReady);
@@ -182,6 +174,10 @@ void FirmwareUploadPage::_handleFirmwareUploadCompletion(
 	case FirmwareUploadResult::IncompatibleBoardType: {
 		_firmware_upload_status_label->setText(QString("%1\n%2").arg(
 				tr("Upload failed"), tr("Incompatible board type")));
+	} break;
+	case FirmwareUploadResult::SerialPortError: {
+		_firmware_upload_status_label->setText(
+				QString("%1\n%2").arg(tr("Upload failed"), tr("Serial port error")));
 	} break;
 	}
 	_firmware_upload_button->setVisible(true);

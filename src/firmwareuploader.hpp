@@ -41,7 +41,8 @@ enum class FirmwareUploadResult {
 	ProgramFail,
 	DecodeFail,
 	VerificationFail,
-	BootloaderNotFound
+	BootloaderNotFound,
+	SerialPortError
 };
 
 enum class FirmwareUploadState {
@@ -92,7 +93,7 @@ class FirmwareUploader : public QObject {
 public:
 	FirmwareUploadState upload_state = FirmwareUploadState::None;
 
-	explicit FirmwareUploader(QObject *, QSerialPort *, MavlinkManager *);
+	explicit FirmwareUploader(QObject *parent = nullptr);
 	void upload(const QByteArray &file_content);
 
 signals:
@@ -105,27 +106,7 @@ private slots:
 	void _handleBytesWritten(qint64);
 
 private:
-	QSerialPort *_serial = nullptr;
-	MavlinkManager *_mavlink_manager = nullptr;
-	QTimer *_erase_timer = nullptr;
-	QTimer *_serial_write_timer = nullptr;
-	QTimer *_serial_open_timer = nullptr;
-	int64_t _bytes_to_write = 0;
-	uint32_t _bootloader_rev = 0;
-	uint32_t _extf_maxsize = 0;
-	uint32_t _board_type = 0;
-	uint32_t _board_rev = 0;
-	uint32_t _fw_maxsize = 0;
-	Firmware _firmware;
-	QByteArray MAVLINK_REBOOT_ID0 = QByteArray::fromHex(
-			"0xfe2145ff004c00004040000000000000000000000000000000000000000000000000f6"
-			"00000000cc37");
-	QByteArray MAVLINK_REBOOT_ID1 = QByteArray::fromHex(
-			"0xfe2172ff004c00004040000000000000000000000000000000000000000000000000f6"
-			"00010000536b");
-
 	void _setUploadState(FirmwareUploadState state);
-
 	void _writeData(const QByteArray &);
 	FirmwareUploadResult _tryUploadFirmware(const QByteArray &);
 	bool _openSerialPort();
@@ -143,6 +124,25 @@ private:
 	void _sendReboot();
 	void _reboot();
 	bool _verify_v3();
+
+	QSerialPort _serial;
+	QTimer _erase_timer;
+	QTimer _serial_write_timer;
+	QTimer _serial_open_timer;
+	int64_t _bytes_to_write = 0;
+	uint32_t _bootloader_rev = 0;
+	uint32_t _extf_maxsize = 0;
+	uint32_t _board_type = 0;
+	uint32_t _board_rev = 0;
+	uint32_t _fw_maxsize = 0;
+	Firmware _firmware;
+	QByteArray MAVLINK_REBOOT_ID0 = QByteArray::fromHex(
+			"0xfe2145ff004c00004040000000000000000000000000000000000000000000000000f6"
+			"00000000cc37");
+	QByteArray MAVLINK_REBOOT_ID1 = QByteArray::fromHex(
+			"0xfe2172ff004c00004040000000000000000000000000000000000000000000000000f6"
+			"00010000536b");
+	QByteArray _file_content;
 };
 
 #endif // FIRMWAREUPLOADER_H

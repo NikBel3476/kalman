@@ -31,12 +31,9 @@ MainWindow::MainWindow(QWidget *parent)
 			_autopilot(new Autopilot(this)),
 			_serial(new QSerialPort()),
 			_mavlink_manager(new MavlinkManager(this, _serial, _autopilot)),
-			_firmware_uploader(
-					new FirmwareUploader(nullptr, _serial, _mavlink_manager)),
 			_console(new Console(nullptr, _mavlink_manager)),
 			_authentication_page(new AuthenticationPage()),
-			_firmware_upload_page{
-					new FirmwareUploadPage(nullptr, _firmware_uploader)},
+			_firmware_upload_page(new FirmwareUploadPage(this)),
 			_autopilot_settings_page(
 					new AutopilotSettingsPage(this, _mavlink_manager)),
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
@@ -220,10 +217,6 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_login);
 
 	// firmware upload page connections
-	connect(this, &MainWindow::serialConnected, _firmware_upload_page,
-					&FirmwareUploadPage::handleSerialConnection);
-	connect(this, &MainWindow::serialDisconnected, _firmware_upload_page,
-					&FirmwareUploadPage::handleSerialDisconnection);
 	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmwareStarted,
 					this, &MainWindow::handleFirmwareUpload);
 
@@ -299,9 +292,6 @@ void MainWindow::_handleRebootActionTrigger() {
 }
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
-	if (_firmware_uploader->upload_state != FirmwareUploadState::None) {
-		return;
-	}
 	switch (error) {
 	case QSerialPort::ResourceError: {
 		qDebug() << _serial->errorString() << '\n';
@@ -508,7 +498,6 @@ void MainWindow::openSerialPort() {
 		_serial_status_label->setText(
 				tr("Connected to %1").arg(_serial->portName()));
 		_heartbeat_timer->start(kHeartbeatTimeout);
-		emit serialConnected();
 		_serial_port_state = SerialPortState::Connected;
 	} else {
 		// QMessageBox::critical(this, tr("Error"), _serial->errorString());
@@ -538,7 +527,6 @@ void MainWindow::closeSerialPort() {
 	_ap_name_label->clear();
 	_serial_port_state = SerialPortState::Disconnected;
 	fillPortsInfo();
-	emit serialDisconnected();
 }
 
 void MainWindow::_rebootAp() {
@@ -610,6 +598,11 @@ void MainWindow::_handleFirmwareUploadCompletion(FirmwareUploadResult result) {
 	case FirmwareUploadResult::VerificationFail: {
 		error_title = tr("Verification error");
 		error_msg = tr("Firmware verification failed");
+	} break;
+	// Serial errors
+	case FirmwareUploadResult::SerialPortError: {
+		error_title = tr("Serial port error");
+		error_msg = tr("Serial port error");
 	} break;
 	// Successful upload
 	case FirmwareUploadResult::Ok: {

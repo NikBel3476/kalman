@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QThread>
 #include <QVBoxLayout>
 #include <QVariant>
 #include <QWidget>
@@ -20,15 +21,10 @@ enum class DroneType {
 class FirmwareUploadPage : public QWidget {
 	Q_OBJECT
 public:
-	explicit FirmwareUploadPage(QWidget *parent,
-															FirmwareUploader *firmware_uploader);
+	explicit FirmwareUploadPage(QWidget *parent = nullptr);
 
 signals:
 	void uploadFirmwareStarted(DroneType);
-
-public slots:
-	void handleSerialConnection();
-	void handleSerialDisconnection();
 
 private slots:
 	void _handleDroneTypeBoxChange(int index);
@@ -46,7 +42,6 @@ private:
 	QProgressBar *_progress_bar = nullptr;
 
 	DroneType _drone_type;
-	FirmwareUploader *_firmware_uploader = nullptr;
 };
 
 #endif // FIRMWAREUPLOADPAGE_H
