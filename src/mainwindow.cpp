@@ -265,7 +265,8 @@ void MainWindow::_handleMavlinkMessageReceive(
 			const uint8_t statustext_max_length = 50;
 			const auto text =
 					QString::fromUtf8(statustext.text, statustext_max_length);
-			static const auto ap_name_regex = QRegularExpression("(Finco|Ardu).*");
+			static const auto ap_name_regex =
+					QRegularExpression("(Finco|Ardu).*\\sV.*");
 			if (ap_name_regex.match(text).hasMatch()) {
 				_ap_name_label->setText(text.left(text.indexOf('\0')));
 			}

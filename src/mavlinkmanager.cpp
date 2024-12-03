@@ -210,7 +210,7 @@ void MavlinkManager::_sendFtpMessage(FtpMessage &message) {
 
 	std::vector<uint8_t> buf;
 	buf.reserve(msg_len);
-	const auto buf_len = mavlink_msg_to_send_buffer(&buf[0], &mavlink_message);
+	const auto buf_len = mavlink_msg_to_send_buffer(buf.data(), &mavlink_message);
 	QByteArray data((char *)buf.data(), static_cast<qsizetype>(buf_len));
 	_writeData(data);
 }
