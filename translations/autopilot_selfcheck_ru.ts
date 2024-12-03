@@ -167,6 +167,14 @@
         <source>Serial port error</source>
         <translation>Ошибка последовательного порта</translation>
     </message>
+    <message>
+        <source>Connection failed</source>
+        <translation>Соединение прервано</translation>
+    </message>
+    <message>
+        <source>Autopilot not found. Please try to connect manually</source>
+        <translation>Автопилот не найден. Пожалуйста попробуйте подключиться вручную</translation>
+    </message>
 </context>
 <context>
     <name>Console</name>
