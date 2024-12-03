@@ -48,6 +48,10 @@
 		<translation>Консоль</translation>
 	</message>
 	<message>
+		<source>Upload firmware</source>
+		<translation>Загрузить прошивку</translation>
+	</message>
+	<message>
 		<source>Reboot</source>
 		<translation>Перезагрузить</translation>
 	</message>
@@ -272,6 +276,10 @@
 		<source>Incompatible board type</source>
 		<translation>Несовместимый тип платы</translation>
 	</message>
+    <message>
+        <source>Serial port error</source>
+        <translation>Ошибка последовательного порта</translation>
+    </message>
 </context>
 <context>
     <name>FirmwareUploader</name>
@@ -284,7 +292,7 @@
     <name>AutopilotSettingsPage</name>
 	<message>
 		<source>Altitude: %1 m</source>
-		<translation>Высота: 1 м</translation>
+		<translation>Высота: %1 м</translation>
 	</message>
 	<message>
 		<source>Absolute pressure: %1</source>
@@ -558,10 +566,6 @@
     <message>
         <source>Upload lua scripts</source>
         <translation>Загрузить lua скрипты</translation>
-    </message>
-    <message>
-        <source>Select lua scripts</source>
-        <translation>Выберите lua скрипты</translation>
     </message>
     <message>
         <source>Select lua scripts</source>

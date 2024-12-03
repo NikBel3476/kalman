@@ -13,9 +13,11 @@
 #include <QShortcut>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QString>
 #include <QTimer>
 #include <QToolBar>
 #include <QtQuick/QQuickView>
+#include <algorithm>
 #include <chrono>
 #include <format>
 #include <string>
@@ -98,7 +100,6 @@ private slots:
 
 private:
 	void initSerialPortEventsConnections();
-
 	void showStatusMessage(const QString &);
 	void showWriteError(const QString &);
 	void setPortSettings(int);

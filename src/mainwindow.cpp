@@ -344,7 +344,7 @@ void MainWindow::_logout() {
 }
 
 void MainWindow::handleFirmwareUpload(DroneType drone_type) {
-	qDebug() << std::format("Upload firmware. Drone type: {}\n",
+	qDebug() << std::format("Upload firmware. Drone type: {}",
 													static_cast<int>(drone_type));
 	closeSerialPort();
 	_autopilot->state = AutopilotState::Flashing;
@@ -439,10 +439,10 @@ void MainWindow::fillPortsInfo() {
 	if (_serial_port_state == SerialPortState::Connected) {
 		return;
 	}
-	_ports_box->clear();
-	const auto blankString = tr(::blankString);
 	const auto infos = QSerialPortInfo::availablePorts();
 
+	_ports_box->clear();
+	const auto blankString = tr(::blankString);
 	for (const auto &info : infos) {
 		QStringList list;
 		const auto description = info.description();

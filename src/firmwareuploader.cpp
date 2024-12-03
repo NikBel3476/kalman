@@ -36,27 +36,18 @@ FirmwareUploader::FirmwareUploader(QObject *parent)
 	_serial_write_timer.setSingleShot(true);
 	_serial_open_timer.setSingleShot(true);
 
+	_serial.setBaudRate(QSerialPort::Baud115200);
+	_serial.setDataBits(QSerialPort::Data8);
+	_serial.setParity(QSerialPort::NoParity);
+	_serial.setStopBits(QSerialPort::OneStop);
+	_serial.setFlowControl(QSerialPort::NoFlowControl);
+
 	// connections
 	connect(&_serial, &QSerialPort::bytesWritten, this,
 					&FirmwareUploader::_handleBytesWritten);
 }
 
 void FirmwareUploader::upload(const QByteArray &file_content) {
-	auto infos = QSerialPortInfo::availablePorts();
-	bool port_found = false;
-	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch()) {
-			_serial.setPortName(port_info.portName());
-			port_found = true;
-			break;
-		}
-	}
-	if (!port_found) {
-		emit uploadCompleted(FirmwareUploadResult::SerialPortError);
-		return;
-	}
-
 	const auto upload_result = _tryUploadFirmware(file_content);
 	emit uploadCompleted(upload_result);
 }
@@ -76,6 +67,25 @@ void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
 FirmwareUploadResult
 FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	_setUploadState(FirmwareUploadState::BootloaderSearching);
+
+	const auto infos = QSerialPortInfo::availablePorts();
+	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
+	QString port_name;
+	for (const auto &port_info : infos) {
+		if (port_regex.match(port_info.portName()).hasMatch() &&
+				(port_name.isEmpty() || port_name.compare(port_info.portName()) > 0)) {
+			port_name = port_info.portName();
+		}
+	}
+	_serial.setPortName(port_name);
+	if (port_name.isEmpty()) {
+		return FirmwareUploadResult::SerialPortError;
+	}
+
+	qDebug() << "CONNECT TO " << port_name;
+
+	_serial.setPortName(port_name);
+
 	switch (_findBootloader()) {
 	case FindBootloaderResult::SerialPortError:
 		return FirmwareUploadResult::SerialPortError;
@@ -201,7 +211,8 @@ void FirmwareUploader::_writeData(const QByteArray &data) {
 	} else {
 		const auto error = tr("Failed to write all data to port %1.\nError: %2")
 													 .arg(_serial.portName(), _serial.errorString());
-		QMessageBox::critical(nullptr, tr("Serial port error"), error);
+		qDebug() << error;
+		// QMessageBox::critical(nullptr, tr("Serial port error"), error);
 	}
 }
 
@@ -359,20 +370,21 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 	if (_openSerialPort()) {
 		_sendReboot();
 		_closeSerialPort();
-		std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+		std::this_thread::sleep_for(std::chrono::milliseconds{2000});
 	} else {
 		return FindBootloaderResult::SerialPortError;
 	}
 
-	auto infos = QSerialPortInfo::availablePorts();
 	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
+	auto infos = QSerialPortInfo::availablePorts();
 	for (const auto &port_info : infos) {
 		if (port_regex.match(port_info.portName()).hasMatch()) {
 			_serial.setPortName(port_info.portName());
 			break;
 		}
 	}
-	qDebug() << "Try connect to " << _serial.portName();
+
+	qDebug() << "Try connect to " << _serial.portName() << "on baud 115200";
 
 	// attempt to connect on baud 115200
 	_serial.setBaudRate(QSerialPort::Baud115200);
@@ -391,11 +403,9 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 		return FindBootloaderResult::SerialPortError;
 	}
 
-	qDebug() << "CANNOT OPEN SERIAL PORT ATTEMPT 1\n";
-
 	_sendReboot();
 	_closeSerialPort();
-	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	std::this_thread::sleep_for(std::chrono::milliseconds{2000});
 
 	infos = QSerialPortInfo::availablePorts();
 	for (const auto &port_info : infos) {
@@ -404,7 +414,8 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 			break;
 		}
 	}
-	qDebug() << "Try connect to " << _serial.portName();
+
+	qDebug() << "Try connect to " << _serial.portName() << "on baud 57600";
 
 	// attempt to connect on baud 57600
 	_serial.setBaudRate(QSerialPort::Baud57600);
