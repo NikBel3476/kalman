@@ -5,9 +5,13 @@
 
 int main(int argc, char *argv[]) {
 	QCoreApplication::addLibraryPath("/lib");
+	QApplication::addLibraryPath("/lib");
+
+#ifdef _WIN32
+	QApplication::setStyle("fusion");
+#endif
 	QApplication a(argc, argv);
 
-	// QApplication::setStyle("fusion");
 	QTranslator translator;
 	const auto uiLanguages = QLocale::system().uiLanguages();
 	// For translations check
