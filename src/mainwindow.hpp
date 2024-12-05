@@ -97,6 +97,7 @@ private slots:
 	void _handleMavlinkMessageReceive(const mavlink_message_t &);
 	void _handleApParametersWrite();
 	void _handleRebootActionTrigger();
+	void _handleAboutActionTrigger();
 
 private:
 	void initSerialPortEventsConnections();
@@ -120,6 +121,7 @@ private:
 	QAction *_action_open_console = nullptr;
 	QAction *_action_open_firmware_page = nullptr;
 	QAction *_action_reboot_ap = nullptr;
+	QAction *_action_about = nullptr;
 	QAction *_action_logout = nullptr;
 	QStackedWidget *_central_widget = nullptr;
 	QStatusBar *_statusbar = nullptr;

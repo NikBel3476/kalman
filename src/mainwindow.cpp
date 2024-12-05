@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_open_console(new QAction(_toolbar)),
 			_action_open_firmware_page(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
+			_action_about(new QAction(_toolbar)),
 			_action_logout(new QAction(_toolbar)),
 			_central_widget(new QStackedWidget()),
 			_statusbar(new QStatusBar()),
@@ -71,6 +72,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_reboot_ap);
 	_toolbar->addAction(_action_open_console);
 	_toolbar->addAction(_action_clear);
+	_toolbar->addAction(_action_about);
 	_toolbar->addWidget(spacer);
 	_toolbar->addAction(_action_logout);
 
@@ -111,6 +113,11 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_open_firmware_page->setText(tr("Upload firmware"));
 	_action_open_firmware_page->setToolTip(tr("Upload firmware"));
 	_action_open_firmware_page->setEnabled(false);
+
+	_action_about->setIcon(QIcon(":/images/about.png"));
+	_action_about->setText(tr("About"));
+	_action_about->setToolTip(tr("About"));
+	_action_about->setEnabled(true);
 
 	_action_reboot_ap->setIcon(QIcon(":/images/reboot.png"));
 	_action_reboot_ap->setText(tr("Reboot"));
@@ -194,6 +201,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_handleRebootActionTrigger);
 	connect(_action_open_console, &QAction::triggered, this,
 					&MainWindow::_openConsole);
+	connect(_action_about, &QAction::triggered, this,
+					&MainWindow::_handleAboutActionTrigger);
 	connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
 
 	// timers connections
@@ -290,6 +299,11 @@ void MainWindow::_handleApParametersWrite() {
 void MainWindow::_handleRebootActionTrigger() {
 	_ap_params_page->clearNotSavedParams();
 	_rebootAp();
+}
+
+void MainWindow::_handleAboutActionTrigger() {
+	QMessageBox::about(this, tr("About"),
+										 tr("Autopilot selfcheck v%1").arg(VERSION));
 }
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {

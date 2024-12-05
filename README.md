@@ -21,7 +21,7 @@ Program for autopilot calibration
 
 To create archive:  
 `cpack --config "build/CPackConfig.cmake"` - Linux  
-`cpack --config "build/CPackConfig.cmake" -G 7Z` - Windows
+`cpack --config "build/CPackConfig.cmake" -G ZIP` - Windows
 
 Note: on windows qt must be in the PATH variable or passed with `-DCMAKE_PREFIX_PATH=<path_to_qt>` on configuration step
 

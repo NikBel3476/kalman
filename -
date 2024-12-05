@@ -1,0 +1,73 @@
+# 1 "/usr/share/cmake/Modules/CXX-DetectStdlib.h"
+# 1 "<built-in>" 1
+# 1 "<built-in>" 3
+# 462 "<built-in>" 3
+# 1 "<command line>" 1
+# 1 "<built-in>" 2
+# 1 "/usr/share/cmake/Modules/CXX-DetectStdlib.h" 2
+# 1 "/usr/lib/zig/libcxx/include/version" 1 3
+# 247 "/usr/lib/zig/libcxx/include/version" 3
+# 1 "/usr/lib/zig/libcxx/include/__assert" 1 3
+# 13 "/usr/lib/zig/libcxx/include/__assert" 3
+# 1 "/usr/lib/zig/libcxx/include/__assertion_handler" 1 3
+# 13 "/usr/lib/zig/libcxx/include/__assertion_handler" 3
+# 1 "/usr/lib/zig/libcxx/include/__config" 1 3
+# 17 "/usr/lib/zig/libcxx/include/__config" 3
+# 517 "/usr/lib/zig/libcxx/include/__config" 3
+# 1 "/usr/lib/zig/libc/include/generic-glibc/features.h" 1 3
+# 407 "/usr/lib/zig/libc/include/generic-glibc/features.h" 3
+# 1 "/usr/lib/zig/libc/include/generic-glibc/features-time64.h" 1 3
+# 20 "/usr/lib/zig/libc/include/generic-glibc/features-time64.h" 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/wordsize.h" 1 3
+# 21 "/usr/lib/zig/libc/include/generic-glibc/features-time64.h" 2 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/timesize.h" 1 3
+# 19 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/timesize.h" 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/wordsize.h" 1 3
+# 20 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/timesize.h" 2 3
+# 22 "/usr/lib/zig/libc/include/generic-glibc/features-time64.h" 2 3
+# 408 "/usr/lib/zig/libc/include/generic-glibc/features.h" 2 3
+# 505 "/usr/lib/zig/libc/include/generic-glibc/features.h" 3
+# 1 "/usr/lib/zig/libc/include/generic-glibc/stdc-predef.h" 1 3
+# 506 "/usr/lib/zig/libc/include/generic-glibc/features.h" 2 3
+# 519 "/usr/lib/zig/libc/include/generic-glibc/features.h" 3
+# 1 "/usr/lib/zig/libc/include/generic-glibc/sys/cdefs.h" 1 3
+# 576 "/usr/lib/zig/libc/include/generic-glibc/sys/cdefs.h" 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/wordsize.h" 1 3
+# 577 "/usr/lib/zig/libc/include/generic-glibc/sys/cdefs.h" 2 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/bits/long-double.h" 1 3
+# 578 "/usr/lib/zig/libc/include/generic-glibc/sys/cdefs.h" 2 3
+# 520 "/usr/lib/zig/libc/include/generic-glibc/features.h" 2 3
+# 543 "/usr/lib/zig/libc/include/generic-glibc/features.h" 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/gnu/stubs.h" 1 3
+# 10 "/usr/lib/zig/libc/include/x86_64-linux-gnu/gnu/stubs.h" 3
+# 1 "/usr/lib/zig/libc/include/x86_64-linux-gnu/gnu/stubs-64.h" 1 3
+# 11 "/usr/lib/zig/libc/include/x86_64-linux-gnu/gnu/stubs.h" 2 3
+# 544 "/usr/lib/zig/libc/include/generic-glibc/features.h" 2 3
+# 518 "/usr/lib/zig/libcxx/include/__config" 2 3
+# 14 "/usr/lib/zig/libcxx/include/__assertion_handler" 2 3
+# 1 "/usr/lib/zig/libcxx/include/__verbose_abort" 1 3
+# 13 "/usr/lib/zig/libcxx/include/__verbose_abort" 3
+# 1 "/usr/lib/zig/libcxx/include/__availability" 1 3
+# 17 "/usr/lib/zig/libcxx/include/__availability" 3
+# 14 "/usr/lib/zig/libcxx/include/__verbose_abort" 2 3
+# 18 "/usr/lib/zig/libcxx/include/__verbose_abort" 3
+
+
+namespace std { inline namespace __1 {
+
+
+
+[[noreturn]]
+    __attribute__((__format__(__printf__, 1, 2))) void __libcpp_verbose_abort(const char* __format, ...);
+# 51 "/usr/lib/zig/libcxx/include/__verbose_abort" 3
+}}
+# 15 "/usr/lib/zig/libcxx/include/__assertion_handler" 2 3
+# 18 "/usr/lib/zig/libcxx/include/__assertion_handler" 3
+# 14 "/usr/lib/zig/libcxx/include/__assert" 2 3
+# 18 "/usr/lib/zig/libcxx/include/__assert" 3
+# 248 "/usr/lib/zig/libcxx/include/version" 2 3
+# 253 "/usr/lib/zig/libcxx/include/version" 3
+# 2 "/usr/share/cmake/Modules/CXX-DetectStdlib.h" 2
+
+
+CMAKE-STDLIB-DETECT: libc++

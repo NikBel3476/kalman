@@ -179,6 +179,14 @@
         <source>Autopilot not found. Please try to connect manually</source>
         <translation>Автопилот не найден. Пожалуйста попробуйте подключиться вручную</translation>
     </message>
+    <message>
+        <source>About</source>
+        <translation>О программе</translation>
+    </message>
+    <message>
+        <source>Autopilot selfcheck v%1</source>
+        <translation>Проверка автопилота v%1</translation>
+    </message>
 </context>
 <context>
     <name>Console</name>

@@ -119,6 +119,7 @@ else()
 	# )
 endif()
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE VERSION="${PROJECT_VERSION}")
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 qt_add_translations(${PROJECT_NAME}
@@ -181,6 +182,7 @@ set(resource_files
 	"images/reboot.png"
 	"images/folder.png"
 	"images/firmware.png"
+	"images/about.png"
 	"qml/AuthenticationForm.qml"
 )
 
