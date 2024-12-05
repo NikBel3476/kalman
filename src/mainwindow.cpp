@@ -1,7 +1,7 @@
 #include "mainwindow.hpp"
 #include "console.hpp"
 
-static constexpr QSize WINDOW_MIN_SIZE = QSize(600, 900);
+static constexpr QSize WINDOW_MIN_SIZE = QSize(600, 850);
 static constexpr auto kHeartbeatTimeout = std::chrono::seconds{7};
 static constexpr auto kSerialReconnectTimeout = std::chrono::seconds{5};
 static constexpr auto kSerialReconnectDelayTimeout = std::chrono::seconds{1};
@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_send_param_timer(new QTimer(this)),
 			_serial_reconnect_timer(new QTimer(this)),
 			_serial_reconnect_delay_timer(new QTimer(this)) {
-	setWindowTitle("Autopilot selfcheck");
+	setWindowTitle(tr("Autopilot selfcheck"));
 	setMinimumSize(WINDOW_MIN_SIZE);
 	setGeometry(QRect(QPoint(0, 0), WINDOW_MIN_SIZE));
 

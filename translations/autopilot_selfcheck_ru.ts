@@ -4,6 +4,10 @@
 <context>
 	<name>MainWindow</name>
 	<message>
+	    <source>Autopilot selfcheck</source>
+		<translation>Проверка автопилота</translation>
+	</message>
+	<message>
 	    <source>Refresh</source>
 	    <translation>Обновить</translation>
 	</message>
