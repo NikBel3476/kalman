@@ -551,10 +551,11 @@ void MainWindow::_rebootAp() {
 	const uint8_t confirmation = 0;
 	const float param1 = 1;
 	_mavlink_manager->sendCmdLong(command, confirmation, param1);
+	// _serial->flush();
+	_serial->waitForBytesWritten(500);
 	_autopilot->state = AutopilotState::None;
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_heartbeat_timer->stop();
-	_serial->flush();
 	closeSerialPort();
 }
 

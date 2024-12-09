@@ -166,22 +166,14 @@ void ApParametersPage::_handleResetParamsButtonClick() {
 		.param_value = 0.0,
 		.param_count = _params_total_count,
 		.param_index = 0,
-		.param_id = "FORMAT_VERSION",
+		.param_id = {0},
 		.param_type = MAV_PARAM_TYPE_INT8
 	};
-
-	mavlink_param_value_t sysid_sw_mrev_param {
-		.param_value = 0.0,
-		.param_count = _params_total_count,
-		.param_index = 1,
-		.param_id = "SYSID_SW_MREV",
-		.param_type = MAV_PARAM_TYPE_INT8
-	};
+	memcpy(format_version_param.param_id, "FORMAT_VERSION", 14);
 
 	_mavlink_manager->sendParamSet(format_version_param);
-	std::this_thread::sleep_for(std::chrono::milliseconds{500});
-	_mavlink_manager->sendParamSet(sysid_sw_mrev_param);
-	std::this_thread::sleep_for(std::chrono::milliseconds{500});
+	std::this_thread::sleep_for(std::chrono::milliseconds{1000});
+	clearNotSavedParams();
 	emit paramsResetRequest();
 }
 
