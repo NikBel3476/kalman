@@ -48,6 +48,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 	SerialPort
 	LinguistTools
 	SvgWidgets
+	Concurrent
 )
 
 # find_package(MAVLink REQUIRED)
@@ -140,8 +141,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Quick
 	Qt6::Platform
 	Qt6::SvgWidgets
-	# MAVLink::mavlink
-	# mavlink
+	Qt6::Concurrent
 	qflightinstruments
 	nlohmann_json::nlohmann_json
 )

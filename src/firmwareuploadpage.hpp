@@ -10,6 +10,7 @@
 #include <QVBoxLayout>
 #include <QVariant>
 #include <QWidget>
+#include <QtConcurrent>
 
 #include "firmwareuploader.hpp"
 

@@ -63,10 +63,11 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 	auto fileContentReady = [this](const QString &file_name,
 																 const QByteArray &file_content) {
 		if (!file_name.isEmpty()) {
+			_progress_bar->setValue(0);
 			emit uploadFirmwareStarted(_drone_type);
 			_firmware_upload_button->setVisible(false);
 			// std::this_thread::sleep_for(std::chrono::seconds(2));
-			const auto thread = QThread::create([this, file_content]() {
+			const auto task = QtConcurrent::task([this, file_content]() {
 				const auto firmware_uploader = new FirmwareUploader();
 
 				// TODO: add disconnections
@@ -80,9 +81,7 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 								&FirmwareUploadPage::_handleFirmwareUploadCompletion);
 
 				firmware_uploader->upload(file_content);
-			});
-
-			thread->start();
+			}).spawn();
 		}
 	};
 	QFileDialog::getOpenFileContent("*.apj", fileContentReady);
