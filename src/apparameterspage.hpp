@@ -34,6 +34,7 @@ signals:
 	// void apAllParamsReceived();
 	// void requestUploadApParams(std::vector<mavlink_param_value_t>);
 	void parametersWritten();
+	void paramsResetRequest();
 
 public slots:
 	void handleAutopilotConnection();
@@ -42,6 +43,7 @@ private slots:
 	void _handleUpdateParamsButtonClick();
 	void _handleCompareParamsButtonClick();
 	void _handleUploadParamsButtonClick();
+	void _handleResetParamsButtonClick();
 	void _handleMavlinkMessageReceive(const mavlink_message_t &msg);
 	void _handleApParamsUploadCompletion();
 	void _handleParameterSendTimeout();
@@ -60,6 +62,7 @@ private:
 	QPushButton *_update_params_btn = nullptr;
 	QPushButton *_compare_params_btn = nullptr;
 	QPushButton *_upload_params_btn = nullptr;
+	QPushButton *_reset_params_btn = nullptr;
 	QLabel *_file_name_label = nullptr;
 	QTableWidget *_ap_params_table = nullptr;
 	QProgressBar *_download_params_progress_bar = nullptr;

@@ -234,6 +234,7 @@ MainWindow::MainWindow(QWidget *parent)
 					&ApParametersPage::handleAutopilotConnection);
 	connect(_ap_params_page, &ApParametersPage::parametersWritten, this,
 					&MainWindow::_handleApParametersWrite);
+	connect(_ap_params_page, &ApParametersPage::paramsResetRequest, this, &MainWindow::_rebootAp);
 }
 
 MainWindow::~MainWindow() = default;

@@ -510,6 +510,10 @@
 		<translation>Загрузить параметры</translation>
 	</message>
 	<message>
+		<source>Reset parameters</source>
+		<translation>Сбросить параметры</translation>
+	</message>
+	<message>
 		<source>Name</source>
 		<translation>Имя</translation>
 	</message>

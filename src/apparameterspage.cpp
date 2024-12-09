@@ -15,6 +15,7 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 			_update_params_btn(new QPushButton()),
 			_compare_params_btn(new QPushButton()),
 			_upload_params_btn(new QPushButton()),
+			_reset_params_btn(new QPushButton()),
 			_file_name_label(new QLabel()),
 			_ap_params_table(new QTableWidget()),
 			_download_params_progress_bar(new QProgressBar()),
@@ -32,6 +33,7 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 	buttons_layout->addWidget(_update_params_btn);
 	buttons_layout->addWidget(_compare_params_btn);
 	buttons_layout->addWidget(_upload_params_btn);
+	buttons_layout->addWidget(_reset_params_btn);
 
 	const auto &upload_params_progress_label = new QLabel();
 	const auto &upload_params_progress_layout = new QHBoxLayout();
@@ -46,6 +48,8 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 	_compare_params_btn->setEnabled(false);
 	_upload_params_btn->setText(tr("Upload parameters"));
 	_upload_params_btn->setEnabled(false);
+	_reset_params_btn->setText(tr("Reset parameters"));
+	_reset_params_btn->setEnabled(true);
 
 	_file_name_label->setVisible(false);
 
@@ -71,6 +75,7 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 					&ApParametersPage::_handleCompareParamsButtonClick);
 	connect(_upload_params_btn, &QPushButton::clicked, this,
 					&ApParametersPage::_handleUploadParamsButtonClick);
+	connect(_reset_params_btn, &QPushButton::clicked, this, &ApParametersPage::_handleResetParamsButtonClick);
 	connect(_send_param_timer, &QTimer::timeout, this,
 					&ApParametersPage::_handleParameterSendTimeout);
 	connect(_update_params_on_ap_connect_timer, &QTimer::timeout, this,
@@ -154,6 +159,30 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 
 void ApParametersPage::_handleUploadParamsButtonClick() {
 	_uploadParameters();
+}
+
+void ApParametersPage::_handleResetParamsButtonClick() {
+	mavlink_param_value_t format_version_param {
+		.param_value = 0.0,
+		.param_count = _params_total_count,
+		.param_index = 0,
+		.param_id = "FORMAT_VERSION",
+		.param_type = MAV_PARAM_TYPE_INT8
+	};
+
+	mavlink_param_value_t sysid_sw_mrev_param {
+		.param_value = 0.0,
+		.param_count = _params_total_count,
+		.param_index = 1,
+		.param_id = "SYSID_SW_MREV",
+		.param_type = MAV_PARAM_TYPE_INT8
+	};
+
+	_mavlink_manager->sendParamSet(format_version_param);
+	std::this_thread::sleep_for(std::chrono::milliseconds{500});
+	_mavlink_manager->sendParamSet(sysid_sw_mrev_param);
+	std::this_thread::sleep_for(std::chrono::milliseconds{500});
+	emit paramsResetRequest();
 }
 
 void ApParametersPage::_handleMavlinkMessageReceive(
