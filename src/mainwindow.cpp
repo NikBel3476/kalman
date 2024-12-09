@@ -187,7 +187,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_action_connect, &QAction::triggered, this,
 					&MainWindow::openSerialPort);
 	connect(_action_disconnect, &QAction::triggered, this,
-					&MainWindow::closeSerialPort);
+					&MainWindow::_handleDisconnectActionTrigger);
 	connect(_action_clear, &QAction::triggered, _console, &Console::clear);
 	connect(_action_open_settings, &QAction::triggered, this,
 					&MainWindow::_openSettingsPage);
@@ -297,8 +297,16 @@ void MainWindow::_handleApParametersWrite() {
 	_central_widget->setCurrentWidget(_ap_params_page);
 }
 
+void MainWindow::_handleDisconnectActionTrigger() {
+	_autopilot->params_state = AutopilotParamsState::None;
+	_autopilot->params_send_state = AutopilotParamsSendState::None;
+	closeSerialPort();
+}
+
 void MainWindow::_handleRebootActionTrigger() {
 	_ap_params_page->clearNotSavedParams();
+	_autopilot->params_state = AutopilotParamsState::None;
+	_autopilot->params_send_state = AutopilotParamsSendState::None;
 	_rebootAp();
 }
 

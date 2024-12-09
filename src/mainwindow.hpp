@@ -96,6 +96,7 @@ private slots:
 	void _handleFirmwareUploadCompletion(FirmwareUploadResult);
 	void _handleMavlinkMessageReceive(const mavlink_message_t &);
 	void _handleApParametersWrite();
+	void _handleDisconnectActionTrigger();
 	void _handleRebootActionTrigger();
 	void _handleAboutActionTrigger();
 

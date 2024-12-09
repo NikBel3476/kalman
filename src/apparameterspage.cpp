@@ -174,6 +174,8 @@ void ApParametersPage::_handleResetParamsButtonClick() {
 	_mavlink_manager->sendParamSet(format_version_param);
 	std::this_thread::sleep_for(std::chrono::milliseconds{1000});
 	clearNotSavedParams();
+	_autopilot->params_state = AutopilotParamsState::None;
+	_autopilot->params_send_state = AutopilotParamsSendState::None;
 	emit paramsResetRequest();
 }
 
