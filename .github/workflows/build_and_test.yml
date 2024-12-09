@@ -73,7 +73,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-			  version: "6.8.0"
+        version: "6.8.0"
         modules: "qtserialport"
 
     - name: Configure CMake
@@ -91,8 +91,13 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --parallel
 
-    - name: Create archive
-      run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake"
+    - name: Create archive (windows)
+      if: matrix.os == 'windows-latest'
+      run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake" -G ZIP
+
+    - name: Create archive (ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake" -G TXZ
 
     # - name: Test
     #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
@@ -100,14 +105,14 @@ jobs:
     #   # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
     #   run: ctest --build-config ${{ matrix.build_type }}
 
-    - name: Release (ubuntu)
+    - name: Release
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       uses: softprops/action-gh-release@v2
       with:
         body: ${{ github.ref_name }}
         files: |
-          ${{ env.OUT_FILENAME }}.tar.gz
-          ${{ env.OUT_FILENAME }}.exe
+          ${{ env.OUT_FILENAME }}.tar.xz
+          ${{ env.OUT_FILENAME }}.zip
 
     #- name: Release (windows)
     #  if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.os == 'windows-latest' }}
