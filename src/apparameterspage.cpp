@@ -43,7 +43,7 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 	upload_params_progress_label->setText(tr("Wait for upload completion"));
 
 	_update_params_btn->setText(tr("Update"));
-	_update_params_btn->setEnabled(false);
+	// _update_params_btn->setEnabled(false);
 	_compare_params_btn->setText(tr("Compare parameters"));
 	_compare_params_btn->setEnabled(false);
 	_upload_params_btn->setText(tr("Upload parameters"));
@@ -75,7 +75,8 @@ ApParametersPage::ApParametersPage(QWidget *parent,
 					&ApParametersPage::_handleCompareParamsButtonClick);
 	connect(_upload_params_btn, &QPushButton::clicked, this,
 					&ApParametersPage::_handleUploadParamsButtonClick);
-	connect(_reset_params_btn, &QPushButton::clicked, this, &ApParametersPage::_handleResetParamsButtonClick);
+	connect(_reset_params_btn, &QPushButton::clicked, this,
+					&ApParametersPage::_handleResetParamsButtonClick);
 	connect(_send_param_timer, &QTimer::timeout, this,
 					&ApParametersPage::_handleParameterSendTimeout);
 	connect(_update_params_on_ap_connect_timer, &QTimer::timeout, this,
@@ -162,13 +163,11 @@ void ApParametersPage::_handleUploadParamsButtonClick() {
 }
 
 void ApParametersPage::_handleResetParamsButtonClick() {
-	mavlink_param_value_t format_version_param {
-		.param_value = 0.0,
-		.param_count = _params_total_count,
-		.param_index = 0,
-		.param_id = {0},
-		.param_type = MAV_PARAM_TYPE_INT8
-	};
+	mavlink_param_value_t format_version_param{.param_value = 0.0,
+																						 .param_count = _params_total_count,
+																						 .param_index = 0,
+																						 .param_id = {0},
+																						 .param_type = MAV_PARAM_TYPE_INT8};
 	memcpy(format_version_param.param_id, "FORMAT_VERSION", 14);
 
 	_mavlink_manager->sendParamSet(format_version_param);
