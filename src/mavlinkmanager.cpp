@@ -21,6 +21,7 @@ MavlinkManager::MavlinkManager(QObject *parent, QSerialPort *serial,
 	connect(_serial, &QSerialPort::readyRead, this, &MavlinkManager::_readData);
 	connect(_serial, &QSerialPort::bytesWritten, this,
 					&MavlinkManager::_handleBytesWritten);
+	qDebug() << "FtpMessage size: " << sizeof(FtpMessage);
 }
 
 void MavlinkManager::sendCmdLong(uint16_t command, uint8_t confirmation,
@@ -50,11 +51,12 @@ void MavlinkManager::sendParamSet(const mavlink_param_value_t &param) {
 
 void MavlinkManager::sendParamRequestList() {
 	mavlink_message_t msg;
-	mavlink_msg_param_request_list_pack(SYSTEM_ID, COMP_ID, &msg,
-																			TARGET_SYSTEM_ID, TARGET_COMP_ID);
-	uint8_t buf[14];
-	const auto buf_len = mavlink_msg_to_send_buffer(buf, &msg);
-	QByteArray data((char *)buf, static_cast<qsizetype>(buf_len));
+	const auto msg_len = mavlink_msg_param_request_list_pack(
+			SYSTEM_ID, COMP_ID, &msg, TARGET_SYSTEM_ID, TARGET_COMP_ID);
+	std::vector<uint8_t> buf;
+	buf.reserve(msg_len);
+	const auto buf_len = mavlink_msg_to_send_buffer(buf.data(), &msg);
+	QByteArray data((char *)buf.data(), static_cast<qsizetype>(buf_len));
 	_writeData(data);
 }
 
@@ -133,6 +135,8 @@ void MavlinkManager::requestCalcFileCrc32(const std::string &path) {
 }
 
 void MavlinkManager::_handleError(QSerialPort::SerialPortError error) {
+	// unused variable warning suppress
+	(void)(error);
 	// switch (error) {
 	// case QSerialPort::ResourceError: {
 	// 	qDebug() << _serial->errorString() << '\n';

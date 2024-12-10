@@ -99,6 +99,10 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake" -G TXZ
 
+    - name: Create archive (macOS)
+      if: matrix.os == 'macos-latest'
+      run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake"
+
     # - name: Test
     #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
     #   # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
@@ -113,6 +117,7 @@ jobs:
         files: |
           ${{ env.OUT_FILENAME }}.tar.xz
           ${{ env.OUT_FILENAME }}.zip
+          ${{ env.OUT_FILENAME }}.dmg
 
     #- name: Release (windows)
     #  if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.os == 'windows-latest' }}

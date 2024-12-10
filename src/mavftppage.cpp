@@ -84,6 +84,23 @@ void MavftpPage::_handleFtpMessage(const FtpMessage &message) {
 		qDebug() << "FTP NACK RECEIVED";
 		_handleFtpNack(message);
 	} break;
+	case FtpMessage::Opcode::BurstReadFile:
+	case FtpMessage::Opcode::ReadFile:
+	case FtpMessage::Opcode::CreateFile:
+	case FtpMessage::Opcode::WriteFile:
+	case FtpMessage::Opcode::RemoveFile:
+	case FtpMessage::Opcode::TruncateFile:
+	case FtpMessage::Opcode::OpenFileRO:
+	case FtpMessage::Opcode::OpenFileWO:
+	case FtpMessage::Opcode::CalcFileCRC32:
+	case FtpMessage::Opcode::ListDirectory:
+	case FtpMessage::Opcode::CreateDirectory:
+	case FtpMessage::Opcode::RemoveDirectory:
+	case FtpMessage::Opcode::Rename:
+	case FtpMessage::Opcode::ResetSessions:
+	case FtpMessage::Opcode::TerminateSession:
+	case FtpMessage::Opcode::None:
+		break;
 	}
 }
 
@@ -198,6 +215,19 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 			_files_upload_success = true;
 		}
 	} break;
+	case FtpMessage::Opcode::Ack:
+	case FtpMessage::Opcode::Nack:
+	case FtpMessage::Opcode::BurstReadFile:
+	case FtpMessage::Opcode::ReadFile:
+	case FtpMessage::Opcode::RemoveFile:
+	case FtpMessage::Opcode::TruncateFile:
+	case FtpMessage::Opcode::OpenFileRO:
+	case FtpMessage::Opcode::OpenFileWO:
+	case FtpMessage::Opcode::RemoveDirectory:
+	case FtpMessage::Opcode::Rename:
+	case FtpMessage::Opcode::TerminateSession:
+	case FtpMessage::Opcode::None:
+		break;
 	}
 }
 
@@ -228,5 +258,21 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create %1 file").arg(file_name));
 	} break;
+	case FtpMessage::Opcode::Ack:
+	case FtpMessage::Opcode::Nack:
+	case FtpMessage::Opcode::BurstReadFile:
+	case FtpMessage::Opcode::ReadFile:
+	case FtpMessage::Opcode::WriteFile:
+	case FtpMessage::Opcode::RemoveFile:
+	case FtpMessage::Opcode::TruncateFile:
+	case FtpMessage::Opcode::OpenFileRO:
+	case FtpMessage::Opcode::OpenFileWO:
+	case FtpMessage::Opcode::CalcFileCRC32:
+	case FtpMessage::Opcode::RemoveDirectory:
+	case FtpMessage::Opcode::Rename:
+	case FtpMessage::Opcode::ResetSessions:
+	case FtpMessage::Opcode::TerminateSession:
+	case FtpMessage::Opcode::None:
+		break;
 	}
 }
