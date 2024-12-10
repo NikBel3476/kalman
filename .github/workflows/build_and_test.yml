@@ -81,10 +81,10 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCPACK_PACKAGE_FILE_NAME=${{ env.OUT_FILENAME }}
+        -DCMAKE_CXX_COMPILER="${{ matrix.cpp_compiler }}"
+        -DCMAKE_C_COMPILER="${{ matrix.c_compiler }}"
+        -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}"
+        -DCPACK_PACKAGE_FILE_NAME="${{ env.OUT_FILENAME }}"
         -S ${{ github.workspace }}
 
     - name: Build
@@ -98,6 +98,10 @@ jobs:
     - name: Create archive (ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake" -G TXZ
+
+    - name: Create archive (macOS)
+      if: matrix.os == 'macos-latest'
+      run: cpack --config "${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake"
 
     # - name: Test
     #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
@@ -113,6 +117,7 @@ jobs:
         files: |
           ${{ env.OUT_FILENAME }}.tar.xz
           ${{ env.OUT_FILENAME }}.zip
+          ${{ env.OUT_FILENAME }}.dmg
 
     #- name: Release (windows)
     #  if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.os == 'windows-latest' }}

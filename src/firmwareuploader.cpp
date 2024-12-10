@@ -433,6 +433,8 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 		return FindBootloaderResult::Ok;
 	}
 	}
+	// unreachable code, gcc warning suppress
+	return FindBootloaderResult::SerialPortError;
 }
 
 bool FirmwareUploader::_program() {
