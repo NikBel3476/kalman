@@ -45,6 +45,8 @@ FirmwareUploader::FirmwareUploader(QObject *parent)
 	// connections
 	connect(&_serial, &QSerialPort::bytesWritten, this,
 					&FirmwareUploader::_handleBytesWritten);
+	connect(&_serial, &QSerialPort::errorOccurred, this,
+					&FirmwareUploader::_handleError);
 }
 
 void FirmwareUploader::upload(const QByteArray &file_content) {
@@ -64,29 +66,44 @@ void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
 	}
 }
 
+void FirmwareUploader::_handleError(QSerialPort::SerialPortError error) {
+	qDebug() << _serial.errorString();
+}
+
 FirmwareUploadResult
 FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	_setUploadState(FirmwareUploadState::BootloaderSearching);
 
-	const auto infos = QSerialPortInfo::availablePorts();
 	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	QString port_name;
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch() &&
-				(port_name.isEmpty() || port_name.compare(port_info.portName()) > 0)) {
-			port_name = port_info.portName();
+	// Send reboot to all available devices
+	_serial.setBaudRate(QSerialPort::Baud57600);
+	for (const auto &port_info : QSerialPortInfo::availablePorts()) {
+		if (port_regex.match(port_info.portName()).hasMatch()) {
+			_serial.setPortName(port_info.portName());
+
+			if (_openSerialPort()) {
+				qDebug() << "SEND REBOOT TO " << _serial.portName();
+				_sendReboot();
+				_closeSerialPort();
+			}
 		}
 	}
-	_serial.setPortName(port_name);
-	if (port_name.isEmpty()) {
-		return FirmwareUploadResult::SerialPortError;
+	std::this_thread::sleep_for(std::chrono::milliseconds{2000});
+
+	FindBootloaderResult bootloaderSearchResult =
+			FindBootloaderResult::SerialPortError;
+	for (const auto &port_info : QSerialPortInfo::availablePorts()) {
+		if (port_regex.match(port_info.portName()).hasMatch()) {
+			_serial.setPortName(port_info.portName());
+
+			bootloaderSearchResult = _findBootloader();
+			if (bootloaderSearchResult == FindBootloaderResult::Ok) {
+				break;
+			}
+		}
 	}
 
-	qDebug() << "CONNECT TO " << port_name;
-
-	_serial.setPortName(port_name);
-
-	switch (_findBootloader()) {
+	switch (bootloaderSearchResult) {
 	case FindBootloaderResult::SerialPortError:
 		return FirmwareUploadResult::SerialPortError;
 	case FindBootloaderResult::SyncFail:
@@ -186,12 +203,14 @@ bool FirmwareUploader::_openSerialPort() {
 	_serial_open_timer.start(kOpenTimeout);
 	while (_serial_open_timer.isActive()) {
 		if (_serial.open(QIODevice::ReadWrite)) {
-			qDebug() << "Serial connected\n";
+			qDebug() << "Serial connected";
 			_serial_open_timer.stop();
 			return true;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::milliseconds{200});
+		QApplication::processEvents();
 	}
+	qDebug() << "Serial connect timeout";
 	return false;
 }
 
@@ -366,28 +385,10 @@ uint32_t FirmwareUploader::_getInfo(const char param) {
 FindBootloaderResult FirmwareUploader::_findBootloader() {
 	qDebug() << "SEARCHING BOOTLOADER...";
 
-	_serial.setBaudRate(QSerialPort::Baud57600);
-	if (_openSerialPort()) {
-		_sendReboot();
-		_closeSerialPort();
-		std::this_thread::sleep_for(std::chrono::milliseconds{2000});
-	} else {
-		return FindBootloaderResult::SerialPortError;
-	}
-
-	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	auto infos = QSerialPortInfo::availablePorts();
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch()) {
-			_serial.setPortName(port_info.portName());
-			break;
-		}
-	}
-
-	qDebug() << "Try connect to " << _serial.portName() << "on baud 115200";
-
 	// attempt to connect on baud 115200
 	_serial.setBaudRate(QSerialPort::Baud115200);
+	qDebug() << "Try connect to " << _serial.portName() << "on baud "
+					 << _serial.baudRate();
 	if (_openSerialPort()) {
 		switch (_identify()) {
 		case IdentifyResult::UnsupportedBootloader:
@@ -399,28 +400,18 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 			return FindBootloaderResult::Ok;
 		}
 		}
-	} else {
+	} /*else {
 		return FindBootloaderResult::SerialPortError;
-	}
+	}*/
 
-	_sendReboot();
-	_closeSerialPort();
-	std::this_thread::sleep_for(std::chrono::milliseconds{2000});
-
-	infos = QSerialPortInfo::availablePorts();
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch()) {
-			_serial.setPortName(port_info.portName());
-			break;
-		}
-	}
-
-	qDebug() << "Try connect to " << _serial.portName() << "on baud 57600";
+	// _closeSerialPort();
+	std::this_thread::sleep_for(std::chrono::milliseconds{500});
 
 	// attempt to connect on baud 57600
 	_serial.setBaudRate(QSerialPort::Baud57600);
+	qDebug() << "Try connect to " << _serial.portName() << "on baud "
+					 << _serial.baudRate();
 	if (!_openSerialPort()) {
-		qDebug() << "CANNOT OPEN SERIAL PORT ATTEMPT 2\n";
 		return FindBootloaderResult::SerialPortError;
 	}
 	switch (_identify()) {
@@ -488,7 +479,7 @@ SyncResult FirmwareUploader::_programMulti(const QByteArray &bytes) {
 }
 
 void FirmwareUploader::_sendReboot() {
-	qDebug() << "REBOOT ATTEMPT\n";
+	qDebug() << "REBOOT ATTEMPT";
 	// Reboot via mavlink
 	_serial.flush();
 	_writeData(MAVLINK_REBOOT_ID1);

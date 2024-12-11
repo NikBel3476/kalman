@@ -104,6 +104,7 @@ signals:
 
 private slots:
 	void _handleBytesWritten(qint64);
+	void _handleError(QSerialPort::SerialPortError error);
 
 private:
 	void _setUploadState(FirmwareUploadState state);

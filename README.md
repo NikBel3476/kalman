@@ -201,4 +201,9 @@ PARAM_SET (23) - set parameter on autopilot
 
 AP -> GS  
 PARAM_VALUE (22) - parameter from autopilot  
-> After parameters set autopilot will return written parameters but with index 65535 
+> After parameters set autopilot will return written parameters but with index 65535
+
+### Firmware upload
+
+> Attention: do not plug more than one fc board to pc at firmware upload due to app will
+try to reboot all available serial devices and can upload firmware to wrong board
