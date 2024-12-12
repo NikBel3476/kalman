@@ -49,6 +49,11 @@ FirmwareUploader::FirmwareUploader(QObject *parent)
 					&FirmwareUploader::_handleError);
 }
 
+FirmwareUploader::~FirmwareUploader() {
+	qDebug() << "Firmware uploader deleted";
+	_closeSerialPort();
+}
+
 void FirmwareUploader::upload(const QByteArray &file_content) {
 	const auto upload_result = _tryUploadFirmware(file_content);
 	emit uploadCompleted(upload_result);
@@ -67,7 +72,7 @@ void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
 }
 
 void FirmwareUploader::_handleError(QSerialPort::SerialPortError error) {
-	qDebug() << _serial.errorString();
+	qDebug() << "FIRMWARE THREAD: " << _serial.errorString();
 }
 
 FirmwareUploadResult
@@ -88,7 +93,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 			}
 		}
 	}
-	std::this_thread::sleep_for(std::chrono::milliseconds{2000});
+	std::this_thread::sleep_for(std::chrono::milliseconds{4000});
 
 	FindBootloaderResult bootloaderSearchResult =
 			FindBootloaderResult::SerialPortError;
@@ -151,6 +156,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 
 	// firmware compatibility check
 	if (_board_type != _firmware.board_type) {
+		qDebug() << "Incompatible board type";
 		return FirmwareUploadResult::IncompatibleBoardType;
 	}
 	if (_fw_maxsize < _firmware.image_size) {
@@ -182,8 +188,8 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	qDebug() << "PROGRAM STARTED";
 	const auto program_success = _program();
 	if (!program_success) {
-		return FirmwareUploadResult::ProgramFail;
 		qDebug() << "PROGRAM FAIL";
+		return FirmwareUploadResult::ProgramFail;
 	}
 	qDebug() << "PROGRAM COMPLETED";
 	qDebug() << "VERIFYING STARTED";
@@ -200,6 +206,10 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 }
 
 bool FirmwareUploader::_openSerialPort() {
+	_serial.setDataBits(QSerialPort::Data8);
+	_serial.setParity(QSerialPort::NoParity);
+	_serial.setStopBits(QSerialPort::OneStop);
+	_serial.setFlowControl(QSerialPort::NoFlowControl);
 	_serial_open_timer.start(kOpenTimeout);
 	while (_serial_open_timer.isActive()) {
 		if (_serial.open(QIODevice::ReadWrite)) {
@@ -250,11 +260,11 @@ SyncResult FirmwareUploader::_getSync() {
 	}
 	auto data = _serial.read(1);
 	if (data.length() < 1) {
-		qDebug() << "READ TIMEOUT 1\n";
+		qDebug() << "READ TIMEOUT 1";
 		return SyncResult::ReadTimeout;
 	}
 	if (data[0] != INSYNC) {
-		qDebug() << "SYNC FAIL 1\n";
+		qDebug() << "SYNC FAIL 1";
 		return SyncResult::Fail;
 	}
 	if (_serial.bytesAvailable() == 0) {
@@ -263,19 +273,19 @@ SyncResult FirmwareUploader::_getSync() {
 	}
 	data = _serial.read(1);
 	if (data.length() < 1) {
-		qDebug() << "READ TIMEOUT 2\n";
+		qDebug() << "READ TIMEOUT 2";
 		return SyncResult::ReadTimeout;
 	}
 	if (data[0] == INVALID) {
-		qDebug() << "INVALID OPERATION 2\n";
+		qDebug() << "INVALID OPERATION 2";
 		return SyncResult::InvalidOperation;
 	}
 	if (data[0] == FAILED) {
-		qDebug() << "UPLOAD FAIL 2\n";
+		qDebug() << "UPLOAD FAIL 2";
 		return SyncResult::Fail;
 	}
 	if (data[0] != OK) {
-		qDebug() << "UNEXPECTED RESPONSE 2\n";
+		qDebug() << "UNEXPECTED RESPONSE 2";
 		return SyncResult::UnexpectedResponse;
 	}
 	return SyncResult::Ok;
@@ -347,7 +357,7 @@ IdentifyResult FirmwareUploader::_identify() {
 	case SyncResult::InvalidOperation:
 	case SyncResult::ReadTimeout:
 	case SyncResult::UnexpectedResponse: {
-		qDebug() << "SYNC FAILED\n";
+		qDebug() << "SYNC FAILED";
 		return IdentifyResult::SyncFail;
 	}
 	case SyncResult::Ok: {
@@ -392,6 +402,7 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 	if (_openSerialPort()) {
 		switch (_identify()) {
 		case IdentifyResult::UnsupportedBootloader:
+			_closeSerialPort();
 			return FindBootloaderResult::UnsupportedBootloader;
 		case IdentifyResult::SyncFail:
 			break;
@@ -404,7 +415,7 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 		return FindBootloaderResult::SerialPortError;
 	}*/
 
-	// _closeSerialPort();
+	_closeSerialPort();
 	std::this_thread::sleep_for(std::chrono::milliseconds{500});
 
 	// attempt to connect on baud 57600
@@ -416,8 +427,10 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 	}
 	switch (_identify()) {
 	case IdentifyResult::UnsupportedBootloader:
+		_closeSerialPort();
 		return FindBootloaderResult::UnsupportedBootloader;
 	case IdentifyResult::SyncFail:
+		_closeSerialPort();
 		return FindBootloaderResult::SyncFail;
 	case IdentifyResult::Ok: {
 		qDebug() << "BOOTLOADER FOUND on BAUD: " << 57600 << '\n';

@@ -234,7 +234,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&ApParametersPage::handleAutopilotConnection);
 	connect(_ap_params_page, &ApParametersPage::parametersWritten, this,
 					&MainWindow::_handleApParametersWrite);
-	connect(_ap_params_page, &ApParametersPage::paramsResetRequest, this, &MainWindow::_rebootAp);
+	connect(_ap_params_page, &ApParametersPage::paramsResetRequest, this,
+					&MainWindow::_rebootAp);
 }
 
 MainWindow::~MainWindow() = default;
@@ -318,7 +319,7 @@ void MainWindow::_handleAboutActionTrigger() {
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
 	switch (error) {
 	case QSerialPort::ResourceError: {
-		qDebug() << _serial->errorString() << '\n';
+		qDebug() << "MAIN THREAD: " << _serial->errorString();
 		// QMessageBox::critical(this, tr("Critical Error"),
 		// _serial->errorString());
 		// FIXME: This error happens sometimes and not breaking connection so we do
@@ -330,11 +331,12 @@ void MainWindow::handleError(QSerialPort::SerialPortError error) {
 												 tr("No device permissions or it is already in use"));
 	} break;
 	default: {
+		qDebug() << "MAIN THREAD: " << _serial->errorString();
 		// sometimes error emits with `No error` message
-		if (_serial->errorString() != "No error") {
-			qDebug() << "Serial error: " << _serial->errorString();
-			// QMessageBox::critical(this, tr("Error"), _serial->errorString());
-		}
+		// if (_serial->errorString() != "No error") {
+		// 	qDebug() << "Serial error: " << _serial->errorString();
+		// 	// QMessageBox::critical(this, tr("Error"), _serial->errorString());
+		// }
 	}
 	}
 }
@@ -370,6 +372,7 @@ void MainWindow::_logout() {
 void MainWindow::handleFirmwareUpload(DroneType drone_type) {
 	qDebug() << std::format("Upload firmware. Drone type: {}",
 													static_cast<int>(drone_type));
+	_serial_reconnect_timer->stop();
 	closeSerialPort();
 	_autopilot->state = AutopilotState::Flashing;
 	_heartbeat_timer->stop();
@@ -512,6 +515,7 @@ void MainWindow::openSerialPort() {
 	_serial->setFlowControl(p.flowControl);
 
 	if (_serial->open(QIODevice::ReadWrite)) {
+		qDebug() << "Serial connected";
 		_console->setEnabled(true);
 		_ports_box->setEnabled(false);
 		_action_refresh->setEnabled(false);
@@ -532,6 +536,7 @@ void MainWindow::openSerialPort() {
 void MainWindow::closeSerialPort() {
 	if (_serial->isOpen()) {
 		_serial->close();
+		qDebug() << "Serial disconnected";
 	}
 	_ports_box->setEnabled(true);
 	_action_refresh->setEnabled(true);

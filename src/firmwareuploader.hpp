@@ -94,6 +94,7 @@ public:
 	FirmwareUploadState upload_state = FirmwareUploadState::None;
 
 	explicit FirmwareUploader(QObject *parent = nullptr);
+	~FirmwareUploader();
 	void upload(const QByteArray &file_content);
 
 signals:
