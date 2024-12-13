@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
-project(Kalman CXX)
+cmake_minimum_required(VERSION 3.17)
+project(Kalman VERSION 0.1.0 LANGUAGES CXX)
 
 # TODO: Use VERSION argument to project command after raising the minimum
 # cmake version to 3.0
-set(PROJECT_VERSION_MAJOR 0)
-set(PROJECT_VERSION_MINOR 1)
-set(PROJECT_VERSION_PATCH 0)
-set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+# set(PROJECT_VERSION_MAJOR 0)
+# set(PROJECT_VERSION_MINOR 1)
+# set(PROJECT_VERSION_PATCH 0)
+# set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
 include(CTest)
 
@@ -46,9 +46,14 @@ set(HEADERS
     include/kalman/Types.hpp
 )
 
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE
+  include
+)
+
 include_directories(
-    "include"
-    ${Eigen3_INCLUDE_DIR}
+	"include"
+	${Eigen3_INCLUDE_DIR}
 )
 
 # Flags

@@ -24,7 +24,7 @@
 
 #include <cmath>
 
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 
 #define KALMAN_VECTOR(NAME, T, N)                                                       \
     typedef Kalman::Vector<T, N> Base;                                                  \
