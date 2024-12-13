@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 project(autopilot_selfcheck VERSION 0.1.0 LANGUAGES C CXX)
 
 cmake_policy(SET CMP0135 NEW)
@@ -23,6 +23,7 @@ endif()
 set(mavlink mavlink)
 set(qflightinstruments qflightinstruments)
 set(json json)
+set(kalman_filter kalman_filter)
 
 FetchContent_Declare(${mavlink}
 	GIT_REPOSITORY https://github.com/mavlink/c_library_v2.git
@@ -34,7 +35,11 @@ FetchContent_Declare(${qflightinstruments}
 FetchContent_Declare(${json} URL
 	https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
 )
-FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink})
+FetchContent_Declare(${kalman_filter}
+	GIT_REPOSITORY https://github.com/NikBel3476/kalman.git
+	GIT_TAG b4522cbd033b9b2be7ab6f8dd2f7efa6e96d69d7
+)
+FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink} ${kalman_filter})
 
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
@@ -90,6 +95,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::SvgWidgets
 	Qt6::Concurrent
 	qflightinstruments
+	Kalman
 	nlohmann_json::nlohmann_json
 )
 

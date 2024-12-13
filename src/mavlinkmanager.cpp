@@ -21,7 +21,6 @@ MavlinkManager::MavlinkManager(QObject *parent, QSerialPort *serial,
 	connect(_serial, &QSerialPort::readyRead, this, &MavlinkManager::_readData);
 	connect(_serial, &QSerialPort::bytesWritten, this,
 					&MavlinkManager::_handleBytesWritten);
-	qDebug() << "FtpMessage size: " << sizeof(FtpMessage);
 }
 
 void MavlinkManager::sendCmdLong(uint16_t command, uint8_t confirmation,
