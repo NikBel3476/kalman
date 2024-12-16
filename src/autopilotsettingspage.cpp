@@ -55,10 +55,11 @@ void AutopilotSettingsPage::_handleVfrHudUpdate(
 	// _altitude_control.altitude() = vfr_hud.alt;
 	// _altitude_state = _altitude_system_model.f(_altitude_state,
 	// _altitude_control); const auto altitude_ekf =
-	// _ekf->predict(_altitude_system_model, _altitude_control); qDebug() << "ALT:
-	// " << vfr_hud.alt << "\nEKF" << altitude_ekf.altitude();
+	// _ekf->predict(_altitude_system_model, _altitude_control); qDebug() <<
+	// "ALT:" << vfr_hud.alt << "\nEKF" << altitude_ekf.altitude();
 	// _altitude_label->setText(tr("Altitude: %1
 	// m").arg(altitude_ekf.altitude()));
+
 	_altitude_last_values.push_back(vfr_hud.alt);
 	static constexpr auto altitude_values_max_size = 8;
 	if (_altitude_last_values.size() >= altitude_values_max_size) {
