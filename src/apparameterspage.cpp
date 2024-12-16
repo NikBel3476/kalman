@@ -108,7 +108,7 @@ void ApParametersPage::updateApParameters() {
 	// _update_params_btn->setEnabled(false);
 	_upload_params_btn->setEnabled(false);
 	_compare_params_btn->setEnabled(false);
-	_autopilot->params_state = AutopilotParamsState::Receiving;
+	_autopilot->setParamsState(AutopilotParamsState::Receiving);
 	_ap_params.clear();
 	_ap_params_table->setRowCount(0);
 	_mavlink_manager->sendParamRequestList();
@@ -126,9 +126,9 @@ void ApParametersPage::_handleParameterSendTimeout() {
 
 void ApParametersPage::handleAutopilotConnection() {
 	qDebug() << "AUTOPILOT CONNECTED. STATE: "
-					 << static_cast<int>(_autopilot->state);
+					 << static_cast<int>(_autopilot->getState());
 	if (!_not_saved_params.empty() &&
-			_autopilot->params_send_state == AutopilotParamsSendState::Sending) {
+			_autopilot->getParamsSendState() == AutopilotParamsSendState::Sending) {
 		_update_params_on_ap_connect_timer->start(
 				kApParamsUpdateDelay); // wait for autopilot parameters update
 		qDebug() << "NOT_SAVED_PARAMETERS IS NOT EMPTY";
@@ -148,7 +148,7 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 			_upload_params_btn->setEnabled(false);
 			_file_name_label->setText(
 					tr("Comparing file: %1")
-							.arg(file_name.mid(file_name.lastIndexOf('/') + 1)));
+							.arg(file_name.mid(file_name.lastIndexOf(QChar('/')) + 1)));
 			_file_name_label->setVisible(true);
 			clearNotSavedParams();
 			clearParamsToUpload();
@@ -173,8 +173,8 @@ void ApParametersPage::_handleResetParamsButtonClick() {
 	_mavlink_manager->sendParamSet(format_version_param);
 	std::this_thread::sleep_for(std::chrono::milliseconds{1000});
 	clearNotSavedParams();
-	_autopilot->params_state = AutopilotParamsState::None;
-	_autopilot->params_send_state = AutopilotParamsSendState::None;
+	_autopilot->setParamsState(AutopilotParamsState::None);
+	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 	emit paramsResetRequest();
 }
 
@@ -248,7 +248,7 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 		for (const auto &comparing_param : comparing_params) {
 			const auto param_name = QString::number(comparing_param.param_value);
 			const auto param_name_formatted =
-					param_name.left(param_name.indexOf('\0'));
+					param_name.left(param_name.indexOf(QChar('\0')));
 			const auto &new_param_value_item =
 					new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 			for (const auto &[_, ap_param] : _ap_params) {
@@ -273,7 +273,8 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 	for (const auto &[not_found_param_id, not_found_param_value] :
 			 not_found_params) {
 		const auto param_name = QString::fromStdString(not_found_param_id);
-		const auto param_name_formatted = param_name.left(param_name.indexOf('\0'));
+		const auto param_name_formatted =
+				param_name.left(param_name.indexOf(QChar('\0')));
 		const auto &param_id_item =
 				new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 		param_id_item->setBackground(QBrush(Qt::transparent));
@@ -300,7 +301,7 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 void ApParametersPage::_uploadApParam() {
 	if (_params_to_upload.empty()) {
 		_send_param_timer->stop();
-		_autopilot->params_send_state = AutopilotParamsSendState::None;
+		_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 		return;
 	}
 	auto param = _params_to_upload.back();
@@ -311,7 +312,7 @@ void ApParametersPage::_handleApParamReceive(
 		mavlink_param_value_t param_value) {
 	const auto written_param_index = 65535;
 	if (param_value.param_index == written_param_index &&
-			_autopilot->params_state != AutopilotParamsState::Receiving) {
+			_autopilot->getParamsState() != AutopilotParamsState::Receiving) {
 		// param write ack
 		_handleParamUploadAck(param_value);
 		return;
@@ -331,7 +332,8 @@ void ApParametersPage::_handleApParamReceive(
 	}
 	// update values inside table
 	const auto param_name = QString::fromUtf8(param_value.param_id, 16);
-	const auto param_name_formatted = param_name.left(param_name.indexOf('\0'));
+	const auto param_name_formatted =
+			param_name.left(param_name.indexOf(QChar('\0')));
 	const auto &table_item_name =
 			new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 	const auto &table_item_value = new QTableWidgetItem(
@@ -361,13 +363,13 @@ void ApParametersPage::_handleApParamReceive(
 				_cannot_save_params.erase(ap_param.first);
 			}
 		}
-		_autopilot->params_state = AutopilotParamsState::Received;
+		_autopilot->setParamsState(AutopilotParamsState::Received);
 		_update_params_btn->setEnabled(true);
 		_compare_params_btn->setEnabled(true);
 		_download_params_progress_bar->setVisible(false);
 		qDebug() << "ALL PARAMETERS RECEIVED";
 		qDebug() << "NOT SAVED PARAMS SIZE: " << _not_saved_params.size();
-		if (_autopilot->params_send_state != AutopilotParamsSendState::Sending) {
+		if (_autopilot->getParamsSendState() != AutopilotParamsSendState::Sending) {
 			return;
 		}
 		if (!_not_saved_params.empty()) {
@@ -390,7 +392,7 @@ void ApParametersPage::_handleApParamReceive(
 				qDebug() << "PARAMS UPLOAD MAX ATTEMPT NUMBER REACHED";
 				QMessageBox::warning(this, tr("Warning"),
 														 tr("Not all parameters saved"));
-				_autopilot->params_send_state = AutopilotParamsSendState::None;
+				_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 				for (const auto &[_, cannot_save_param] : _cannot_save_params) {
 					qDebug() << std::string(cannot_save_param.param_id, 16)
 									 << "CANNOT SAVE" << cannot_save_param.param_index;
@@ -419,7 +421,7 @@ void ApParametersPage::_handleApParamReceive(
 						QMessageBox::warning(this, tr("Warning"),
 																 tr("Not all parameters saved"));
 					}
-					_autopilot->params_send_state = AutopilotParamsSendState::None;
+					_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 					for (const auto &[_, cannot_save_param] : _cannot_save_params) {
 						qDebug() << std::string(cannot_save_param.param_id, 16)
 										 << "CANNOT SAVE" << cannot_save_param.param_index;
@@ -434,7 +436,7 @@ void ApParametersPage::_handleApParamReceive(
 			return;
 		} else { // _not_saved_params is empty
 			QMessageBox::information(this, tr("Information"), tr("Parameters saved"));
-			_autopilot->params_send_state = AutopilotParamsSendState::None;
+			_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 			_showUploadResult();
 			_reset();
 		}
@@ -442,7 +444,7 @@ void ApParametersPage::_handleApParamReceive(
 }
 
 void ApParametersPage::_handleParamUploadAck(mavlink_param_value_t &param) {
-	if (_autopilot->params_send_state == AutopilotParamsSendState::Sending &&
+	if (_autopilot->getParamsSendState() == AutopilotParamsSendState::Sending &&
 			!_params_to_upload.empty()) {
 		_send_param_timer->start(kSendParamTimeout);
 		const auto param_to_upload = _params_to_upload.back();
@@ -470,7 +472,7 @@ void ApParametersPage::_uploadParameters() {
 	// _upload_params_progress_bar->setValue(_params_upload_attempt_counter);
 
 	_send_param_timer->start(kSendParamTimeout);
-	_autopilot->params_send_state = AutopilotParamsSendState::Sending;
+	_autopilot->setParamsSendState(AutopilotParamsSendState::Sending);
 	// _params_upload_attempt_counter++;
 	qDebug() << "PARAMS TO UPLOAD SIZE: " << _params_to_upload.size();
 	qDebug() << "PARAMS UPLOAD ATTEMPT: " << _params_upload_attempt_counter;
@@ -502,7 +504,8 @@ void ApParametersPage::_showUploadResult() {
 	for (const auto &[not_found_param_id, not_found_param_value] :
 			 _not_saved_params) {
 		const auto param_name = QString::fromStdString(not_found_param_id);
-		const auto param_name_formatted = param_name.left(param_name.indexOf('\0'));
+		const auto param_name_formatted =
+				param_name.left(param_name.indexOf(QChar('\0')));
 		const auto &param_id_item =
 				new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
 		param_id_item->setBackground(QBrush(Qt::transparent));

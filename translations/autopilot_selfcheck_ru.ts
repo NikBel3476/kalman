@@ -40,8 +40,8 @@
 		<translation>Очистить консоль</translation>
 	</message>
 	<message>
-		<source>Settings</source>
-		<translation>Настройки</translation>
+	    <source>Calibration</source>
+		<translation>Калибровка</translation>
 	</message>
 	<message>
 		<source>Parameters</source>

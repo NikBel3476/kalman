@@ -174,7 +174,7 @@ void MavlinkManager::_writeData(const QByteArray &data) {
 }
 
 void MavlinkManager::_readData() {
-	if (_autopilot->state == AutopilotState::Flashing) {
+	if (_autopilot->getState() == AutopilotState::Flashing) {
 		return;
 	}
 	const auto data = _serial->readAll();

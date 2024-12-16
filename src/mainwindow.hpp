@@ -69,13 +69,14 @@ public:
 	};
 
 signals:
-	void apStateUpdated(AutopilotState);
 	void autopilotConnected();
 
 private slots:
 	void fillPortsInfo();
 	void openSerialPort();
-	void closeSerialPort();
+	void _closeSerialPort();
+	void _handleAutopilotConnection();
+	void _handleAutopilotStateUpdate(const AutopilotState &new_state);
 
 	void _handleSerialWriteError(const QString &error_msg);
 	void handleError(QSerialPort::SerialPortError);
@@ -102,13 +103,12 @@ private slots:
 
 private:
 	void initSerialPortEventsConnections();
-	void showStatusMessage(const QString &);
 	void showWriteError(const QString &);
 	void setPortSettings(int);
 	void _findBootloader();
 	void initPortsBoxEventsConnections();
-	void _setApState(AutopilotState);
 	void _trySerialConnect();
+	void _disconnect();
 
 	QToolBar *_toolbar = nullptr;
 	QComboBox *_ports_box = nullptr;
@@ -154,6 +154,7 @@ private:
 	QTimer *_serial_reconnect_delay_timer = nullptr;
 	std::vector<mavlink_param_value_t> _params_to_upload;
 	std::vector<mavlink_param_value_t> _not_written_params;
+	QList<QSerialPortInfo> _ports_list;
 
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;
