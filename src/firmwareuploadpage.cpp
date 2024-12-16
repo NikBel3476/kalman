@@ -67,21 +67,25 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 			emit uploadFirmwareStarted(_drone_type);
 			_firmware_upload_button->setVisible(false);
 			// std::this_thread::sleep_for(std::chrono::seconds(2));
-			const auto task = QtConcurrent::task([this, file_content]() {
-				const auto firmware_uploader = new FirmwareUploader();
+			const auto task =
+					QtConcurrent::task([this, file_content]() {
+						const auto firmware_uploader = std::make_unique<FirmwareUploader>();
 
-				// TODO: add disconnections
-				connect(firmware_uploader, &FirmwareUploader::stateUpdated, this,
-								&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
-				connect(firmware_uploader, &FirmwareUploader::flashProgressUpdated,
-								this, &FirmwareUploadPage::_handleFlashProgressUpdate);
-				connect(firmware_uploader, &FirmwareUploader::eraseProgressUpdated,
-								this, &FirmwareUploadPage::_handleEraseProgressUpdate);
-				connect(firmware_uploader, &FirmwareUploader::uploadCompleted, this,
-								&FirmwareUploadPage::_handleFirmwareUploadCompletion);
+						// TODO: add disconnections
+						connect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
+										this,
+										&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
+						connect(firmware_uploader.get(),
+										&FirmwareUploader::flashProgressUpdated, this,
+										&FirmwareUploadPage::_handleFlashProgressUpdate);
+						connect(firmware_uploader.get(),
+										&FirmwareUploader::eraseProgressUpdated, this,
+										&FirmwareUploadPage::_handleEraseProgressUpdate);
+						connect(firmware_uploader.get(), &FirmwareUploader::uploadCompleted,
+										this, &FirmwareUploadPage::_handleFirmwareUploadCompletion);
 
-				firmware_uploader->upload(file_content);
-			}).spawn();
+						firmware_uploader->upload(file_content);
+					}).spawn();
 		}
 	};
 	QFileDialog::getOpenFileContent("*.apj", fileContentReady);

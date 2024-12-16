@@ -94,6 +94,7 @@ public:
 	FirmwareUploadState upload_state = FirmwareUploadState::None;
 
 	explicit FirmwareUploader(QObject *parent = nullptr);
+	~FirmwareUploader();
 	void upload(const QByteArray &file_content);
 
 signals:
@@ -104,6 +105,7 @@ signals:
 
 private slots:
 	void _handleBytesWritten(qint64);
+	void _handleError(QSerialPort::SerialPortError error);
 
 private:
 	void _setUploadState(FirmwareUploadState state);

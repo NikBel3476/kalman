@@ -45,6 +45,13 @@ FirmwareUploader::FirmwareUploader(QObject *parent)
 	// connections
 	connect(&_serial, &QSerialPort::bytesWritten, this,
 					&FirmwareUploader::_handleBytesWritten);
+	connect(&_serial, &QSerialPort::errorOccurred, this,
+					&FirmwareUploader::_handleError);
+}
+
+FirmwareUploader::~FirmwareUploader() {
+	qDebug() << "Firmware uploader deleted";
+	_closeSerialPort();
 }
 
 void FirmwareUploader::upload(const QByteArray &file_content) {
@@ -64,29 +71,44 @@ void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
 	}
 }
 
+void FirmwareUploader::_handleError(QSerialPort::SerialPortError error) {
+	qDebug() << "FIRMWARE THREAD: " << _serial.errorString();
+}
+
 FirmwareUploadResult
 FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	_setUploadState(FirmwareUploadState::BootloaderSearching);
 
-	const auto infos = QSerialPortInfo::availablePorts();
 	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	QString port_name;
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch() &&
-				(port_name.isEmpty() || port_name.compare(port_info.portName()) > 0)) {
-			port_name = port_info.portName();
+	// Send reboot to all available devices
+	_serial.setBaudRate(QSerialPort::Baud57600);
+	for (const auto &port_info : QSerialPortInfo::availablePorts()) {
+		if (port_regex.match(port_info.portName()).hasMatch()) {
+			_serial.setPortName(port_info.portName());
+
+			if (_openSerialPort()) {
+				qDebug() << "SEND REBOOT TO " << _serial.portName();
+				_sendReboot();
+				_closeSerialPort();
+			}
 		}
 	}
-	_serial.setPortName(port_name);
-	if (port_name.isEmpty()) {
-		return FirmwareUploadResult::SerialPortError;
+	std::this_thread::sleep_for(std::chrono::milliseconds{4000});
+
+	FindBootloaderResult bootloaderSearchResult =
+			FindBootloaderResult::SerialPortError;
+	for (const auto &port_info : QSerialPortInfo::availablePorts()) {
+		if (port_regex.match(port_info.portName()).hasMatch()) {
+			_serial.setPortName(port_info.portName());
+
+			bootloaderSearchResult = _findBootloader();
+			if (bootloaderSearchResult == FindBootloaderResult::Ok) {
+				break;
+			}
+		}
 	}
 
-	qDebug() << "CONNECT TO " << port_name;
-
-	_serial.setPortName(port_name);
-
-	switch (_findBootloader()) {
+	switch (bootloaderSearchResult) {
 	case FindBootloaderResult::SerialPortError:
 		return FirmwareUploadResult::SerialPortError;
 	case FindBootloaderResult::SyncFail:
@@ -134,6 +156,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 
 	// firmware compatibility check
 	if (_board_type != _firmware.board_type) {
+		qDebug() << "Incompatible board type";
 		return FirmwareUploadResult::IncompatibleBoardType;
 	}
 	if (_fw_maxsize < _firmware.image_size) {
@@ -165,8 +188,8 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	qDebug() << "PROGRAM STARTED";
 	const auto program_success = _program();
 	if (!program_success) {
-		return FirmwareUploadResult::ProgramFail;
 		qDebug() << "PROGRAM FAIL";
+		return FirmwareUploadResult::ProgramFail;
 	}
 	qDebug() << "PROGRAM COMPLETED";
 	qDebug() << "VERIFYING STARTED";
@@ -183,15 +206,21 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 }
 
 bool FirmwareUploader::_openSerialPort() {
+	_serial.setDataBits(QSerialPort::Data8);
+	_serial.setParity(QSerialPort::NoParity);
+	_serial.setStopBits(QSerialPort::OneStop);
+	_serial.setFlowControl(QSerialPort::NoFlowControl);
 	_serial_open_timer.start(kOpenTimeout);
 	while (_serial_open_timer.isActive()) {
 		if (_serial.open(QIODevice::ReadWrite)) {
-			qDebug() << "Serial connected\n";
+			qDebug() << "Serial connected";
 			_serial_open_timer.stop();
 			return true;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::milliseconds{200});
+		QApplication::processEvents();
 	}
+	qDebug() << "Serial connect timeout";
 	return false;
 }
 
@@ -231,11 +260,11 @@ SyncResult FirmwareUploader::_getSync() {
 	}
 	auto data = _serial.read(1);
 	if (data.length() < 1) {
-		qDebug() << "READ TIMEOUT 1\n";
+		qDebug() << "READ TIMEOUT 1";
 		return SyncResult::ReadTimeout;
 	}
 	if (data[0] != INSYNC) {
-		qDebug() << "SYNC FAIL 1\n";
+		qDebug() << "SYNC FAIL 1";
 		return SyncResult::Fail;
 	}
 	if (_serial.bytesAvailable() == 0) {
@@ -244,19 +273,19 @@ SyncResult FirmwareUploader::_getSync() {
 	}
 	data = _serial.read(1);
 	if (data.length() < 1) {
-		qDebug() << "READ TIMEOUT 2\n";
+		qDebug() << "READ TIMEOUT 2";
 		return SyncResult::ReadTimeout;
 	}
 	if (data[0] == INVALID) {
-		qDebug() << "INVALID OPERATION 2\n";
+		qDebug() << "INVALID OPERATION 2";
 		return SyncResult::InvalidOperation;
 	}
 	if (data[0] == FAILED) {
-		qDebug() << "UPLOAD FAIL 2\n";
+		qDebug() << "UPLOAD FAIL 2";
 		return SyncResult::Fail;
 	}
 	if (data[0] != OK) {
-		qDebug() << "UNEXPECTED RESPONSE 2\n";
+		qDebug() << "UNEXPECTED RESPONSE 2";
 		return SyncResult::UnexpectedResponse;
 	}
 	return SyncResult::Ok;
@@ -328,7 +357,7 @@ IdentifyResult FirmwareUploader::_identify() {
 	case SyncResult::InvalidOperation:
 	case SyncResult::ReadTimeout:
 	case SyncResult::UnexpectedResponse: {
-		qDebug() << "SYNC FAILED\n";
+		qDebug() << "SYNC FAILED";
 		return IdentifyResult::SyncFail;
 	}
 	case SyncResult::Ok: {
@@ -366,31 +395,14 @@ uint32_t FirmwareUploader::_getInfo(const char param) {
 FindBootloaderResult FirmwareUploader::_findBootloader() {
 	qDebug() << "SEARCHING BOOTLOADER...";
 
-	_serial.setBaudRate(QSerialPort::Baud57600);
-	if (_openSerialPort()) {
-		_sendReboot();
-		_closeSerialPort();
-		std::this_thread::sleep_for(std::chrono::milliseconds{2000});
-	} else {
-		return FindBootloaderResult::SerialPortError;
-	}
-
-	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	auto infos = QSerialPortInfo::availablePorts();
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch()) {
-			_serial.setPortName(port_info.portName());
-			break;
-		}
-	}
-
-	qDebug() << "Try connect to " << _serial.portName() << "on baud 115200";
-
 	// attempt to connect on baud 115200
 	_serial.setBaudRate(QSerialPort::Baud115200);
+	qDebug() << "Try connect to " << _serial.portName() << "on baud "
+					 << _serial.baudRate();
 	if (_openSerialPort()) {
 		switch (_identify()) {
 		case IdentifyResult::UnsupportedBootloader:
+			_closeSerialPort();
 			return FindBootloaderResult::UnsupportedBootloader;
 		case IdentifyResult::SyncFail:
 			break;
@@ -399,34 +411,26 @@ FindBootloaderResult FirmwareUploader::_findBootloader() {
 			return FindBootloaderResult::Ok;
 		}
 		}
-	} else {
+	} /*else {
 		return FindBootloaderResult::SerialPortError;
-	}
+	}*/
 
-	_sendReboot();
 	_closeSerialPort();
-	std::this_thread::sleep_for(std::chrono::milliseconds{2000});
-
-	infos = QSerialPortInfo::availablePorts();
-	for (const auto &port_info : infos) {
-		if (port_regex.match(port_info.portName()).hasMatch()) {
-			_serial.setPortName(port_info.portName());
-			break;
-		}
-	}
-
-	qDebug() << "Try connect to " << _serial.portName() << "on baud 57600";
+	std::this_thread::sleep_for(std::chrono::milliseconds{500});
 
 	// attempt to connect on baud 57600
 	_serial.setBaudRate(QSerialPort::Baud57600);
+	qDebug() << "Try connect to " << _serial.portName() << "on baud "
+					 << _serial.baudRate();
 	if (!_openSerialPort()) {
-		qDebug() << "CANNOT OPEN SERIAL PORT ATTEMPT 2\n";
 		return FindBootloaderResult::SerialPortError;
 	}
 	switch (_identify()) {
 	case IdentifyResult::UnsupportedBootloader:
+		_closeSerialPort();
 		return FindBootloaderResult::UnsupportedBootloader;
 	case IdentifyResult::SyncFail:
+		_closeSerialPort();
 		return FindBootloaderResult::SyncFail;
 	case IdentifyResult::Ok: {
 		qDebug() << "BOOTLOADER FOUND on BAUD: " << 57600 << '\n';
@@ -488,7 +492,7 @@ SyncResult FirmwareUploader::_programMulti(const QByteArray &bytes) {
 }
 
 void FirmwareUploader::_sendReboot() {
-	qDebug() << "REBOOT ATTEMPT\n";
+	qDebug() << "REBOOT ATTEMPT";
 	// Reboot via mavlink
 	_serial.flush();
 	_writeData(MAVLINK_REBOOT_ID1);
