@@ -13,8 +13,9 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 			_gyroscope_info_widget(new GyroscopeInfoWidget(this, mavlink_manager)),
 			_mcu_info_widget(new McuInfoWidget(this, mavlink_manager)),
 			_avionics_widget(new AvionicsWidget(this, mavlink_manager)),
-			_mavlink_manager{mavlink_manager},
-			_ekf{new Kalman::ExtendedKalmanFilter<State<float>>()} {
+			_mavlink_manager{mavlink_manager}
+// _ekf{new Kalman::ExtendedKalmanFilter<State<float>>()}
+{
 	_layout->addWidget(_magnetometer_info_widget, 0, 0, 2, 0, Qt::AlignLeft);
 	_layout->addWidget(_altitude_label, 0, 1);
 	_layout->addWidget(_scaled_pressure_label, 1, 1, Qt::AlignLeft);
@@ -26,8 +27,8 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 	_layout->setContentsMargins(5, 0, 0, 0);
 	_layout->setAlignment(Qt::AlignTop);
 
-	_altitude_state.setZero();
-	_ekf->init(_altitude_state);
+	// _altitude_state.setZero();
+	// _ekf->init(_altitude_state);
 
 	// mavlink manager connections
 	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,

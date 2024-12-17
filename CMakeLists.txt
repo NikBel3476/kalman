@@ -39,7 +39,7 @@ FetchContent_Declare(${kalman_filter}
 	GIT_REPOSITORY https://github.com/NikBel3476/kalman.git
 	GIT_TAG b4522cbd033b9b2be7ab6f8dd2f7efa6e96d69d7
 )
-FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink} ${kalman_filter})
+FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink}) #${kalman_filter})
 
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
@@ -95,7 +95,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::SvgWidgets
 	Qt6::Concurrent
 	qflightinstruments
-	Kalman
+	# Kalman
 	nlohmann_json::nlohmann_json
 )
 

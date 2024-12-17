@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QFileSystemModel>
 #include <QHeaderView>
+#include <QLabel>
 #include <QPushButton>
 #include <QTreeView>
 #include <QVBoxLayout>
@@ -39,6 +40,7 @@ private:
 
 	QVBoxLayout *_layout = nullptr;
 	QPushButton *_upload_lua_button = nullptr;
+	QLabel *_upload_label = nullptr;
 
 	MavlinkManager *_mavlink_manager = nullptr;
 

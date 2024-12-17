@@ -88,6 +88,10 @@
 		<translation>Автопилот отключён</translation>
 	</message>
 	<message>
+		<source>Autopilot searching...</source>
+		<translation>Поиск автопилота...</translation>
+	</message>
+	<message>
 		<source>No device permissions or it is already in use</source>
 		<translation>Нет прав доступа к устройству или оно уже используется</translation>
 	</message>
@@ -590,6 +594,10 @@
     <message>
         <source>Upload lua scripts</source>
         <translation>Загрузить lua скрипты</translation>
+    </message>
+    <message>
+        <source>Uploading...</source>
+        <translation>Загрузка...</translation>
     </message>
     <message>
         <source>Select lua scripts</source>

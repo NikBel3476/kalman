@@ -154,7 +154,7 @@ private:
 	QTimer *_serial_reconnect_delay_timer = nullptr;
 	std::vector<mavlink_param_value_t> _params_to_upload;
 	std::vector<mavlink_param_value_t> _not_written_params;
-	QList<QSerialPortInfo> _ports_list;
+	QList<QSerialPortInfo> _port_list = {};
 
 	CalibrationState _cal_state = CalibrationState::None;
 	CalibrationLevelState _cal_lvl_state = CalibrationLevelState::None;

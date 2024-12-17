@@ -303,6 +303,7 @@ void MainWindow::_handleRebootActionTrigger() {
 	_autopilot->setParamsState(AutopilotParamsState::None);
 	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 	_rebootAp();
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
 }
 
 void MainWindow::_handleAboutActionTrigger() {
@@ -402,6 +403,9 @@ void MainWindow::handleHeartbeatTimeout() {
 	// QMessageBox::critical(this, tr("Error"), tr("Heartbeat error"));
 	_autopilot->setState(AutopilotState::None);
 	_autopilot->setParamsState(AutopilotParamsState::None);
+	_disconnect();
+	// _current_port_box_index = 0;
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
 	// closeSerialPort();
 }
 
@@ -409,13 +413,19 @@ void MainWindow::handleSerialReconnectTimeout() {
 	_disconnect();
 	if (_current_port_box_index < _ports_box->count() - 1) {
 		_current_port_box_index++;
-		_trySerialConnect();
+		qDebug() << "INCREASE PORT INDEX";
+		// _trySerialConnect();
 	} else {
+		qDebug() << "RESET PORT INDEX";
 		_current_port_box_index = 0;
-		QMessageBox::information(
-				this, tr("Connection failed"),
-				tr("Autopilot not found. Please try to connect manually"));
+		// _trySerialConnect();
+		// QMessageBox::information(
+		// 		this, tr("Connection failed"),
+		// 		tr("Autopilot not found. Please try to connect manually"));
 	}
+	qDebug() << "RECONNECT TIMEOUT. PORT INDEX: " << _current_port_box_index
+					 << "PORT_COUNT: " << _ports_box->count();
+	_trySerialConnect();
 }
 
 void MainWindow::initSerialPortEventsConnections() {
@@ -452,11 +462,23 @@ void MainWindow::fillPortsInfo() {
 		return;
 	}
 	const auto infos = QSerialPortInfo::availablePorts();
-	_ports_list = QSerialPortInfo::availablePorts();
+	const auto port_list_updated =
+			!std::equal(_port_list.cbegin(), _port_list.cend(), infos.cbegin(),
+									[](const QSerialPortInfo &a, const QSerialPortInfo &b) {
+										return a.portName() == b.portName();
+									});
+	if (port_list_updated) {
+		qDebug() << "PORT LIST UPDATED";
+		_current_port_box_index = 0;
+	}
 
 	_ports_box->clear();
 	const auto blankString = tr(::blankString);
+	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
 	for (const auto &info : infos) {
+		if (!port_regex.match(info.portName()).hasMatch()) {
+			continue;
+		}
 		QStringList list;
 		const auto description = info.description();
 		const auto manufacturer = info.manufacturer();
@@ -480,22 +502,37 @@ void MainWindow::_trySerialConnect() {
 		qDebug() << "Serial already open. Cannot connect";
 		return;
 	}
+	_ap_status_label->setText(tr("Autopilot searching..."));
 	fillPortsInfo();
-	static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
-	setPortSettings(_current_port_box_index);
-	if (port_regex.match(_port_settings.name).hasMatch()) {
+	// static const auto port_regex = QRegularExpression("((ttyACM)|(COM))\\d+");
+	// setPortSettings(_current_port_box_index);
+	// if (port_regex.match(_port_settings.name).hasMatch()) {
+	// 	qDebug() << "Try connect to " << _port_settings.name;
+	// 	_ports_box->setCurrentIndex(_current_port_box_index);
+	// 	openSerialPort();
+	// 	_serial_reconnect_timer->start(kSerialReconnectTimeout);
+	// }
+	if (_ports_box->count() > 0) {
+		setPortSettings(_current_port_box_index);
 		qDebug() << "Try connect to " << _port_settings.name;
+		qDebug() << "PORT INDEX: " << _current_port_box_index;
 		_ports_box->setCurrentIndex(_current_port_box_index);
 		openSerialPort();
 		_serial_reconnect_timer->start(kSerialReconnectTimeout);
+		return;
 	}
+	_current_port_box_index = 0;
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
 }
 
 void MainWindow::_disconnect() {
 	_closeSerialPort();
+	// if (_ports_box->count() - 1 >= _current_port_box_index) {
+	// 		_current_port_box_index = 0;
+	// 	}
 	_serial_port_state = SerialPortState::Disconnected;
-	_current_port_box_index = 0;
-	fillPortsInfo();
+	// _current_port_box_index = 0;
+	// fillPortsInfo();
 	_autopilot->setState(AutopilotState::None);
 
 	_ports_box->setEnabled(true);
@@ -504,7 +541,7 @@ void MainWindow::_disconnect() {
 	_action_disconnect->setEnabled(false);
 	_action_reboot_ap->setEnabled(false);
 
-	_serial_status_label->setText("Disconnected");
+	_serial_status_label->setText(tr("Disconnected"));
 	_ap_status_label->setText(tr("Autopilot disconnected"));
 	_ap_os_label->clear();
 	_ap_name_label->clear();
@@ -537,7 +574,7 @@ void MainWindow::openSerialPort() {
 		_serial_port_state = SerialPortState::Connected;
 	} else {
 		// QMessageBox::critical(this, tr("Error"), _serial->errorString());
-		_serial_status_label->setText("Open error");
+		_serial_status_label->setText(tr("Open error"));
 	}
 }
 

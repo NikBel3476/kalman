@@ -5,7 +5,7 @@
 #include <QWidget>
 
 #include <ardupilotmega/mavlink.h>
-#include <kalman/ExtendedKalmanFilter.hpp>
+// #include <kalman/ExtendedKalmanFilter.hpp>
 #include <numeric>
 
 #include "accelerometerinfowidget.hpp"
@@ -16,60 +16,59 @@
 #include "mcuinfowidget.hpp"
 #include "sensor.hpp"
 
-template <typename T> class State : public Kalman::Vector<T, 1> {
-public:
-	KALMAN_VECTOR(State, T, 1)
+// template <typename T> class State : public Kalman::Vector<T, 1> {
+// public:
+// 	KALMAN_VECTOR(State, T, 1)
 
-	//! altitude
-	static constexpr float _altitude = 0;
+// 	//! altitude
+// 	static constexpr float _altitude = 0;
 
-	T altitude() const {
-		return (*this)[_altitude];
-	}
-	T &altitude() {
-		return (*this)[_altitude];
-	}
-};
+// 	T altitude() const {
+// 		return (*this)[_altitude];
+// 	}
+// 	T &altitude() {
+// 		return (*this)[_altitude];
+// 	}
+// };
 
-template <typename T> class Control : public Kalman::Vector<T, 1> {
-public:
-	KALMAN_VECTOR(Control, T, 1)
+// template <typename T> class Control : public Kalman::Vector<T, 1> {
+// public:
+// 	KALMAN_VECTOR(Control, T, 1)
 
-	//! Altitude
-	static constexpr float _altitude = 0;
+// 	//! Altitude
+// 	static constexpr float _altitude = 0;
 
-	T altitude() const {
-		return (*this)[_altitude];
-	}
-	T &altitude() {
-		return (*this)[_altitude];
-	}
-};
+// 	T altitude() const {
+// 		return (*this)[_altitude];
+// 	}
+// 	T &altitude() {
+// 		return (*this)[_altitude];
+// 	}
+// };
 
-template <typename T,
-					template <class> class CovarianceBase = Kalman::StandardBase>
-class SystemModel : public Kalman::LinearizedSystemModel<State<T>, Control<T>,
-																												 CovarianceBase> {
-public:
-	//! State type shortcut definition
-	typedef State<T> S;
+// template <typename T,
+// 					template <class> class CovarianceBase = Kalman::StandardBase>
+// class SystemModel : public Kalman::LinearizedSystemModel<State<T>,
+// Control<T>, CovarianceBase> { public:
+// 	//! State type shortcut definition
+// 	typedef State<T> S;
 
-	//! Control type shortcut definition
-	typedef Control<T> C;
+// 	//! Control type shortcut definition
+// 	typedef Control<T> C;
 
-	S f(const S &x, const C &u) const {
-		//! Predicted state vector after transition
-		S x_;
+// 	S f(const S &x, const C &u) const {
+// 		//! Predicted state vector after transition
+// 		S x_;
 
-		x_.x() += u.altitude();
+// 		x_.x() += u.altitude();
 
-		// Return transitioned state vector
-		return x_;
-	}
+// 		// Return transitioned state vector
+// 		return x_;
+// 	}
 
-protected:
-	void updateJacobians(const S &x, const C &u) {}
-};
+// protected:
+// 	void updateJacobians(const S &x, const C &u) {}
+// };
 
 class AutopilotSettingsPage : public QWidget {
 	Q_OBJECT
@@ -100,10 +99,10 @@ private:
 	AvionicsWidget *_avionics_widget = nullptr;
 
 	MavlinkManager *_mavlink_manager = nullptr;
-	Kalman::ExtendedKalmanFilter<State<float>> *_ekf = nullptr;
-	SystemModel<float> _altitude_system_model;
-	State<float> _altitude_state;
-	Control<float> _altitude_control;
+	// Kalman::ExtendedKalmanFilter<State<float>> *_ekf = nullptr;
+	// SystemModel<float> _altitude_system_model;
+	// State<float> _altitude_state;
+	// Control<float> _altitude_control;
 	std::vector<float> _altitude_last_values;
 };
 
