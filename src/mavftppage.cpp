@@ -142,9 +142,15 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 		qDebug() << "CREATE FILE ACK";
 		_file_upload_session = message.session;
 		if (!_files_to_upload.empty()) {
-			std::ifstream file(_files_to_upload[_uploading_file.first].toStdString());
+			const auto file_path = std::filesystem::path(
+					_files_to_upload[_uploading_file.first].toStdWString());
+			std::ifstream file(file_path);
 			if (!file.is_open()) {
+				_files_to_upload.clear();
 				_mavlink_manager->requestResetSessions();
+				QMessageBox::warning(this, tr("Warning"), tr("Failed to open file"));
+				_upload_lua_button->setDisabled(false);
+				_upload_label->setVisible(false);
 				return;
 			}
 			qDebug() << "UPLOADING FILE: " << _uploading_file.first;
@@ -262,6 +268,7 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 		qDebug() << "CREATE DIRECTORY NACK";
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create scripts directory"));
+		_files_to_upload.clear();
 	} break;
 	case FtpMessage::Opcode::CreateFile: {
 		qDebug() << "CREATE FILE NACK";
@@ -270,6 +277,7 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 		_files_to_upload.clear();
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create %1 file").arg(file_name));
+		_files_to_upload.clear();
 	} break;
 	case FtpMessage::Opcode::Ack:
 	case FtpMessage::Opcode::Nack:

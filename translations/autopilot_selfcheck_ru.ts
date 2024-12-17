@@ -627,5 +627,9 @@
         <source>Failed to create %1 file</source>
         <translation>Не удалось создать файл %1</translation>
     </message>
+    <message>
+        <source>Failed to open file</source>
+        <translation>Не удалось открыть файл</translation>
+    </message>
 </context>
 </TS>

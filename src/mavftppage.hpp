@@ -11,6 +11,7 @@
 #include <QWidget>
 #include <algorithm>
 #include <ardupilotmega/mavlink.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <mavlink_types.h>
