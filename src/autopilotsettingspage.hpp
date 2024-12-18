@@ -15,6 +15,7 @@
 #include "mavlinkmanager.hpp"
 #include "mcuinfowidget.hpp"
 #include "sensor.hpp"
+#include "simplekalmanfilter.hpp"
 
 // template <typename T> class State : public Kalman::Vector<T, 1> {
 // public:
@@ -103,6 +104,7 @@ private:
 	// SystemModel<float> _altitude_system_model;
 	// State<float> _altitude_state;
 	// Control<float> _altitude_control;
+	SimpleKalmanFilter *_altitude_kalman_filter = nullptr;
 	std::vector<float> _altitude_last_values;
 };
 

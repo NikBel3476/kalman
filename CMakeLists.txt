@@ -40,12 +40,8 @@ FetchContent_Declare(${kalman_filter}
 	GIT_REPOSITORY https://github.com/NikBel3476/kalman.git
 	GIT_TAG b4522cbd033b9b2be7ab6f8dd2f7efa6e96d69d7
 )
-FetchContent_Declare(${simple_kalman_filter}
-	GIT_REPOSITORY https://github.com/denyssene/SimpleKalmanFilter.git
-	GIT_TAG 77372f58e4a4870b1687ada5729f5d18de0ee446
-)
 
-FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink} ${simple_kalman_filter}) #${kalman_filter})
+FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink}) #${kalman_filter})
 
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
@@ -108,7 +104,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # SYSTEM PRIVATE to suppress warnings
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 	${mavlink_SOURCE_DIR}
-	${simple_kalman_filter_SOURCE_DIR}
 )
 
 # Resources:
