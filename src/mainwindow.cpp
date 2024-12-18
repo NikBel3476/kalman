@@ -242,7 +242,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_ap_params_page, &ApParametersPage::parametersWritten, this,
 					&MainWindow::_handleApParametersWrite);
 	connect(_ap_params_page, &ApParametersPage::paramsResetRequest, this,
-					&MainWindow::_rebootAp);
+					&MainWindow::_handleParamsResetRequest);
 }
 
 MainWindow::~MainWindow() = default;
@@ -610,6 +610,11 @@ void MainWindow::_handleAutopilotStateUpdate(const AutopilotState &new_state) {
 	case AutopilotState::Flashing: {
 	}
 	}
+}
+
+void MainWindow::_handleParamsResetRequest() {
+	_rebootAp();
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
 }
 
 void MainWindow::_rebootAp() {

@@ -77,6 +77,7 @@ private slots:
 	void _closeSerialPort();
 	void _handleAutopilotConnection();
 	void _handleAutopilotStateUpdate(const AutopilotState &new_state);
+	void _handleParamsResetRequest();
 
 	void _handleSerialWriteError(const QString &error_msg);
 	void handleError(QSerialPort::SerialPortError);
