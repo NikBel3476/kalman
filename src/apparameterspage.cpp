@@ -175,6 +175,9 @@ void ApParametersPage::_handleResetParamsButtonClick() {
 	clearNotSavedParams();
 	_autopilot->setParamsState(AutopilotParamsState::None);
 	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
+	QMessageBox::information(
+			this, tr("Information"),
+			tr("Parameters have been reset. Autopilot will be rebooted"));
 	emit paramsResetRequest();
 }
 
