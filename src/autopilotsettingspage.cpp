@@ -13,7 +13,8 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 			_gyroscope_info_widget(new GyroscopeInfoWidget(this, mavlink_manager)),
 			_mcu_info_widget(new McuInfoWidget(this, mavlink_manager)),
 			_avionics_widget(new AvionicsWidget(this, mavlink_manager)),
-			_mavlink_manager{mavlink_manager} {
+			_mavlink_manager{mavlink_manager},
+			_ekf{new Kalman::ExtendedKalmanFilter<State<float>>()} {
 	_layout->addWidget(_magnetometer_info_widget, 0, 0, 2, 0, Qt::AlignLeft);
 	_layout->addWidget(_altitude_label, 0, 1);
 	_layout->addWidget(_scaled_pressure_label, 1, 1, Qt::AlignLeft);
@@ -24,6 +25,9 @@ AutopilotSettingsPage::AutopilotSettingsPage(QWidget *parent,
 	_layout->setSpacing(5);
 	_layout->setContentsMargins(5, 0, 0, 0);
 	_layout->setAlignment(Qt::AlignTop);
+
+	_altitude_state.setZero();
+	_ekf->init(_altitude_state);
 
 	// mavlink manager connections
 	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
@@ -48,7 +52,23 @@ void AutopilotSettingsPage::_handleMavlinkMessageReceive(
 
 void AutopilotSettingsPage::_handleVfrHudUpdate(
 		const mavlink_vfr_hud_t &vfr_hud) {
-	_altitude_label->setText(tr("Altitude: %1 m").arg(vfr_hud.alt));
+	// _altitude_control.altitude() = vfr_hud.alt;
+	// _altitude_state = _altitude_system_model.f(_altitude_state,
+	// _altitude_control); const auto altitude_ekf =
+	// _ekf->predict(_altitude_system_model, _altitude_control); qDebug() << "ALT:
+	// " << vfr_hud.alt << "\nEKF" << altitude_ekf.altitude();
+	// _altitude_label->setText(tr("Altitude: %1
+	// m").arg(altitude_ekf.altitude()));
+	_altitude_last_values.push_back(vfr_hud.alt);
+	static constexpr auto altitude_values_max_size = 8;
+	if (_altitude_last_values.size() >= altitude_values_max_size) {
+		const auto altitude_sum = std::reduce(_altitude_last_values.cbegin(),
+																					_altitude_last_values.cend());
+		_altitude_label->setText(
+				tr("Altitude: %1 m")
+						.arg(altitude_sum / static_cast<float>(altitude_values_max_size)));
+		_altitude_last_values.clear();
+	}
 }
 
 void AutopilotSettingsPage::_handleScaledPressureUpdate(
