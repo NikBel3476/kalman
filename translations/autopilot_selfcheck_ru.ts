@@ -40,8 +40,8 @@
 		<translation>Очистить консоль</translation>
 	</message>
 	<message>
-		<source>Settings</source>
-		<translation>Настройки</translation>
+	    <source>Calibration</source>
+		<translation>Калибровка</translation>
 	</message>
 	<message>
 		<source>Parameters</source>
@@ -86,6 +86,10 @@
 	<message>
 		<source>Autopilot disconnected</source>
 		<translation>Автопилот отключён</translation>
+	</message>
+	<message>
+		<source>Autopilot searching...</source>
+		<translation>Поиск автопилота...</translation>
 	</message>
 	<message>
 		<source>No device permissions or it is already in use</source>
@@ -592,6 +596,10 @@
         <translation>Загрузить lua скрипты</translation>
     </message>
     <message>
+        <source>Uploading...</source>
+        <translation>Загрузка...</translation>
+    </message>
+    <message>
         <source>Select lua scripts</source>
         <translation>Выберите lua скрипты</translation>
     </message>
@@ -618,6 +626,10 @@
     <message>
         <source>Failed to create %1 file</source>
         <translation>Не удалось создать файл %1</translation>
+    </message>
+    <message>
+        <source>Failed to open file</source>
+        <translation>Не удалось открыть файл</translation>
     </message>
 </context>
 </TS>

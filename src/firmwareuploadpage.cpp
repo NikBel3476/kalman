@@ -71,7 +71,6 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 					QtConcurrent::task([this, file_content]() {
 						const auto firmware_uploader = std::make_unique<FirmwareUploader>();
 
-						// TODO: add disconnections
 						connect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
 										this,
 										&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
@@ -85,6 +84,19 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 										this, &FirmwareUploadPage::_handleFirmwareUploadCompletion);
 
 						firmware_uploader->upload(file_content);
+
+						disconnect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
+											 this,
+											 &FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
+						disconnect(firmware_uploader.get(),
+											 &FirmwareUploader::flashProgressUpdated, this,
+											 &FirmwareUploadPage::_handleFlashProgressUpdate);
+						disconnect(firmware_uploader.get(),
+											 &FirmwareUploader::eraseProgressUpdated, this,
+											 &FirmwareUploadPage::_handleEraseProgressUpdate);
+						disconnect(firmware_uploader.get(),
+											 &FirmwareUploader::uploadCompleted, this,
+											 &FirmwareUploadPage::_handleFirmwareUploadCompletion);
 					}).spawn();
 		}
 	};

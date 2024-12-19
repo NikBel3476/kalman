@@ -9,15 +9,23 @@ MavftpPage::MavftpPage(QWidget *parent, MavlinkManager *mavlink_manager)
 		: QWidget{parent},
 			_layout(new QVBoxLayout(this)),
 			_upload_lua_button(new QPushButton()),
+			_upload_label(new QLabel()),
 			_mavlink_manager{mavlink_manager} {
 	_layout->setAlignment(Qt::AlignCenter);
 	_layout->addWidget(_upload_lua_button);
+	_layout->addWidget(_upload_label);
 
 	_upload_lua_button->setText(tr("Upload lua scripts"));
 	_upload_lua_button->setSizePolicy(
 			QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 	_upload_lua_button->setMinimumWidth(MIN_PAGE_WIDTH);
 	_upload_lua_button->setMaximumWidth(MAX_PAGE_WIDTH);
+
+	_upload_label->setVisible(false);
+	_upload_label->setText(tr("Uploading..."));
+	_upload_label->setAlignment(Qt::AlignCenter);
+	_upload_label->setMinimumWidth(MIN_PAGE_WIDTH);
+	_upload_label->setMaximumWidth(MAX_PAGE_WIDTH);
 
 	// connections
 	connect(_upload_lua_button, &QPushButton::clicked, this,
@@ -41,11 +49,14 @@ void MavftpPage::_handleUploadLuaButtonClick() {
 		return;
 	}
 	for (const auto &file_name : file_path_list) {
-		_files_to_upload[file_name.mid(file_name.lastIndexOf('/') + 1)] = file_name;
+		_files_to_upload[file_name.mid(file_name.lastIndexOf(QChar('/')) + 1)] =
+				file_name;
 	}
 
 	current_ap_ftp_path = "/APM";
 	_mavlink_manager->requestListDirectory(current_ap_ftp_path);
+	_upload_label->setVisible(true);
+	_upload_lua_button->setDisabled(true);
 }
 
 void MavftpPage::_handleMavlinkMessageReceive(
@@ -131,9 +142,15 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 		qDebug() << "CREATE FILE ACK";
 		_file_upload_session = message.session;
 		if (!_files_to_upload.empty()) {
-			std::ifstream file(_files_to_upload[_uploading_file.first].toStdString());
+			const auto file_path = std::filesystem::path(
+					_files_to_upload[_uploading_file.first].toStdWString());
+			std::ifstream file(file_path);
 			if (!file.is_open()) {
+				_files_to_upload.clear();
 				_mavlink_manager->requestResetSessions();
+				QMessageBox::warning(this, tr("Warning"), tr("Failed to open file"));
+				_upload_lua_button->setDisabled(false);
+				_upload_label->setVisible(false);
 				return;
 			}
 			qDebug() << "UPLOADING FILE: " << _uploading_file.first;
@@ -192,6 +209,8 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 		}
 		if (_files_upload_success) {
 			_files_upload_success = false;
+			_upload_label->setVisible(false);
+			_upload_lua_button->setDisabled(false);
 			QMessageBox::information(this, tr("Information"), tr("Files uploaded"));
 		}
 	} break;
@@ -249,6 +268,7 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 		qDebug() << "CREATE DIRECTORY NACK";
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create scripts directory"));
+		_files_to_upload.clear();
 	} break;
 	case FtpMessage::Opcode::CreateFile: {
 		qDebug() << "CREATE FILE NACK";
@@ -257,6 +277,7 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 		_files_to_upload.clear();
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create %1 file").arg(file_name));
+		_files_to_upload.clear();
 	} break;
 	case FtpMessage::Opcode::Ack:
 	case FtpMessage::Opcode::Nack:

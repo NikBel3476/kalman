@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.16)
 project(autopilot_selfcheck VERSION 0.1.0 LANGUAGES C CXX)
 
 cmake_policy(SET CMP0135 NEW)
@@ -24,6 +24,7 @@ set(mavlink mavlink)
 set(qflightinstruments qflightinstruments)
 set(json json)
 set(kalman_filter kalman_filter)
+set(simple_kalman_filter simple_kalman_filter)
 
 FetchContent_Declare(${mavlink}
 	GIT_REPOSITORY https://github.com/mavlink/c_library_v2.git
@@ -39,7 +40,12 @@ FetchContent_Declare(${kalman_filter}
 	GIT_REPOSITORY https://github.com/NikBel3476/kalman.git
 	GIT_TAG b4522cbd033b9b2be7ab6f8dd2f7efa6e96d69d7
 )
-FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink} ${kalman_filter})
+FetchContent_Declare(${simple_kalman_filter}
+	GIT_REPOSITORY https://github.com/denyssene/SimpleKalmanFilter.git
+	GIT_TAG 77372f58e4a4870b1687ada5729f5d18de0ee446
+)
+
+FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink} ${simple_kalman_filter}) #${kalman_filter})
 
 find_package(Qt6 REQUIRED COMPONENTS
 	Core
@@ -95,13 +101,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::SvgWidgets
 	Qt6::Concurrent
 	qflightinstruments
-	Kalman
+	# Kalman
 	nlohmann_json::nlohmann_json
 )
 
 # SYSTEM PRIVATE to suppress warnings
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 	${mavlink_SOURCE_DIR}
+	${simple_kalman_filter_SOURCE_DIR}
 )
 
 # Resources:
@@ -130,9 +137,9 @@ qt_add_resources(${PROJECT_NAME} "autopilot_selfcheck"
 
 # set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR}/install)
 
-install(CODE [[
-	file(GET_RUNTIME_DEPENDENCIES)
-]])
+# install(CODE [[
+# 	file(GET_RUNTIME_DEPENDENCIES)
+# ]])
 
 install(TARGETS ${PROJECT_NAME}
 	BUNDLE  DESTINATION .
