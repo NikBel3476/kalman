@@ -581,6 +581,10 @@
 	    <source>Comparing file: %1</source>
 		<translation>Сравниваемый файл: %1</translation>
 	</message>
+	<message>
+	    <source>Parameters have been reset. Autopilot will be rebooted</source>
+		<translation>Параметры сброшены. Автопилот будет перезагружен</translation>
+	</message>
 </context>
 <context>
     <name>MavlinkManager</name>

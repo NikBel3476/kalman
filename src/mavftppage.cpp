@@ -217,8 +217,10 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 	case FtpMessage::Opcode::CalcFileCRC32: {
 		QByteArray crc((char *)message.payload, message.size);
 		qDebug() << "CRC: " << crc;
-		const auto expected_crc = Crc::crc(_file_to_crc_check.second.length(),
-																			 QByteArray(_file_to_crc_check.second));
+		const auto expected_crc =
+				Crc::crc(_file_to_crc_check.second.length(),
+								 QByteArray(_file_to_crc_check.second.c_str(),
+														_file_to_crc_check.second.length()));
 		qDebug() << "EXPECTED CRC: " << expected_crc;
 		_file_to_crc_check.first.clear();
 		_file_to_crc_check.second.clear();

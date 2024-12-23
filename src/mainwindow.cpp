@@ -289,13 +289,14 @@ void MainWindow::_handleMavlinkMessageReceive(
 void MainWindow::_handleApParametersWrite() {
 	_rebootAp();
 	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
-	_central_widget->setCurrentWidget(_ap_params_page);
+	// _central_widget->setCurrentWidget(_ap_params_page);
 }
 
 void MainWindow::_handleDisconnectActionTrigger() {
 	_autopilot->setParamsState(AutopilotParamsState::None);
 	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 	_disconnect();
+	_central_widget->setCurrentWidget(_firmware_upload_page);
 }
 
 void MainWindow::_handleRebootActionTrigger() {
@@ -303,6 +304,7 @@ void MainWindow::_handleRebootActionTrigger() {
 	_autopilot->setParamsState(AutopilotParamsState::None);
 	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 	_rebootAp();
+	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
 }
 
@@ -369,6 +371,7 @@ void MainWindow::handleFirmwareUpload(DroneType drone_type) {
 													static_cast<int>(drone_type));
 	_serial_reconnect_timer->stop();
 	_disconnect();
+	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_autopilot->setState(AutopilotState::Flashing);
 	_heartbeat_timer->stop();
 }
@@ -404,6 +407,7 @@ void MainWindow::handleHeartbeatTimeout() {
 	_autopilot->setState(AutopilotState::None);
 	_autopilot->setParamsState(AutopilotParamsState::None);
 	_disconnect();
+	_central_widget->setCurrentWidget(_firmware_upload_page);
 	// _current_port_box_index = 0;
 	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
 	// closeSerialPort();
@@ -411,6 +415,9 @@ void MainWindow::handleHeartbeatTimeout() {
 
 void MainWindow::handleSerialReconnectTimeout() {
 	_disconnect();
+	// if (_autopilot->getParamsSendState() != AutopilotParamsSendState::Sending)
+	// { 	_central_widget->setCurrentWidget(_firmware_upload_page);
+	// }
 	if (_current_port_box_index < _ports_box->count() - 1) {
 		_current_port_box_index++;
 		qDebug() << "INCREASE PORT INDEX";
@@ -546,7 +553,6 @@ void MainWindow::_disconnect() {
 	_ap_os_label->clear();
 	_ap_name_label->clear();
 
-	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_heartbeat_timer->stop();
 }
 
@@ -615,6 +621,7 @@ void MainWindow::_handleAutopilotStateUpdate(const AutopilotState &new_state) {
 void MainWindow::_handleParamsResetRequest() {
 	_rebootAp();
 	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
+	_central_widget->setCurrentWidget(_firmware_upload_page);
 }
 
 void MainWindow::_rebootAp() {
