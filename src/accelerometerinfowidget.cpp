@@ -87,10 +87,10 @@ AccelerometerInfoWidget::AccelerometerInfoWidget(
 void AccelerometerInfoWidget::_handleMavlinkMessageReceive(
 		const mavlink_message_t &mavlink_message) {
 	switch (mavlink_message.msgid) {
-	case MAVLINK_MSG_ID_SCALED_IMU: {
-		mavlink_scaled_imu_t scaled_imu;
-		mavlink_msg_scaled_imu_decode(&mavlink_message, &scaled_imu);
-		_handleIMUUpdate(scaled_imu);
+	case MAVLINK_MSG_ID_RAW_IMU: {
+		mavlink_raw_imu_t raw_imu;
+		mavlink_msg_raw_imu_decode(&mavlink_message, &raw_imu);
+		_handleIMUUpdate(raw_imu);
 	} break;
 	case MAVLINK_MSG_ID_SCALED_IMU2: {
 		mavlink_scaled_imu2_t scaled_imu;
@@ -160,10 +160,10 @@ void AccelerometerInfoWidget::_handleLevelCalibrationTimeout() {
 }
 
 void AccelerometerInfoWidget::_handleIMUUpdate(
-		const mavlink_scaled_imu_t &scaled_imu) {
-	_x_imu_label->setText(QString("imu_x: %1").arg(scaled_imu.xacc));
-	_y_imu_label->setText(QString("imu_y: %1").arg(scaled_imu.yacc));
-	_z_imu_label->setText(QString("imu_z: %1").arg(scaled_imu.zacc));
+		const mavlink_raw_imu_t &raw_imu) {
+	_x_imu_label->setText(QString("imu_x: %1").arg(raw_imu.xacc));
+	_y_imu_label->setText(QString("imu_y: %1").arg(raw_imu.yacc));
+	_z_imu_label->setText(QString("imu_z: %1").arg(raw_imu.zacc));
 }
 
 void AccelerometerInfoWidget::_handleIMU2Update(
