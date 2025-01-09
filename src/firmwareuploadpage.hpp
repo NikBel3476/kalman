@@ -26,6 +26,7 @@ public:
 
 signals:
 	void uploadFirmwareStarted(DroneType);
+	void uploadFirmwareSuccsessfullyCompleted();
 
 private slots:
 	void _handleDroneTypeBoxChange(int index);

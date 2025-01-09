@@ -55,7 +55,7 @@ private:
 	void _handleParamUploadAck(mavlink_param_value_t &);
 	void _uploadParameters();
 	void _showUploadResult();
-	void _reset();
+	void _reset_state();
 
 	QVBoxLayout *_layout = nullptr;
 	QWidget *_upload_params_progress_wrapper = nullptr;

@@ -632,8 +632,16 @@
         <translation>Не удалось создать файл %1</translation>
     </message>
     <message>
+        <source>Failed to write %1 file</source>
+        <translation>Не удалось записать файл %1</translation>
+    </message>
+    <message>
         <source>Failed to open file</source>
         <translation>Не удалось открыть файл</translation>
+    </message>
+    <message>
+        <source>Failed to remove scripts in autopilot</source>
+        <translation>Не удалось удалить скрипты в автопилоте</translation>
     </message>
 </context>
 </TS>

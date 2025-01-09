@@ -4,4 +4,4 @@ repos:
   hooks:
   - id: clang-format
     types_or: [c++, c]
-    args: ['-i', '-style=file']
+    args: ['-i', '--verbose', '-style=file']

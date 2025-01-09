@@ -59,7 +59,7 @@ void MavlinkManager::sendParamRequestList() {
 	_writeData(data);
 }
 
-void MavlinkManager::requestListDirectory(const std::string &path) {
+void MavlinkManager::requestListDirectory(const std::string &&path) {
 	qDebug() << "REQUEST LIST DIRECTORY: " << path;
 
 	FtpMessage message;
@@ -127,6 +127,16 @@ void MavlinkManager::requestCalcFileCrc32(const std::string &path) {
 	qDebug() << "REQUEST CALC CRC32";
 	FtpMessage message;
 	message.opcode = FtpMessage::Opcode::CalcFileCRC32;
+	message.size = path.length();
+	memcpy(message.payload, path.c_str(), path.length());
+
+	_sendFtpMessage(message);
+}
+
+void MavlinkManager::requestRemoveFile(const std::string &path) {
+	qDebug() << "REQUEST REMOVE FILE: " << path;
+	FtpMessage message;
+	message.opcode = FtpMessage::Opcode::RemoveFile;
 	message.size = path.length();
 	memcpy(message.payload, path.c_str(), path.length());
 

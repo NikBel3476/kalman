@@ -150,8 +150,8 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 					tr("Comparing file: %1")
 							.arg(file_name.mid(file_name.lastIndexOf(QChar('/')) + 1)));
 			_file_name_label->setVisible(true);
-			clearNotSavedParams();
 			clearParamsToUpload();
+			_reset_state();
 			_parseApParameters(file_content);
 		}
 	};
@@ -172,9 +172,8 @@ void ApParametersPage::_handleResetParamsButtonClick() {
 
 	_mavlink_manager->sendParamSet(format_version_param);
 	std::this_thread::sleep_for(std::chrono::milliseconds{1000});
-	clearNotSavedParams();
-	_autopilot->setParamsState(AutopilotParamsState::None);
-	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
+
+	_reset_state();
 	QMessageBox::information(
 			this, tr("Information"),
 			tr("Parameters have been reset. Autopilot will be rebooted"));
@@ -295,10 +294,6 @@ void ApParametersPage::_parseApParameters(const QByteArray &file_content) {
 															not_found_param_item);
 		item_index++;
 	}
-
-	_update_params_btn->setEnabled(true);
-	_compare_params_btn->setEnabled(true);
-	_reset();
 }
 
 void ApParametersPage::_uploadApParam() {
@@ -395,13 +390,12 @@ void ApParametersPage::_handleApParamReceive(
 				qDebug() << "PARAMS UPLOAD MAX ATTEMPT NUMBER REACHED";
 				QMessageBox::warning(this, tr("Warning"),
 														 tr("Not all parameters saved"));
-				_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 				for (const auto &[_, cannot_save_param] : _cannot_save_params) {
 					qDebug() << std::string(cannot_save_param.param_id, 16)
 									 << "CANNOT SAVE" << cannot_save_param.param_index;
 				}
 				_showUploadResult();
-				_reset();
+				_reset_state();
 				return;
 			}
 
@@ -424,13 +418,12 @@ void ApParametersPage::_handleApParamReceive(
 						QMessageBox::warning(this, tr("Warning"),
 																 tr("Not all parameters saved"));
 					}
-					_autopilot->setParamsSendState(AutopilotParamsSendState::None);
 					for (const auto &[_, cannot_save_param] : _cannot_save_params) {
 						qDebug() << std::string(cannot_save_param.param_id, 16)
 										 << "CANNOT SAVE" << cannot_save_param.param_index;
 					}
 					_showUploadResult();
-					_reset();
+					_reset_state();
 				}
 				return;
 			}
@@ -439,9 +432,7 @@ void ApParametersPage::_handleApParamReceive(
 			return;
 		} else { // _not_saved_params is empty
 			QMessageBox::information(this, tr("Information"), tr("Parameters saved"));
-			_autopilot->setParamsSendState(AutopilotParamsSendState::None);
-			_showUploadResult();
-			_reset();
+			_reset_state();
 		}
 	}
 }
@@ -528,6 +519,15 @@ void ApParametersPage::_showUploadResult() {
 	}
 }
 
-void ApParametersPage::_reset() {
+void ApParametersPage::_reset_state() {
+	_params_to_upload.clear();
+	_not_written_params.clear();
+	_not_saved_params.clear();
+	_cannot_save_params.clear();
 	_params_upload_attempt_counter = 0;
+	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
+	_autopilot->setParamsState(AutopilotParamsState::None);
+	_update_params_btn->setEnabled(true);
+	_compare_params_btn->setEnabled(true);
+	_upload_params_btn->setEnabled(false);
 }

@@ -6,9 +6,10 @@ Program for autopilot calibration
 
 ### Prerequisites
 
+* git
 * qt 6.5 or above
 * cmake 3.16 or above
-* gcc or clang (for linux)
+* gcc 13 or clang 15 (or above versions) (for linux)
 * microsoft visual studio 2022 (for windows)
 
 ### Project building
@@ -25,7 +26,7 @@ To create archive:
 
 Note: on windows qt must be in the PATH variable or passed with `-DCMAKE_PREFIX_PATH=<path_to_qt>` on configuration step
 
-> Tested only on linux at this moment
+> Tested on linux and windows at this moment
 
 #### Docker (WIP)
 1. Build docker image - `docker build -t autopilot_selfcheck/autopilotselfcheck:0.1 .`
@@ -42,7 +43,7 @@ if format returns failed it reports that files have been formatted, run
 `git add` and `git commit` again
 
 ### Code formatting command
-`clang-format -i -style=file *.cpp *.h`
+`clang-format -i -style=file src/*.cpp src/*.hpp`
 
 ## Info about mavlink messages for calibration
 
@@ -203,7 +204,19 @@ AP -> GS
 PARAM_VALUE (22) - parameter from autopilot  
 > After parameters set autopilot will return written parameters but with index 65535
 
+> Note: on startup autopilot do not send all available parameters, so to get all of them
+you need to wait ~10-15 seconds
+
 ### Firmware upload
 
 > Attention: do not plug more than one fc board to pc at firmware upload due to app will
 try to reboot all available serial devices and can upload firmware to wrong board
+
+### MavFTP
+
+lua scripts are uploaded using the following algorithm:
+1. List directory `/APM`
+2. If `/APM` does not contain `scripts` directory create it and go to 4-th step
+3. List `/APM/scripts` directory and remove all files inside
+4. Create and write all files to AP
+
