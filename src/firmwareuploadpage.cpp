@@ -143,6 +143,7 @@ void FirmwareUploadPage::_handleFirmwareUploadCompletion(
 	switch (result) {
 	case FirmwareUploadResult::Ok: {
 		_firmware_upload_status_label->setText(tr("Upload successfully completed"));
+		emit uploadFirmwareSuccsessfullyCompleted();
 	} break;
 	case FirmwareUploadResult::FirmwareImageNotFound: {
 		_firmware_upload_status_label->setText(QString("%1\n%2").arg(

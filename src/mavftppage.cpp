@@ -2,18 +2,28 @@
 
 const int MIN_PAGE_WIDTH = 150;
 const int MAX_PAGE_WIDTH = 250;
-static constexpr auto lua_scripts_ftp_directory = "/APM/scripts/";
+static constexpr auto APM_FTP_PATH = "/APM";
+static constexpr auto LUA_SCRIPTS_FTP_PATH = "/APM/scripts/";
 static constexpr auto FTP_PAYLOAD_SIZE = 80;
+static constexpr auto FTP_MESSAGE_SIZE = 239;
+static constexpr auto kFtpRemoveFileTimeout = std::chrono::milliseconds{1000};
+static constexpr auto kFtpWriteFileTimeout = std::chrono::milliseconds{1000};
 
-MavftpPage::MavftpPage(QWidget *parent, MavlinkManager *mavlink_manager)
+MavftpPage::MavftpPage(QWidget *parent, MavlinkManager *mavlink_manager,
+											 Autopilot *autopilot)
 		: QWidget{parent},
 			_layout(new QVBoxLayout(this)),
 			_upload_lua_button(new QPushButton()),
 			_upload_label(new QLabel()),
-			_mavlink_manager{mavlink_manager} {
+			_upload_progress_bar(new QProgressBar()),
+			_mavlink_manager{mavlink_manager},
+			_autopilot{autopilot},
+			_ftp_remove_file_timer{std::make_unique<QTimer>()},
+			_ftp_write_file_timer(std::make_unique<QTimer>()) {
 	_layout->setAlignment(Qt::AlignCenter);
 	_layout->addWidget(_upload_lua_button);
 	_layout->addWidget(_upload_label);
+	_layout->addWidget(_upload_progress_bar);
 
 	_upload_lua_button->setText(tr("Upload lua scripts"));
 	_upload_lua_button->setSizePolicy(
@@ -24,24 +34,31 @@ MavftpPage::MavftpPage(QWidget *parent, MavlinkManager *mavlink_manager)
 	_upload_label->setVisible(false);
 	_upload_label->setText(tr("Uploading..."));
 	_upload_label->setAlignment(Qt::AlignCenter);
-	_upload_label->setMinimumWidth(MIN_PAGE_WIDTH);
-	_upload_label->setMaximumWidth(MAX_PAGE_WIDTH);
+
+	_upload_progress_bar->setVisible(false);
+
+	_ftp_remove_file_timer->setSingleShot(true);
+	_ftp_write_file_timer->setSingleShot(true);
 
 	// connections
 	connect(_upload_lua_button, &QPushButton::clicked, this,
 					&MavftpPage::_handleUploadLuaButtonClick);
+	connect(_ftp_remove_file_timer.get(), &QTimer::timeout, this,
+					&MavftpPage::_handleFtpRemoveFileTimeout);
+	connect(_ftp_write_file_timer.get(), &QTimer::timeout, this,
+					&MavftpPage::_handleFtpWriteFileTimeout);
 
 	// mavlink manager connections
 	connect(_mavlink_manager, &MavlinkManager::mavlinkMessageReceived, this,
 					&MavftpPage::_handleMavlinkMessageReceive);
+
+	// autopilot connections
+	connect(_autopilot, &Autopilot::stateUpdated, this,
+					&MavftpPage::_handleAutopilotStateUpdate);
 }
 
 void MavftpPage::_handleUploadLuaButtonClick() {
-	_files_to_upload.clear();
-	_uploading_file.first.clear();
-	_uploading_file.second.clear();
-	_file_to_crc_check.first.clear();
-	_file_to_crc_check.second.clear();
+	_resetState();
 	const auto file_path_list =
 			QFileDialog::getOpenFileNames(this, tr("Select lua scripts"), "", "*.lua")
 					.toVector();
@@ -53,10 +70,36 @@ void MavftpPage::_handleUploadLuaButtonClick() {
 				file_name;
 	}
 
-	current_ap_ftp_path = "/APM";
-	_mavlink_manager->requestListDirectory(current_ap_ftp_path);
+	current_ap_ftp_path = APM_FTP_PATH;
+	_mavlink_manager->requestListDirectory(std::move(current_ap_ftp_path));
 	_upload_label->setVisible(true);
-	_upload_lua_button->setDisabled(true);
+	_upload_lua_button->setVisible(false);
+}
+
+void MavftpPage::_handleAutopilotStateUpdate(const AutopilotState &state) {
+	switch (state) {
+	case AutopilotState::None: {
+		_resetState();
+	} break;
+	case AutopilotState::Alive:
+	case AutopilotState::Flashing:
+		break;
+	}
+}
+
+void MavftpPage::_handleFtpRemoveFileTimeout() {
+	_mavlink_manager->requestResetSessions();
+	_resetState();
+	QMessageBox::warning(this, tr("Warning"),
+											 tr("Failed to remove scripts in autopilot"));
+}
+
+void MavftpPage::_handleFtpWriteFileTimeout() {
+	_mavlink_manager->requestResetSessions();
+	const auto file_name = _uploading_file.first;
+	_resetState();
+	QMessageBox::warning(this, tr("Warning"),
+											 tr("Failed to write %1 file").arg(file_name));
 }
 
 void MavftpPage::_handleMavlinkMessageReceive(
@@ -82,7 +125,8 @@ void MavftpPage::_handleMavlinkMessageReceive(
 }
 
 void MavftpPage::_handleFtpMessage(const FtpMessage &message) {
-	qDebug() << "PAYLOAD: " << std::string((char *)message.payload, 239)
+	qDebug() << "PAYLOAD: "
+					 << std::string((char *)message.payload, FTP_MESSAGE_SIZE)
 					 << "\nOPCODE: " << static_cast<uint8_t>(message.opcode) << "\nOFFSET"
 					 << message.offset << "\nSIZE" << message.size;
 
@@ -120,20 +164,31 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 	case FtpMessage::Opcode::ListDirectory: {
 		qDebug() << "LIST DIRECTORY ACK";
 		const auto payload_str = std::string((char *)message.payload, 239);
+
 		for (const auto &str :
 				 QString::fromStdString(payload_str).split(QChar('\0'))) {
-			if (str.startsWith('D') || str.startsWith('F') || str.startsWith('S')) {
-				_fs_item_list.push_back(str);
-				qDebug() << str;
+			if (current_ap_ftp_path == APM_FTP_PATH) {
+				if (str.startsWith('D') || str.startsWith('F') || str.startsWith('S')) {
+					_fs_item_list.push_back(str);
+					qDebug() << str;
+				}
+			} else if (current_ap_ftp_path == LUA_SCRIPTS_FTP_PATH) {
+				if (str.startsWith('F')) {
+					_fs_item_list.push_back(str);
+					qDebug() << str;
+				}
 			}
 		}
 
 		_mavlink_manager->ftp_offset += _fs_item_list.size();
-		_mavlink_manager->requestListDirectory(current_ap_ftp_path);
+		_mavlink_manager->requestListDirectory(std::move(current_ap_ftp_path));
 	} break;
 	case FtpMessage::Opcode::CreateDirectory: {
 		qDebug() << "CREATE DIRECTORY ACK";
 		if (!_files_to_upload.empty()) {
+			_upload_progress_bar->setMaximum(_files_to_upload.size());
+			_upload_progress_bar->setValue(0);
+			_upload_progress_bar->setVisible(true);
 			_mavlink_manager->requestResetSessions();
 			return;
 		}
@@ -149,8 +204,7 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 				_files_to_upload.clear();
 				_mavlink_manager->requestResetSessions();
 				QMessageBox::warning(this, tr("Warning"), tr("Failed to open file"));
-				_upload_lua_button->setDisabled(false);
-				_upload_label->setVisible(false);
+				_resetState();
 				return;
 			}
 			qDebug() << "UPLOADING FILE: " << _uploading_file.first;
@@ -165,28 +219,34 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 			_mavlink_manager->requestWriteFile(data, _file_upload_session,
 																				 _uploading_chunk_index *
 																						 FTP_PAYLOAD_SIZE);
+			_ftp_write_file_timer->start(kFtpWriteFileTimeout);
 			_uploading_chunk_index++;
 			return;
 		}
 	} break;
 	case FtpMessage::Opcode::WriteFile: {
 		qDebug() << "WRITE FILE ACK";
-		if (_uploading_chunk_index * FTP_PAYLOAD_SIZE <
-				_uploading_file.second.size()) {
+		if (!_uploading_file.first.isEmpty() && !_uploading_file.second.empty() &&
+				_uploading_chunk_index * FTP_PAYLOAD_SIZE <
+						_uploading_file.second.size()) {
 			const auto chunk = _uploading_file.second.substr(
 					_uploading_chunk_index * FTP_PAYLOAD_SIZE, FTP_PAYLOAD_SIZE);
 			const std::vector data(chunk.begin(), chunk.end());
 			_mavlink_manager->requestWriteFile(data, _file_upload_session,
 																				 _uploading_chunk_index *
 																						 FTP_PAYLOAD_SIZE);
+			_ftp_write_file_timer->start(kFtpWriteFileTimeout);
 			_uploading_chunk_index++;
 		} else {
 			qDebug() << "FILE " << _uploading_file.first << " UPLOADED";
+			_ftp_write_file_timer->stop();
 			_uploading_chunk_index = 0;
 			_files_to_upload.erase(_uploading_file.first);
 			_file_to_crc_check = _uploading_file;
 			_uploading_file.first.clear();
 			_uploading_file.second.clear();
+			_upload_progress_bar->setValue(_upload_progress_bar->maximum() -
+																		 _files_to_upload.size());
 			_mavlink_manager->requestResetSessions();
 		}
 	} break;
@@ -195,8 +255,7 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 		qDebug() << "FILES TO UPLOAD SIZE: " << _files_to_upload.size();
 		if (!_file_to_crc_check.first.isEmpty() &&
 				!_file_to_crc_check.second.empty()) {
-			const auto ap_file_path =
-					lua_scripts_ftp_directory + _file_to_crc_check.first;
+			const auto ap_file_path = LUA_SCRIPTS_FTP_PATH + _file_to_crc_check.first;
 			_mavlink_manager->requestCalcFileCrc32(ap_file_path.toStdString());
 			return;
 		}
@@ -204,13 +263,11 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 			_uploading_file.first = (*_files_to_upload.begin()).first;
 			qDebug() << "UPLOADING FILE: " << _uploading_file.first;
 			_mavlink_manager->requestCreateFile(
-					(lua_scripts_ftp_directory + _uploading_file.first).toStdString());
+					(LUA_SCRIPTS_FTP_PATH + _uploading_file.first).toStdString());
 			return;
 		}
 		if (_files_upload_success) {
-			_files_upload_success = false;
-			_upload_label->setVisible(false);
-			_upload_lua_button->setDisabled(false);
+			_resetState();
 			QMessageBox::information(this, tr("Information"), tr("Files uploaded"));
 		}
 	} break;
@@ -226,7 +283,7 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 		_file_to_crc_check.second.clear();
 		_mavlink_manager->requestResetSessions();
 		if (crc != expected_crc) {
-			_files_to_upload.clear();
+			_resetState();
 			QMessageBox::warning(
 					this, tr("Warning"),
 					tr("Verification %1 failed").arg(_file_to_crc_check.first));
@@ -240,7 +297,27 @@ void MavftpPage::_handleFtpAck(const FtpMessage &message) {
 	case FtpMessage::Opcode::Nack:
 	case FtpMessage::Opcode::BurstReadFile:
 	case FtpMessage::Opcode::ReadFile:
-	case FtpMessage::Opcode::RemoveFile:
+		break;
+	case FtpMessage::Opcode::RemoveFile: {
+		qDebug() << "REMOVE FILE ACK";
+		if (!_fs_item_list.empty()) {
+			const auto filename_to_remove =
+					_fs_item_list.back().removeFirst().toStdString();
+			_fs_item_list.pop_back();
+			_mavlink_manager->requestRemoveFile(LUA_SCRIPTS_FTP_PATH +
+																					filename_to_remove);
+			_ftp_remove_file_timer->start(kFtpRemoveFileTimeout);
+			return;
+		}
+		_ftp_remove_file_timer->stop();
+		if (!_files_to_upload.empty()) {
+			_upload_progress_bar->setMaximum(_files_to_upload.size());
+			_upload_progress_bar->setValue(0);
+			_upload_progress_bar->setVisible(true);
+			_mavlink_manager->requestResetSessions();
+			return;
+		}
+	} break;
 	case FtpMessage::Opcode::TruncateFile:
 	case FtpMessage::Opcode::OpenFileRO:
 	case FtpMessage::Opcode::OpenFileWO:
@@ -257,20 +334,50 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 	case FtpMessage::Opcode::ListDirectory: {
 		qDebug() << "LIST DIRECTORY NACK";
 		_mavlink_manager->ftp_offset = 0;
-		if (std::find(_fs_item_list.cbegin(), _fs_item_list.cend(), "Dscripts") ==
-				_fs_item_list.cend()) {
-			_mavlink_manager->requestCreateDirectory(lua_scripts_ftp_directory);
-			return;
-		}
-		if (!_files_to_upload.empty()) {
-			_mavlink_manager->requestResetSessions();
+
+		if (current_ap_ftp_path == APM_FTP_PATH) {
+			if (std::find(_fs_item_list.cbegin(), _fs_item_list.cend(), "Dscripts") ==
+					_fs_item_list.cend()) {
+				_mavlink_manager->requestCreateDirectory(LUA_SCRIPTS_FTP_PATH);
+				_fs_item_list.clear();
+				return;
+			} else {
+				_fs_item_list.clear();
+				current_ap_ftp_path = LUA_SCRIPTS_FTP_PATH;
+				_mavlink_manager->requestListDirectory(std::move(current_ap_ftp_path));
+				return;
+			}
+			if (!_files_to_upload.empty()) {
+				_upload_progress_bar->setMaximum(_files_to_upload.size());
+				_upload_progress_bar->setValue(0);
+				_upload_progress_bar->setVisible(true);
+				_mavlink_manager->requestResetSessions();
+				return;
+			}
+		} else if (current_ap_ftp_path == LUA_SCRIPTS_FTP_PATH) {
+			if (!_fs_item_list.empty()) {
+				const auto filename_to_remove =
+						_fs_item_list.back().removeFirst().toStdString();
+				_fs_item_list.pop_back();
+				_mavlink_manager->requestRemoveFile(LUA_SCRIPTS_FTP_PATH +
+																						filename_to_remove);
+				_ftp_write_file_timer->start(kFtpWriteFileTimeout);
+				return;
+			}
+			if (!_files_to_upload.empty()) {
+				_upload_progress_bar->setMaximum(_files_to_upload.size());
+				_upload_progress_bar->setValue(0);
+				_upload_progress_bar->setVisible(true);
+				_mavlink_manager->requestResetSessions();
+				return;
+			}
 		}
 	} break;
 	case FtpMessage::Opcode::CreateDirectory: {
 		qDebug() << "CREATE DIRECTORY NACK";
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create scripts directory"));
-		_files_to_upload.clear();
+		_resetState();
 	} break;
 	case FtpMessage::Opcode::CreateFile: {
 		qDebug() << "CREATE FILE NACK";
@@ -279,14 +386,26 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 		_files_to_upload.clear();
 		QMessageBox::warning(this, tr("Warning"),
 												 tr("Failed to create %1 file").arg(file_name));
-		_files_to_upload.clear();
+		_resetState();
 	} break;
 	case FtpMessage::Opcode::Ack:
 	case FtpMessage::Opcode::Nack:
 	case FtpMessage::Opcode::BurstReadFile:
 	case FtpMessage::Opcode::ReadFile:
-	case FtpMessage::Opcode::WriteFile:
-	case FtpMessage::Opcode::RemoveFile:
+		break;
+	case FtpMessage::Opcode::WriteFile: {
+		qDebug() << "WRITE FILE NACK";
+		const auto file_name = _uploading_file.first;
+		QMessageBox::warning(this, tr("Warning"),
+												 tr("Failed to write %1 file").arg(file_name));
+		_resetState();
+	} break;
+	case FtpMessage::Opcode::RemoveFile: {
+		qDebug() << "REMOVE FILE NACK";
+		QMessageBox::warning(this, tr("Warning"),
+												 tr("Failed to remove scripts in autopilot"));
+		_resetState();
+	} break;
 	case FtpMessage::Opcode::TruncateFile:
 	case FtpMessage::Opcode::OpenFileRO:
 	case FtpMessage::Opcode::OpenFileWO:
@@ -298,4 +417,20 @@ void MavftpPage::_handleFtpNack(const FtpMessage &message) {
 	case FtpMessage::Opcode::None:
 		break;
 	}
+}
+
+void MavftpPage::_resetState() {
+	_ftp_remove_file_timer->stop();
+	_ftp_write_file_timer->stop();
+	_uploading_chunk_index = 0;
+	_fs_item_list.clear();
+	_files_to_upload.clear();
+	_uploading_file.first.clear();
+	_uploading_file.second.clear();
+	_file_to_crc_check.first.clear();
+	_file_to_crc_check.second.clear();
+	_upload_lua_button->setVisible(true);
+	_upload_label->setVisible(false);
+	_upload_progress_bar->setValue(0);
+	_upload_progress_bar->setVisible(false);
 }

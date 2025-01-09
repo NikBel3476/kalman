@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
 			_ap_params_page(new ApParametersPage(this, _mavlink_manager, _autopilot)),
-			_mavftp_page(new MavftpPage(this, _mavlink_manager)),
+			_mavftp_page(new MavftpPage(this, _mavlink_manager, _autopilot)),
 			_serial_write_timer(new QTimer(this)),
 			_port_settings{},
 			_heartbeat_timer(new QTimer(this)),
@@ -77,6 +77,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_logout);
 
 	// _ports_box->setEditable(false);
+	_ports_box->setMinimumWidth(100);
 
 	_action_refresh->setIcon(QIcon(":/images/refresh.png"));
 	_action_refresh->setText(tr("Refresh"));
@@ -235,6 +236,9 @@ MainWindow::MainWindow(QWidget *parent)
 	// firmware upload page connections
 	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmwareStarted,
 					this, &MainWindow::handleFirmwareUpload);
+	connect(_firmware_upload_page,
+					&FirmwareUploadPage::uploadFirmwareSuccsessfullyCompleted, this,
+					&MainWindow::_handleFirmwareUploadCompletion);
 
 	// autopilot parameters page connections
 	connect(this, &MainWindow::autopilotConnected, _ap_params_page,
@@ -273,11 +277,11 @@ void MainWindow::_handleMavlinkMessageReceive(
 			static const auto ap_name_regex =
 					QRegularExpression("(Finco|Ardu).*\\sV.*");
 			if (ap_name_regex.match(text).hasMatch()) {
-				_ap_name_label->setText(text.left(text.indexOf('\0')));
+				_ap_name_label->setText(text.left(text.indexOf(QChar('\0'))));
 			}
 			static const auto ap_os_regex = QRegularExpression("ChibiOS.*");
 			if (ap_os_regex.match(text).hasMatch()) {
-				_ap_os_label->setText(text.left(text.indexOf('\0')));
+				_ap_os_label->setText(text.left(text.indexOf(QChar('\0'))));
 			}
 		}
 	} break;
@@ -383,8 +387,6 @@ void MainWindow::_openConsole() {
 void MainWindow::_openApParamsPage() {
 	_central_widget->setCurrentWidget(_ap_params_page);
 	if (_autopilot->getParamsState() == AutopilotParamsState::None) {
-		_autopilot->setParamsState(AutopilotParamsState::Receiving);
-		// _mavlink_manager->sendParamRequestList();
 		_ap_params_page->clearParamsToUpload();
 		_ap_params_page->updateApParameters();
 	}
@@ -637,76 +639,79 @@ void MainWindow::_rebootAp() {
 	_disconnect();
 }
 
-void MainWindow::_handleFirmwareUploadCompletion(FirmwareUploadResult result) {
-	auto error_title = QString();
-	auto error_msg = QString();
-	switch (result) {
-	// Firmware file errors
-	case FirmwareUploadResult::FirmwareImageNotFound: {
-		error_title = tr("Firmware file error");
-		error_msg = tr("Firmware image not found");
-	} break;
-	case FirmwareUploadResult::FirmwareSizeNotFound: {
-		error_title = tr("Firmware file error");
-		error_msg = tr("Firmware size not found");
-	} break;
-	case FirmwareUploadResult::BoardIdNotFound: {
-		error_title = tr("Firmware file error");
-		error_msg = tr("Board id not found");
-	} break;
-	case FirmwareUploadResult::DecodeFail: {
-		error_title = tr("Firmware file error");
-		error_msg = tr("Image decoding error");
-	} break;
-	// Bootloader errors
-	case FirmwareUploadResult::BootloaderNotFound: {
-		error_title = tr("Bootloader error");
-		error_msg = tr("Bootloader not found");
-	} break;
-	case FirmwareUploadResult::IncompatibleBoardType: {
-		error_title = tr("Bootloader error");
-		error_msg = tr("Incompatible board");
-	} break;
-	case FirmwareUploadResult::UnsupportedBoard: {
-		error_title = tr("Bootloader error");
-		error_msg = tr("Unsupported board");
-	} break;
-	case FirmwareUploadResult::UnsupportedBootloader: {
-		error_title = tr("Bootloader error");
-		error_msg = tr("Unsupported bootloader");
-	} break;
-	// Erase errors
-	case FirmwareUploadResult::EraseFail: {
-		error_title = tr("Erase error");
-		error_msg = tr("Board erase failed");
-	} break;
-	// Flashing errors
-	case FirmwareUploadResult::ProgramFail: {
-		error_title = tr("Program error");
-		error_msg = tr("Firmware program failed");
-	} break;
-	case FirmwareUploadResult::TooLargeFirmware: {
-		error_title = tr("Program error");
-		error_msg = tr("Too large firmware size");
-	} break;
-	// Verification errors
-	case FirmwareUploadResult::VerificationFail: {
-		error_title = tr("Verification error");
-		error_msg = tr("Firmware verification failed");
-	} break;
-	// Serial errors
-	case FirmwareUploadResult::SerialPortError: {
-		error_title = tr("Serial port error");
-		error_msg = tr("Serial port error");
-	} break;
-	// Successful upload
-	case FirmwareUploadResult::Ok: {
-		return;
-	}
-	}
-	if (!error_title.isEmpty() || !error_msg.isEmpty()) {
-		QMessageBox::critical(this, tr("Firmware upload error"), error_msg);
-	}
-	_autopilot->setState(AutopilotState::None);
-	_heartbeat_timer->start(kHeartbeatTimeout);
+void MainWindow::_handleFirmwareUploadCompletion(
+		/*FirmwareUploadResult result*/) {
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
+
+	// auto error_title = QString();
+	// auto error_msg = QString();
+	// switch (result) {
+	// // Firmware file errors
+	// case FirmwareUploadResult::FirmwareImageNotFound: {
+	// 	error_title = tr("Firmware file error");
+	// 	error_msg = tr("Firmware image not found");
+	// } break;
+	// case FirmwareUploadResult::FirmwareSizeNotFound: {
+	// 	error_title = tr("Firmware file error");
+	// 	error_msg = tr("Firmware size not found");
+	// } break;
+	// case FirmwareUploadResult::BoardIdNotFound: {
+	// 	error_title = tr("Firmware file error");
+	// 	error_msg = tr("Board id not found");
+	// } break;
+	// case FirmwareUploadResult::DecodeFail: {
+	// 	error_title = tr("Firmware file error");
+	// 	error_msg = tr("Image decoding error");
+	// } break;
+	// // Bootloader errors
+	// case FirmwareUploadResult::BootloaderNotFound: {
+	// 	error_title = tr("Bootloader error");
+	// 	error_msg = tr("Bootloader not found");
+	// } break;
+	// case FirmwareUploadResult::IncompatibleBoardType: {
+	// 	error_title = tr("Bootloader error");
+	// 	error_msg = tr("Incompatible board");
+	// } break;
+	// case FirmwareUploadResult::UnsupportedBoard: {
+	// 	error_title = tr("Bootloader error");
+	// 	error_msg = tr("Unsupported board");
+	// } break;
+	// case FirmwareUploadResult::UnsupportedBootloader: {
+	// 	error_title = tr("Bootloader error");
+	// 	error_msg = tr("Unsupported bootloader");
+	// } break;
+	// // Erase errors
+	// case FirmwareUploadResult::EraseFail: {
+	// 	error_title = tr("Erase error");
+	// 	error_msg = tr("Board erase failed");
+	// } break;
+	// // Flashing errors
+	// case FirmwareUploadResult::ProgramFail: {
+	// 	error_title = tr("Program error");
+	// 	error_msg = tr("Firmware program failed");
+	// } break;
+	// case FirmwareUploadResult::TooLargeFirmware: {
+	// 	error_title = tr("Program error");
+	// 	error_msg = tr("Too large firmware size");
+	// } break;
+	// // Verification errors
+	// case FirmwareUploadResult::VerificationFail: {
+	// 	error_title = tr("Verification error");
+	// 	error_msg = tr("Firmware verification failed");
+	// } break;
+	// // Serial errors
+	// case FirmwareUploadResult::SerialPortError: {
+	// 	error_title = tr("Serial port error");
+	// 	error_msg = tr("Serial port error");
+	// } break;
+	// // Successful upload
+	// case FirmwareUploadResult::Ok: {
+	// 	return;
+	// }
+	// }
+	// if (!error_title.isEmpty() || !error_msg.isEmpty()) {
+	// 	QMessageBox::critical(this, tr("Firmware upload error"), error_msg);
+	// }
+	// _autopilot->setState(AutopilotState::None);
+	// _heartbeat_timer->start(kHeartbeatTimeout);
 }

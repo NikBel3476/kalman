@@ -1,0 +1,27 @@
+stages:
+  - test
+  - build
+
+format:
+  tags:
+    - archlinux
+
+  stage: test
+  script:
+    - clang-format --verbose -style=file src/*.cpp src/*.hpp
+
+linux-build:
+  tags:
+    - archlinux
+
+  stage: build
+  script:
+    - ./build.sh
+
+windows10-build:
+  tags:
+    - windows10
+
+  stage: build
+  script:
+    - .\build.cmd

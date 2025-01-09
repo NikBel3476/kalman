@@ -70,7 +70,7 @@ public:
 									 float param5 = 0.0, float param6 = 0.0, float param7 = 0.0);
 	void sendParamSet(const mavlink_param_value_t &);
 	void sendParamRequestList();
-	void requestListDirectory(const std::string &path);
+	void requestListDirectory(const std::string &&path);
 	void requestCreateFile(const std::string &file_path);
 	void requestCreateDirectory(const std::string &dir_path);
 	void requestTerminateSession();
@@ -78,6 +78,7 @@ public:
 	void requestWriteFile(const std::vector<char> &data, uint8_t session,
 												uint32_t offset);
 	void requestCalcFileCrc32(const std::string &path);
+	void requestRemoveFile(const std::string &path);
 
 	// TODO: make private, these properties should be changed only by mavlink
 	// manager
