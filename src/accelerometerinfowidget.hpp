@@ -32,7 +32,7 @@ private slots:
 	void _handleLevelCalibrationTimeout();
 
 private:
-	void _handleIMUUpdate(const mavlink_scaled_imu_t &scaled_imu);
+	void _handleIMUUpdate(const mavlink_raw_imu_t &raw_imu);
 	void _handleIMU2Update(const mavlink_scaled_imu2_t &scaled_imu);
 	void _handleSysStatusUpdate(const mavlink_sys_status_t &sys_status);
 	void _parseCommand(const mavlink_command_long_t &cmd);

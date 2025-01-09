@@ -69,11 +69,10 @@ GyroscopeInfoWidget::GyroscopeInfoWidget(QWidget *parent,
 void GyroscopeInfoWidget::_handleMavlinkMessageReceive(
 		const mavlink_message_t &mavlink_message) {
 	switch (mavlink_message.msgid) {
-	case MAVLINK_MSG_ID_SCALED_IMU: {
-		qDebug() << "SCALED IMU RECEIVED";
-		mavlink_scaled_imu_t scaled_imu;
-		mavlink_msg_scaled_imu_decode(&mavlink_message, &scaled_imu);
-		_handleIMUUpdate(scaled_imu);
+	case MAVLINK_MSG_ID_RAW_IMU: {
+		mavlink_raw_imu_t raw_imu;
+		mavlink_msg_raw_imu_decode(&mavlink_message, &raw_imu);
+		_handleIMUUpdate(raw_imu);
 	} break;
 	case MAVLINK_MSG_ID_SCALED_IMU2: {
 		mavlink_scaled_imu2_t scaled_imu;
@@ -93,11 +92,10 @@ void GyroscopeInfoWidget::_handleMavlinkMessageReceive(
 	}
 }
 
-void GyroscopeInfoWidget::_handleIMUUpdate(
-		const mavlink_scaled_imu_t &scaled_imu) {
-	_x_imu_label->setText(QString("imu_x: %1").arg(scaled_imu.xgyro));
-	_y_imu_label->setText(QString("imu_y: %1").arg(scaled_imu.ygyro));
-	_z_imu_label->setText(QString("imu_z: %1").arg(scaled_imu.zgyro));
+void GyroscopeInfoWidget::_handleIMUUpdate(const mavlink_raw_imu_t &raw_imu) {
+	_x_imu_label->setText(QString("imu_x: %1").arg(raw_imu.xgyro));
+	_y_imu_label->setText(QString("imu_y: %1").arg(raw_imu.ygyro));
+	_z_imu_label->setText(QString("imu_z: %1").arg(raw_imu.zgyro));
 }
 
 void GyroscopeInfoWidget::_handleIMU2Update(

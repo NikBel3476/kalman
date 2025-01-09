@@ -23,7 +23,7 @@ private slots:
 	void _handleCalStartBtnPress();
 
 private:
-	void _handleIMUUpdate(const mavlink_scaled_imu_t &);
+	void _handleIMUUpdate(const mavlink_raw_imu_t &);
 	void _handleIMU2Update(const mavlink_scaled_imu2_t &);
 	void _handleSysStatusUpdate(const mavlink_sys_status_t &sys_status);
 	void _handleCommandAck(const mavlink_command_ack_t &cmd);
