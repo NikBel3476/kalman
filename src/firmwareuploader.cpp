@@ -110,10 +110,13 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 
 	switch (bootloaderSearchResult) {
 	case FindBootloaderResult::SerialPortError:
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::SerialPortError;
 	case FindBootloaderResult::SyncFail:
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::BootloaderNotFound;
 	case FindBootloaderResult::UnsupportedBootloader:
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::UnsupportedBootloader;
 	case FindBootloaderResult::Ok:
 		break;
@@ -129,6 +132,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 		const auto image_bytes = QByteArray::fromStdString(image_str);
 		auto base_64 = QByteArray::fromBase64(image_bytes);
 		if (base_64.length() == 0) {
+			_setUploadState(FirmwareUploadState::None);
 			return FirmwareUploadResult::DecodeFail;
 		}
 		const uint32_t length = base_64.length();
@@ -138,16 +142,19 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 		const auto to_uncompress = base_64.insert(0, image_size, 4);
 		_firmware.image = qUncompress(to_uncompress);
 	} else {
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::FirmwareImageNotFound;
 	}
 	if (firmware_json.contains("image_size")) {
 		_firmware.image_size = firmware_json["image_size"];
 	} else {
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::FirmwareSizeNotFound;
 	}
 	if (firmware_json.contains("board_id")) {
 		_firmware.board_type = firmware_json["board_id"];
 	} else {
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::BoardIdNotFound;
 	}
 
@@ -157,9 +164,11 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	// firmware compatibility check
 	if (_board_type != _firmware.board_type) {
 		qDebug() << "Incompatible board type";
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::IncompatibleBoardType;
 	}
 	if (_fw_maxsize < _firmware.image_size) {
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::TooLargeFirmware;
 	}
 	// Pad image to 4-byte length
@@ -174,9 +183,11 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	switch (_erase()) {
 	case EraseResult::Timeout: {
 		qDebug() << "ERASE FAILED";
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::EraseFail;
 	}
 	case EraseResult::UnsupportedBoard: {
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::UnsupportedBoard;
 	}
 	case EraseResult::Ok: {
@@ -189,6 +200,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	const auto program_success = _program();
 	if (!program_success) {
 		qDebug() << "PROGRAM FAIL";
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::ProgramFail;
 	}
 	qDebug() << "PROGRAM COMPLETED";
@@ -196,6 +208,7 @@ FirmwareUploader::_tryUploadFirmware(const QByteArray &firmware_image) {
 	const auto verify_success = _verify_v3();
 	if (!verify_success) {
 		qDebug() << "VERIFYING FAILED";
+		_setUploadState(FirmwareUploadState::None);
 		return FirmwareUploadResult::VerificationFail;
 	}
 	qDebug() << "VERIFYING COMPLETED";
