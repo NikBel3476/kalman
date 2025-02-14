@@ -72,6 +72,7 @@ void FirmwareUploader::_handleBytesWritten(qint64 bytes) {
 }
 
 void FirmwareUploader::_handleError(QSerialPort::SerialPortError error) {
+	Q_UNUSED(error);
 	qDebug() << "FIRMWARE THREAD: " << _serial.errorString();
 }
 
