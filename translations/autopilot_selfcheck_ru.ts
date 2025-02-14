@@ -191,6 +191,10 @@
         <source>Autopilot selfcheck v%1</source>
         <translation>Проверка автопилота v%1</translation>
     </message>
+    <message>
+        <source>Contacts for suggestions and bug reports: %1</source>
+        <translation>Контакты для пожеланий и сообщений об ошибках: %1</translation>
+    </message>
 </context>
 <context>
     <name>Console</name>

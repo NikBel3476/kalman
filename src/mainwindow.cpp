@@ -314,7 +314,9 @@ void MainWindow::_handleRebootActionTrigger() {
 
 void MainWindow::_handleAboutActionTrigger() {
 	QMessageBox::about(this, tr("About"),
-										 tr("Autopilot selfcheck v%1").arg(VERSION));
+										 tr("Autopilot selfcheck v%1").arg(VERSION) + '\n' +
+												 tr("Contacts for suggestions and bug reports: %1")
+														 .arg("belkinnv@supercam.aero"));
 }
 
 void MainWindow::handleError(QSerialPort::SerialPortError error) {
