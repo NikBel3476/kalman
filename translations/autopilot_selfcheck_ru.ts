@@ -304,6 +304,18 @@
         <source>Serial port error</source>
         <translation>Ошибка последовательного порта</translation>
     </message>
+    <message>
+        <source>Choose firmware</source>
+        <translation>Выберите прошивку</translation>
+    </message>
+    <message>
+        <source>Warning</source>
+        <translation>Внимание</translation>
+    </message>
+    <message>
+        <source>Failed to open file</source>
+        <translation>Не удалось открыть файл</translation>
+    </message>
 </context>
 <context>
     <name>FirmwareUploader</name>
@@ -584,6 +596,14 @@
 	<message>
 	    <source>Parameters have been reset. Autopilot will be rebooted</source>
 		<translation>Параметры сброшены. Автопилот будет перезагружен</translation>
+	</message>
+	<message>
+	    <source>Choose parameters file</source>
+		<translation>Выберите файл параметров</translation>
+	</message>
+	<message>
+	    <source>Failed to open file</source>
+		<translation>Не удалось открыть файл</translation>
 	</message>
 </context>
 <context>

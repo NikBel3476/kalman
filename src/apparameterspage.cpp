@@ -140,22 +140,29 @@ void ApParametersPage::_handleUpdateParamsButtonClick() {
 }
 
 void ApParametersPage::_handleCompareParamsButtonClick() {
-	auto fileContentReady = [this](const QString &file_name,
-																 const QByteArray &file_content) {
-		if (!file_name.isEmpty()) {
-			_update_params_btn->setEnabled(false);
-			_compare_params_btn->setEnabled(false);
-			_upload_params_btn->setEnabled(false);
-			_file_name_label->setText(
-					tr("Comparing file: %1")
-							.arg(file_name.mid(file_name.lastIndexOf(QChar('/')) + 1)));
-			_file_name_label->setVisible(true);
-			clearParamsToUpload();
-			_reset_state();
-			_parseApParameters(file_content);
+	const auto params_file_name = QFileDialog::getOpenFileName(
+			this, tr("Choose parameters file"), "", "*.param");
+	if (!params_file_name.isEmpty()) {
+		auto params_file = QFile(params_file_name);
+		if (!params_file.open(QIODevice::ReadOnly)) {
+			QMessageBox::warning(this, tr("Warning"), tr("Failed to open file"));
+			return;
 		}
-	};
-	QFileDialog::getOpenFileContent("*.param", fileContentReady);
+		const auto file_content = params_file.readAll();
+		params_file.close();
+
+		_update_params_btn->setEnabled(false);
+		_compare_params_btn->setEnabled(false);
+		_upload_params_btn->setEnabled(false);
+		_file_name_label->setText(
+				tr("Comparing file: %1")
+						.arg(params_file_name.mid(params_file_name.lastIndexOf(QChar('/')) +
+																			1)));
+		_file_name_label->setVisible(true);
+		clearParamsToUpload();
+		_reset_state();
+		_parseApParameters(file_content);
+	}
 }
 
 void ApParametersPage::_handleUploadParamsButtonClick() {

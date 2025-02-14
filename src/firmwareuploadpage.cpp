@@ -60,47 +60,52 @@ void FirmwareUploadPage::_handleDroneTypeBoxChange(int index) {
 }
 
 void FirmwareUploadPage::_handleUploadButtonPress() {
-	auto fileContentReady = [this](const QString &file_name,
-																 const QByteArray &file_content) {
-		if (!file_name.isEmpty()) {
-			_progress_bar->setValue(0);
-			emit uploadFirmwareStarted(_drone_type);
-			_firmware_upload_button->setVisible(false);
-			// std::this_thread::sleep_for(std::chrono::seconds(2));
-			const auto task =
-					QtConcurrent::task([this, file_content]() {
-						const auto firmware_uploader = std::make_unique<FirmwareUploader>();
-
-						connect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
-										this,
-										&FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
-						connect(firmware_uploader.get(),
-										&FirmwareUploader::flashProgressUpdated, this,
-										&FirmwareUploadPage::_handleFlashProgressUpdate);
-						connect(firmware_uploader.get(),
-										&FirmwareUploader::eraseProgressUpdated, this,
-										&FirmwareUploadPage::_handleEraseProgressUpdate);
-						connect(firmware_uploader.get(), &FirmwareUploader::uploadCompleted,
-										this, &FirmwareUploadPage::_handleFirmwareUploadCompletion);
-
-						firmware_uploader->upload(file_content);
-
-						disconnect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
-											 this,
-											 &FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
-						disconnect(firmware_uploader.get(),
-											 &FirmwareUploader::flashProgressUpdated, this,
-											 &FirmwareUploadPage::_handleFlashProgressUpdate);
-						disconnect(firmware_uploader.get(),
-											 &FirmwareUploader::eraseProgressUpdated, this,
-											 &FirmwareUploadPage::_handleEraseProgressUpdate);
-						disconnect(firmware_uploader.get(),
-											 &FirmwareUploader::uploadCompleted, this,
-											 &FirmwareUploadPage::_handleFirmwareUploadCompletion);
-					}).spawn();
+	const auto firmware_file_name =
+			QFileDialog::getOpenFileName(this, tr("Choose firmware"), "", "*.apj");
+	if (!firmware_file_name.isEmpty()) {
+		auto firmware_file = QFile(firmware_file_name);
+		if (!firmware_file.open(QIODevice::ReadOnly)) {
+			QMessageBox::warning(this, tr("Warning"), tr("Failed to open file"));
+			return;
 		}
-	};
-	QFileDialog::getOpenFileContent("*.apj", fileContentReady);
+		const auto file_content = firmware_file.readAll();
+		firmware_file.close();
+
+		_progress_bar->setValue(0);
+		emit uploadFirmwareStarted(_drone_type);
+		_firmware_upload_button->setVisible(false);
+		// std::this_thread::sleep_for(std::chrono::seconds(2));
+		const auto task =
+				QtConcurrent::task([this, file_content]() {
+					const auto firmware_uploader = std::make_unique<FirmwareUploader>();
+
+					connect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
+									this, &FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
+					connect(firmware_uploader.get(),
+									&FirmwareUploader::flashProgressUpdated, this,
+									&FirmwareUploadPage::_handleFlashProgressUpdate);
+					connect(firmware_uploader.get(),
+									&FirmwareUploader::eraseProgressUpdated, this,
+									&FirmwareUploadPage::_handleEraseProgressUpdate);
+					connect(firmware_uploader.get(), &FirmwareUploader::uploadCompleted,
+									this, &FirmwareUploadPage::_handleFirmwareUploadCompletion);
+
+					firmware_uploader->upload(file_content);
+
+					disconnect(firmware_uploader.get(), &FirmwareUploader::stateUpdated,
+										 this,
+										 &FirmwareUploadPage::_handleFirmwareUploadStateUpdate);
+					disconnect(firmware_uploader.get(),
+										 &FirmwareUploader::flashProgressUpdated, this,
+										 &FirmwareUploadPage::_handleFlashProgressUpdate);
+					disconnect(firmware_uploader.get(),
+										 &FirmwareUploader::eraseProgressUpdated, this,
+										 &FirmwareUploadPage::_handleEraseProgressUpdate);
+					disconnect(firmware_uploader.get(),
+										 &FirmwareUploader::uploadCompleted, this,
+										 &FirmwareUploadPage::_handleFirmwareUploadCompletion);
+				}).spawn();
+	}
 }
 
 void FirmwareUploadPage::_handleFirmwareUploadStateUpdate(
