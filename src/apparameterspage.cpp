@@ -537,4 +537,6 @@ void ApParametersPage::_reset_state() {
 	_update_params_btn->setEnabled(true);
 	_compare_params_btn->setEnabled(true);
 	_upload_params_btn->setEnabled(false);
+	_upload_params_progress_bar->setValue(0);
+	_upload_params_progress_wrapper->setVisible(false);
 }
