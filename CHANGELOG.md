@@ -1,3 +1,12 @@
+
+# v0.1.2
+
+## RU
+* Исправлена ошибка: индикатор прогресса загрузки параметров не скрывался после загрузки в некоторых случаях
+
+## EN
+* Fix: progress bar of parameters uploading does not hide after upload in some cases
+
 # v0.1.1
 
 ## RU
