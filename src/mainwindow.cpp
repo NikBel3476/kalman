@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 	// toolbar content
 	_toolbar->setMovable(false);
-	_toolbar->setVisible(false);
+	_toolbar->setVisible(true);
 	const auto spacer = new QWidget();
 	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	_toolbar->addWidget(_ports_box);
@@ -82,7 +82,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_clear);
 	_toolbar->addAction(_action_about);
 	_toolbar->addWidget(spacer);
-	_toolbar->addAction(_action_logout);
+	// _toolbar->addAction(_action_logout);
 
 	// _ports_box->setEditable(false);
 	_ports_box->setMinimumWidth(100);
@@ -161,7 +161,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_central_widget->addWidget(_mavftp_page);
 	_central_widget->addWidget(_full_setup_page);
 
-	_central_widget->setCurrentWidget(_authentication_page);
+	_central_widget->setCurrentWidget(_firmware_upload_page);
 
 	// _central_widget_layout->addWidget(_authentication_page);
 	// _central_widget_layout->addWidget(_console);
@@ -223,7 +223,7 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_openConsole);
 	connect(_action_about, &QAction::triggered, this,
 					&MainWindow::_handleAboutActionTrigger);
-	connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
+	// connect(_action_logout, &QAction::triggered, this, &MainWindow::_logout);
 
 	// timers connections
 	connect(_serial_write_timer, &QTimer::timeout, this,
@@ -254,8 +254,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_handleParamsResetRequest);
 
 	// authentiation form connections
-	connect(_authentication_page, &AuthenticationPage::login, this,
-					&MainWindow::_login);
+	// connect(_authentication_page, &AuthenticationPage::login, this,
+	// 				&MainWindow::_login);
 
 	// firmware upload page connections
 	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmwareStarted,
@@ -277,6 +277,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_handleFullSetupCompletion);
 	connect(this, &MainWindow::autopilotConnected, _full_setup_page,
 					&FullSetupPage::handleAutopilotConnection);
+
+	_trySerialConnect();
 }
 
 MainWindow::~MainWindow() = default;

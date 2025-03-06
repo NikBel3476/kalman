@@ -578,6 +578,10 @@
 		<translation>Сравнить параметры</translation>
 	</message>
 	<message>
+		<source>Upload compared parameters</source>
+		<translation>Загрузить сравниваемые параметры</translation>
+	</message>
+	<message>
 		<source>Upload parameters</source>
 		<translation>Загрузить параметры</translation>
 	</message>

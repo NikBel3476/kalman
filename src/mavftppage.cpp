@@ -54,7 +54,7 @@ void MavftpPage::_handleUploadLuaButtonClick() {
 	}
 	std::unordered_map<QString, QByteArray> files_to_upload;
 	for (const auto &file_name : file_path_list) {
-		const auto file_path = std::filesystem::path(file_name.toStdString());
+		const auto file_path = std::filesystem::path(file_name.toStdU32String());
 		std::ifstream file_stream(file_path);
 		if (file_stream.is_open()) {
 			const auto file_size = std::filesystem::file_size(file_path);
