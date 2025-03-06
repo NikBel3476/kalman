@@ -1,3 +1,13 @@
+# v0.2.1
+
+### RU
+* Исправлена невозможность загрузки lua скриптов если в пути к файлам есть не ASCII символы
+* Добавлена функция загрузки параметров без сравнения
+
+### EN
+* Fixed the inability to load lua scripts if there are non-ASCII characters in the file path
+* Added the function of uploading parameters without comparison
+
 # v0.2.0
 
 ### RU
