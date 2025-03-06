@@ -50,13 +50,13 @@ FirmwareUploader::FirmwareUploader(QObject *parent)
 }
 
 FirmwareUploader::~FirmwareUploader() {
-	qDebug() << "Firmware uploader deleted";
 	_closeSerialPort();
 }
 
-void FirmwareUploader::upload(const QByteArray &file_content) {
+FirmwareUploadResult FirmwareUploader::upload(const QByteArray &file_content) {
 	const auto upload_result = _tryUploadFirmware(file_content);
 	emit uploadCompleted(upload_result);
+	return upload_result;
 }
 
 void FirmwareUploader::_setUploadState(FirmwareUploadState state) {
@@ -247,6 +247,7 @@ void FirmwareUploader::_closeSerialPort() {
 
 void FirmwareUploader::_writeData(const QByteArray &data) {
 	const qint64 written = _serial.write(data);
+	_serial.flush();
 	if (written == data.size()) {
 		// qDebug() << "SEND: " << data;
 		_bytes_to_write += written;
@@ -379,30 +380,56 @@ IdentifyResult FirmwareUploader::_identify() {
 	}
 
 	_bootloader_rev = _getInfo(INFO_BL_REV);
+	if (_bootloader_rev == std::numeric_limits<uint32_t>::max()) {
+		return IdentifyResult::SyncFail;
+	}
 	qDebug() << "BOOTLOADER REV: " << _bootloader_rev;
 	if (_bootloader_rev < BL_REV_MIN || _bootloader_rev > BL_REV_MAX) {
 		return IdentifyResult::UnsupportedBootloader;
 	}
+	// WARNING: INFO_EXTF_SIZE returns 2 bytes instead 4 (bootloader fault)
 	_extf_maxsize = _getInfo(INFO_EXTF_SIZE);
+	if (_extf_maxsize == std::numeric_limits<uint32_t>::max()) {
+		return IdentifyResult::SyncFail;
+	}
 	_board_type = _getInfo(INFO_BOARD_ID);
+	if (_board_type == std::numeric_limits<uint32_t>::max()) {
+		return IdentifyResult::SyncFail;
+	}
 	_board_rev = _getInfo(INFO_BOARD_REV);
+	if (_board_rev == std::numeric_limits<uint32_t>::max()) {
+		return IdentifyResult::SyncFail;
+	}
 	_fw_maxsize = _getInfo(INFO_FLASH_SIZE);
+	if (_fw_maxsize == std::numeric_limits<uint32_t>::max()) {
+		return IdentifyResult::SyncFail;
+	}
 	return IdentifyResult::Ok;
 }
 
 uint32_t FirmwareUploader::_getInfo(const char param) {
 	const char get_info_data[3] = {GET_DEVICE, param, EOC};
 	QByteArray get_info_msg(get_info_data, 3);
+
 	_writeData(get_info_msg);
-	if (_serial.bytesAvailable() < 4) {
-		_serial.waitForReadyRead(300);
-	}
-	// little endian format
+
+	_serial.waitForReadyRead(300);
 	const auto raw_data = _serial.read(4);
+	// qDebug() << "GET INFO LENGTH" << raw_data.length();
+	if (raw_data.isEmpty()) {
+		return std::numeric_limits<uint32_t>::max();
+	}
 	_getSync();
-	uint32_t uint_result =
-			((raw_data[3] << 24) & 0xff000000) | ((raw_data[2] << 16) & 0x00ff0000) |
-			((raw_data[1] << 8) & 0x0000ff00) | (raw_data[0] & 0x000000ff);
+
+	// little endian format
+	uint32_t uint_result = 0;
+	uint32_t mask = 0x000000ff;
+	for (size_t i = 0; i < static_cast<size_t>(raw_data.length()); i++) {
+		uint_result |= (raw_data[i] << 8 * i) & mask;
+		mask *= 256;
+	}
+	// qDebug() << "UINT RESULT" << uint_result;
+
 	return uint_result;
 }
 

@@ -72,7 +72,7 @@ void FirmwareUploadPage::_handleUploadButtonPress() {
 		firmware_file.close();
 
 		_progress_bar->setValue(0);
-		emit uploadFirmwareStarted(_drone_type);
+		emit uploadFirmwareStarted(/*_drone_type*/);
 		_firmware_upload_button->setVisible(false);
 		// std::this_thread::sleep_for(std::chrono::seconds(2));
 		const auto task =
