@@ -23,8 +23,8 @@
 class ApParametersPage : public QWidget {
 	Q_OBJECT
 public:
-	explicit ApParametersPage(QWidget *parent,
-														Autopilot *autopilot, ParametersManager *parameters_manager);
+	explicit ApParametersPage(QWidget *parent, Autopilot *autopilot,
+														ParametersManager *parameters_manager);
 
 signals:
 	void parametersWritten();
@@ -37,20 +37,27 @@ public slots:
 private slots:
 	void _handleUpdateParamsButtonClick();
 	void _handleCompareParamsButtonClick();
+	void _handleUploadComparedParamsButtonClick();
 	void _handleUploadParamsButtonClick();
 	void _handleResetParamsButtonClick();
-	void _handleApParamsReceived(const std::unordered_map<std::string, mavlink_param_value_t> &ap_params);
+	void _handleApParamsReceived(
+			const std::unordered_map<std::string, mavlink_param_value_t> &ap_params);
 	void _handleApParametersTotalCountUpdate(size_t parameters_total_count);
 	void _handleApParametersCountUpdate(size_t parameters_count);
-	void _handleParamsCompareCompletion(const ParametersCompareResult &, const std::unordered_map<std::string, float> not_matched_params);
-	void _handleParamsUpload(const ParametersUploadResult &, std::unordered_map<std::string, float> not_saved_parames);
+	void _handleParamsCompareCompletion(
+			const ParametersCompareResult &,
+			const std::unordered_map<std::string, float> not_matched_params);
+	void
+	_handleParamsUpload(const ParametersUploadResult &,
+											std::unordered_map<std::string, float> not_saved_parames);
 	void _handleParamsUploadAttemptUpdate(uint8_t attempt);
 
 private:
 	enum class State {
 		None,
 		ParametersComparing,
-		ParametersUploading
+		ParametersUploading,
+		ParametersImmediateUploading
 	};
 
 	void _fill_fc_params_columns();
@@ -60,7 +67,8 @@ private:
 	QWidget *_upload_params_progress_wrapper = nullptr;
 	QPushButton *_update_params_btn = nullptr;
 	QPushButton *_compare_params_btn = nullptr;
-	QPushButton *_upload_params_btn = nullptr;
+	QPushButton *_upload_compared_params_btn = nullptr;
+	QPushButton *_immediate_upload_params_btn = nullptr;
 	QPushButton *_reset_params_btn = nullptr;
 	QLabel *_file_name_label = nullptr;
 	QTableWidget *_ap_params_table = nullptr;

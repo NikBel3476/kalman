@@ -9,7 +9,8 @@ ApParametersPage::ApParametersPage(QWidget *parent, Autopilot *autopilot,
 			_upload_params_progress_wrapper(new QWidget()),
 			_update_params_btn(new QPushButton()),
 			_compare_params_btn(new QPushButton()),
-			_upload_params_btn(new QPushButton()),
+			_upload_compared_params_btn(new QPushButton()),
+			_immediate_upload_params_btn(new QPushButton()),
 			_reset_params_btn(new QPushButton()),
 			_file_name_label(new QLabel()),
 			_ap_params_table(new QTableWidget()),
@@ -17,23 +18,28 @@ ApParametersPage::ApParametersPage(QWidget *parent, Autopilot *autopilot,
 			_upload_params_progress_bar(new QProgressBar()),
 			_parameters_manager(parameters_manager),
 			_autopilot{autopilot} {
-	auto *const buttons_layout = new QHBoxLayout();
-	_layout->addLayout(buttons_layout);
+	auto *const top_buttons_layout = new QHBoxLayout();
+	auto *const bottom_buttons_layout = new QHBoxLayout();
+	_layout->addLayout(top_buttons_layout);
+	_layout->addLayout(bottom_buttons_layout);
 	_layout->addWidget(_file_name_label), _layout->addWidget(_ap_params_table);
 	_layout->addWidget(_download_params_progress_bar);
 	_layout->addWidget(_upload_params_progress_wrapper);
 
-	buttons_layout->addWidget(_update_params_btn);
-	buttons_layout->addWidget(_compare_params_btn);
-	buttons_layout->addWidget(_upload_params_btn);
-	buttons_layout->addWidget(_reset_params_btn);
+	top_buttons_layout->addWidget(_update_params_btn);
+	top_buttons_layout->addWidget(_compare_params_btn);
+	top_buttons_layout->addWidget(_upload_compared_params_btn);
+	bottom_buttons_layout->addWidget(_immediate_upload_params_btn);
+	bottom_buttons_layout->addWidget(_reset_params_btn);
 
 	_update_params_btn->setText(tr("Update"));
 	// _update_params_btn->setEnabled(false);
 	_compare_params_btn->setText(tr("Compare parameters"));
 	_compare_params_btn->setEnabled(false);
-	_upload_params_btn->setText(tr("Upload parameters"));
-	_upload_params_btn->setEnabled(false);
+	_upload_compared_params_btn->setText(tr("Upload compared parameters"));
+	_upload_compared_params_btn->setEnabled(false);
+	_immediate_upload_params_btn->setText(tr("Upload parameters"));
+	_immediate_upload_params_btn->setEnabled(false);
 	_reset_params_btn->setText(tr("Reset parameters"));
 	_reset_params_btn->setEnabled(true);
 
@@ -42,7 +48,7 @@ ApParametersPage::ApParametersPage(QWidget *parent, Autopilot *autopilot,
 	_ap_params_table->setColumnCount(ap_params_table_column_count);
 	_ap_params_table->setColumnWidth(ap_params_table_column_count - 3, 150);
 	_ap_params_table->setColumnWidth(ap_params_table_column_count - 2, 100);
-	_ap_params_table->setColumnWidth(ap_params_table_column_count - 1, 120);
+	_ap_params_table->setColumnWidth(ap_params_table_column_count - 1, 150);
 	_ap_params_table->setHorizontalHeaderLabels(
 			QStringList{tr("Name"), tr("Value"), tr("Comparing value")});
 	_ap_params_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -67,7 +73,9 @@ ApParametersPage::ApParametersPage(QWidget *parent, Autopilot *autopilot,
 					&ApParametersPage::_handleUpdateParamsButtonClick);
 	connect(_compare_params_btn, &QPushButton::clicked, this,
 					&ApParametersPage::_handleCompareParamsButtonClick);
-	connect(_upload_params_btn, &QPushButton::clicked, this,
+	connect(_upload_compared_params_btn, &QPushButton::clicked, this,
+					&ApParametersPage::_handleUploadComparedParamsButtonClick);
+	connect(_immediate_upload_params_btn, &QPushButton::clicked, this,
 					&ApParametersPage::_handleUploadParamsButtonClick);
 	connect(_reset_params_btn, &QPushButton::clicked, this,
 					&ApParametersPage::_handleResetParamsButtonClick);
@@ -88,8 +96,9 @@ ApParametersPage::ApParametersPage(QWidget *parent, Autopilot *autopilot,
 }
 
 void ApParametersPage::updateApParameters() {
-	_upload_params_btn->setEnabled(false);
+	_upload_compared_params_btn->setEnabled(false);
 	_compare_params_btn->setEnabled(false);
+	_immediate_upload_params_btn->setEnabled(false);
 	_download_params_progress_bar->setValue(0);
 	_download_params_progress_bar->setVisible(true);
 	_ap_params_table->setRowCount(0);
@@ -100,7 +109,10 @@ void ApParametersPage::_handleApParamsReceived(
 		const std::unordered_map<std::string, mavlink_param_value_t> &ap_params) {
 	_fc_params = ap_params;
 	_fill_fc_params_columns();
-	_compare_params_btn->setEnabled(true);
+	if (_state == State::None) {
+		_compare_params_btn->setEnabled(true);
+		_immediate_upload_params_btn->setEnabled(true);
+	}
 	if (_autopilot->getParamsUploadState() !=
 			AutopilotParamsUploadState::Uploading) {
 		_download_params_progress_bar->setVisible(false);
@@ -119,78 +131,107 @@ void ApParametersPage::_handleApParametersCountUpdate(size_t parameters_count) {
 void ApParametersPage::_handleParamsCompareCompletion(
 		const ParametersCompareResult &compare_result,
 		const std::unordered_map<std::string, float> not_matched_parameters) {
-	if (_state != State::ParametersComparing) {
-		return;
-	}
-	_state = State::None;
-	_ap_params_table->setRowCount(0);
-	_fill_fc_params_columns();
+	switch (_state) {
+	case State::ParametersComparing: {
+		_state = State::None;
+		_ap_params_table->setRowCount(0);
+		_fill_fc_params_columns();
 
-	switch (compare_result) {
-	case ParametersCompareResult::Matching: {
-		QMessageBox::information(this, tr("Informataion"),
-														 tr("Parameters are matching"));
-	} break;
-	case ParametersCompareResult::NotMatching: {
-		qDebug() << "NOT MATCHED PARAMETERS:" << not_matched_parameters.size()
-						 << "==========================";
-		auto not_matched_params = not_matched_parameters;
-		for (int row_index = 0; row_index < _ap_params_table->rowCount();
-				 row_index++) {
-			const auto widgetItem =
-					_ap_params_table->item(row_index, ap_params_table_column_count - 3);
-			for (const auto &[param_name, param_value] : not_matched_params) {
-				const auto param_name_str = QString::fromUtf8(param_name.data(), 16);
-				const auto param_name_formatted =
-						param_name_str.left(param_name_str.indexOf(QChar('\0')));
-				if (widgetItem != nullptr &&
-						widgetItem->text() == param_name_formatted) {
-					const auto comparingWidgetItem = new QTableWidgetItem(
-							QString::number(param_value), QTableWidgetItem::Type);
-					_ap_params_table->item(row_index, ap_params_table_column_count - 2)
-							->setBackground(QBrush(Qt::red));
-					_ap_params_table->setItem(row_index, ap_params_table_column_count - 1,
-																		comparingWidgetItem);
-					not_matched_params.erase(param_name);
-					break;
+		switch (compare_result) {
+		case ParametersCompareResult::Matching: {
+			QMessageBox::information(this, tr("Informataion"),
+															 tr("Parameters are matching"));
+		} break;
+		case ParametersCompareResult::NotMatching: {
+			qDebug() << "NOT MATCHED PARAMETERS:" << not_matched_parameters.size();
+			auto not_matched_params = not_matched_parameters;
+			for (int row_index = 0; row_index < _ap_params_table->rowCount();
+					 row_index++) {
+				const auto widgetItem =
+						_ap_params_table->item(row_index, ap_params_table_column_count - 3);
+				for (const auto &[param_name, param_value] : not_matched_params) {
+					const auto param_name_str = QString::fromUtf8(param_name.data(), 16);
+					const auto param_name_formatted =
+							param_name_str.left(param_name_str.indexOf(QChar('\0')));
+					if (widgetItem != nullptr &&
+							widgetItem->text() == param_name_formatted) {
+						const auto comparingWidgetItem = new QTableWidgetItem(
+								QString::number(param_value), QTableWidgetItem::Type);
+						_ap_params_table->item(row_index, ap_params_table_column_count - 2)
+								->setBackground(QBrush(Qt::red));
+						_ap_params_table->setItem(row_index,
+																			ap_params_table_column_count - 1,
+																			comparingWidgetItem);
+						not_matched_params.erase(param_name);
+						break;
+					}
 				}
 			}
-		}
 
-		if (!not_matched_params.empty()) {
-			auto item_index = _ap_params_table->rowCount();
-			_ap_params_table->setRowCount(_ap_params_table->rowCount() +
-																		not_matched_params.size());
-			for (const auto &[not_found_param_id, not_found_param_value] :
-					 not_matched_params) {
-				const auto param_name =
-						QString::fromUtf8(not_found_param_id.data(), 16);
-				const auto param_name_formatted =
-						param_name.left(param_name.indexOf(QChar('\0')));
-				const auto &param_id_item =
-						new QTableWidgetItem(param_name_formatted, QTableWidgetItem::Type);
-				param_id_item->setBackground(QBrush(Qt::transparent));
-				_ap_params_table->setItem(item_index, ap_params_table_column_count - 3,
-																	param_id_item);
+			if (!not_matched_params.empty()) {
+				auto item_index = _ap_params_table->rowCount();
+				_ap_params_table->setRowCount(_ap_params_table->rowCount() +
+																			not_matched_params.size());
+				for (const auto &[not_found_param_id, not_found_param_value] :
+						 not_matched_params) {
+					const auto param_name =
+							QString::fromUtf8(not_found_param_id.data(), 16);
+					const auto param_name_formatted =
+							param_name.left(param_name.indexOf(QChar('\0')));
+					const auto &param_id_item = new QTableWidgetItem(
+							param_name_formatted, QTableWidgetItem::Type);
+					param_id_item->setBackground(QBrush(Qt::transparent));
+					_ap_params_table->setItem(
+							item_index, ap_params_table_column_count - 3, param_id_item);
 
-				const auto &ap_param_value_item =
-						new QTableWidgetItem(tr("Not found"), QTableWidgetItem::Type);
-				ap_param_value_item->setBackground(QBrush(Qt::red));
-				_ap_params_table->setItem(item_index, ap_params_table_column_count - 2,
-																	ap_param_value_item);
+					const auto &ap_param_value_item =
+							new QTableWidgetItem(tr("Not found"), QTableWidgetItem::Type);
+					ap_param_value_item->setBackground(QBrush(Qt::red));
+					_ap_params_table->setItem(item_index,
+																		ap_params_table_column_count - 2,
+																		ap_param_value_item);
 
-				const auto &not_found_param_item = new QTableWidgetItem(
-						QString::number(not_found_param_value), QTableWidgetItem::Type);
-				not_found_param_item->setBackground(QBrush(Qt::transparent));
-				_ap_params_table->setItem(item_index, ap_params_table_column_count - 1,
-																	not_found_param_item);
-				item_index++;
+					const auto &not_found_param_item = new QTableWidgetItem(
+							QString::number(not_found_param_value), QTableWidgetItem::Type);
+					not_found_param_item->setBackground(QBrush(Qt::transparent));
+					_ap_params_table->setItem(item_index,
+																		ap_params_table_column_count - 1,
+																		not_found_param_item);
+					item_index++;
+				}
 			}
-		}
 
-		QMessageBox::warning(this, tr("Warning"),
-												 tr("Parameters are not matching"));
-		_upload_params_btn->setEnabled(true);
+			QMessageBox::warning(this, tr("Warning"),
+													 tr("Parameters are not matching"));
+			_upload_compared_params_btn->setEnabled(true);
+		} break;
+		}
+	} break;
+	case State::ParametersImmediateUploading: {
+		_state = State::None;
+		switch (compare_result) {
+		case ParametersCompareResult::Matching: {
+			_reset_state();
+			_compare_params_btn->setEnabled(true);
+			QMessageBox::information(this, tr("Informataion"),
+															 tr("Parameters are matching"));
+		} break;
+		case ParametersCompareResult::NotMatching: {
+			qDebug() << "NOT MATCHED PARAMETERS:" << not_matched_parameters.size();
+			_state = State::ParametersUploading;
+			_compare_params_btn->setEnabled(false);
+			_upload_compared_params_btn->setEnabled(false);
+			_download_params_progress_bar->setValue(0);
+			_download_params_progress_bar->setVisible(true);
+			_upload_params_progress_bar->setValue(0);
+			_upload_params_progress_wrapper->setVisible(true);
+			_parameters_manager->handleUploadParamsRequest();
+		} break;
+		}
+	} break;
+	case State::ParametersUploading:
+	case State::None: {
+
 	} break;
 	}
 }
@@ -267,7 +308,9 @@ void ApParametersPage::_handleParamsUpload(
 	} break;
 	}
 
+	_state = State::None;
 	_compare_params_btn->setEnabled(true);
+	_immediate_upload_params_btn->setEnabled(true);
 	_download_params_progress_bar->setVisible(false);
 	_upload_params_progress_wrapper->setVisible(false);
 }
@@ -297,7 +340,7 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 
 		_update_params_btn->setEnabled(false);
 		_compare_params_btn->setEnabled(false);
-		_upload_params_btn->setEnabled(false);
+		_upload_compared_params_btn->setEnabled(false);
 		_file_name_label->setText(
 				tr("Comparing file: %1")
 						.arg(params_file_name.mid(params_file_name.lastIndexOf(QChar('/')) +
@@ -311,16 +354,36 @@ void ApParametersPage::_handleCompareParamsButtonClick() {
 	}
 }
 
-void ApParametersPage::_handleUploadParamsButtonClick() {
+void ApParametersPage::_handleUploadComparedParamsButtonClick() {
 	// _uploadParameters();
 	_state = State::ParametersUploading;
 	_compare_params_btn->setEnabled(false);
-	_upload_params_btn->setEnabled(false);
+	_upload_compared_params_btn->setEnabled(false);
 	_download_params_progress_bar->setValue(0);
 	_download_params_progress_bar->setVisible(true);
 	_upload_params_progress_bar->setValue(0);
 	_upload_params_progress_wrapper->setVisible(true);
 	_parameters_manager->handleUploadParamsRequest();
+}
+
+void ApParametersPage::_handleUploadParamsButtonClick() {
+	const auto params_file_name = QFileDialog::getOpenFileName(
+			this, tr("Choose parameters file"), "", "*.param");
+	if (!params_file_name.isEmpty()) {
+		auto params_file = QFile(params_file_name);
+		if (!params_file.open(QIODevice::ReadOnly)) {
+			QMessageBox::warning(this, tr("Warning"), tr("Failed to open file"));
+			return;
+		}
+		const auto file_content = params_file.readAll();
+		params_file.close();
+
+		_reset_state();
+		_immediate_upload_params_btn->setEnabled(false);
+
+		_state = State::ParametersImmediateUploading;
+		_parameters_manager->handleCompareParamsRequest(file_content);
+	}
 }
 
 void ApParametersPage::_handleResetParamsButtonClick() {
@@ -330,7 +393,8 @@ void ApParametersPage::_handleResetParamsButtonClick() {
 	_fc_params.clear();
 	_ap_params_table->setRowCount(0);
 	_compare_params_btn->setEnabled(false);
-	_upload_params_btn->setEnabled(false);
+	_upload_compared_params_btn->setEnabled(false);
+	_immediate_upload_params_btn->setEnabled(false);
 	_parameters_manager->handleResetParamsRequest();
 }
 
@@ -357,7 +421,8 @@ void ApParametersPage::_reset_state() {
 	_autopilot->setParamsState(AutopilotParamsState::None);
 	_update_params_btn->setEnabled(true);
 	_compare_params_btn->setEnabled(false);
-	_upload_params_btn->setEnabled(false);
+	_upload_compared_params_btn->setEnabled(false);
+	_immediate_upload_params_btn->setEnabled(true);
 	_upload_params_progress_bar->setValue(0);
 	_upload_params_progress_wrapper->setVisible(false);
 }
