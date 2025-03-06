@@ -18,43 +18,42 @@
 
 #include <ardupilotmega/mavlink.h>
 
-#include "mavlinkmanager.hpp"
+#include "parametersmanager.hpp"
 
 class ApParametersPage : public QWidget {
 	Q_OBJECT
 public:
-	explicit ApParametersPage(QWidget *parent, MavlinkManager *mavlink_manager,
-														Autopilot *autopilot);
-	void clearParamsToUpload();
-	void clearNotSavedParams();
-	void updateApParameters();
+	explicit ApParametersPage(QWidget *parent,
+														Autopilot *autopilot, ParametersManager *parameters_manager);
 
 signals:
-	void requestDownloadParams();
-	// void apAllParamsReceived();
-	// void requestUploadApParams(std::vector<mavlink_param_value_t>);
 	void parametersWritten();
 	void paramsResetRequest();
+	void allParamsReceived();
 
 public slots:
-	void handleAutopilotConnection();
+	void updateApParameters();
 
 private slots:
 	void _handleUpdateParamsButtonClick();
 	void _handleCompareParamsButtonClick();
 	void _handleUploadParamsButtonClick();
 	void _handleResetParamsButtonClick();
-	void _handleMavlinkMessageReceive(const mavlink_message_t &msg);
-	void _handleApParamsUploadCompletion();
-	void _handleParameterSendTimeout();
+	void _handleApParamsReceived(const std::unordered_map<std::string, mavlink_param_value_t> &ap_params);
+	void _handleApParametersTotalCountUpdate(size_t parameters_total_count);
+	void _handleApParametersCountUpdate(size_t parameters_count);
+	void _handleParamsCompareCompletion(const ParametersCompareResult &, const std::unordered_map<std::string, float> not_matched_params);
+	void _handleParamsUpload(const ParametersUploadResult &, std::unordered_map<std::string, float> not_saved_parames);
+	void _handleParamsUploadAttemptUpdate(uint8_t attempt);
 
 private:
-	void _parseApParameters(const QByteArray &);
-	void _uploadApParam();
-	void _handleApParamReceive(mavlink_param_value_t);
-	void _handleParamUploadAck(mavlink_param_value_t &);
-	void _uploadParameters();
-	void _showUploadResult();
+	enum class State {
+		None,
+		ParametersComparing,
+		ParametersUploading
+	};
+
+	void _fill_fc_params_columns();
 	void _reset_state();
 
 	QVBoxLayout *_layout = nullptr;
@@ -67,20 +66,12 @@ private:
 	QTableWidget *_ap_params_table = nullptr;
 	QProgressBar *_download_params_progress_bar = nullptr;
 	QProgressBar *_upload_params_progress_bar = nullptr;
-	QTimer *_send_param_timer = nullptr;
 	QTimer *_update_params_on_ap_connect_timer = nullptr;
 
-	std::unordered_map<std::string, mavlink_param_value_t> _ap_params;
-	std::vector<mavlink_param_value_t> _params_to_upload;
-	std::vector<mavlink_param_value_t> _not_written_params;
-	std::unordered_map<std::string, float> _not_saved_params;
-	std::unordered_map<std::string, mavlink_param_value_t> _cannot_save_params;
-	uint16_t _params_total_count = 0;
-	MavlinkManager *_mavlink_manager = nullptr;
+	ParametersManager *_parameters_manager = nullptr;
+	std::unordered_map<std::string, mavlink_param_value_t> _fc_params;
 	Autopilot *_autopilot = nullptr;
-	bool _params_have_been_saved = false;
-	bool _params_total_count_have_been_changed = false;
-	uint8_t _params_upload_attempt_counter = 0;
+	State _state = State::None;
 };
 
 #endif // PARAMETERSPAGE_H

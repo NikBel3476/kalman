@@ -31,8 +31,11 @@
 #include "firmwareuploader.hpp"
 #include "firmwareuploadpage.hpp"
 #include "mavftppage.hpp"
+#include "fullsetuppage.hpp"
 #include "mavlinkmanager.hpp"
 #include "sensor.hpp"
+#include "parametersmanager.hpp"
+#include "mavftpmanager.hpp"
 
 QT_BEGIN_NAMESPACE
 
@@ -78,6 +81,7 @@ private slots:
 	void _handleAutopilotConnection();
 	void _handleAutopilotStateUpdate(const AutopilotState &new_state);
 	void _handleParamsResetRequest();
+	void _handleFullSetupCompletion(const FullSetupResult &);
 
 	void _handleSerialWriteError(const QString &error_msg);
 	void handleError(QSerialPort::SerialPortError);
@@ -88,13 +92,14 @@ private slots:
 
 	void _login(const QString &login, const QString &password);
 	void _logout();
-	void handleFirmwareUpload(DroneType);
 	void _openConsole();
 	void _openApParamsPage();
 	void _openMavftpPage();
 	void _openSettingsPage();
 	void _openFirmwareUploadPage();
+	void _openFullSetupPage();
 	void _rebootAp();
+	void _handleFirmwareUploadStart(/*DroneType*/);
 	void _handleFirmwareUploadCompletion(/*FirmwareUploadResult*/);
 	void _handleMavlinkMessageReceive(const mavlink_message_t &);
 	void _handleApParametersWrite();
@@ -122,6 +127,7 @@ private:
 	QAction *_action_open_mavftp_page = nullptr;
 	QAction *_action_open_console = nullptr;
 	QAction *_action_open_firmware_page = nullptr;
+	QAction *_action_open_full_setup_page = nullptr;
 	QAction *_action_reboot_ap = nullptr;
 	QAction *_action_about = nullptr;
 	QAction *_action_logout = nullptr;
@@ -135,6 +141,8 @@ private:
 	Autopilot *_autopilot = nullptr;
 	QSerialPort *_serial = nullptr;
 	MavlinkManager *_mavlink_manager = nullptr;
+	ParametersManager *_parameters_manager = nullptr;
+	MavFtpManager *_mav_ftp_manager = nullptr;
 
 	Console *_console = nullptr;
 	AuthenticationPage *_authentication_page = nullptr;
@@ -142,6 +150,7 @@ private:
 	AutopilotSettingsPage *_autopilot_settings_page = nullptr;
 	ApParametersPage *_ap_params_page = nullptr;
 	MavftpPage *_mavftp_page = nullptr;
+	FullSetupPage *_full_setup_page = nullptr;
 	// QQuickView *_qml_view = nullptr;
 	// QWidget *_qml_container = nullptr;
 

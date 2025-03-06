@@ -95,9 +95,10 @@ public:
 
 	explicit FirmwareUploader(QObject *parent = nullptr);
 	~FirmwareUploader();
-	void upload(const QByteArray &file_content);
+	FirmwareUploadResult upload(const QByteArray &file_content);
 
 signals:
+	void uploadFirmwareStarted();
 	void uploadCompleted(FirmwareUploadResult);
 	void stateUpdated(FirmwareUploadState);
 	void flashProgressUpdated(uint8_t progress);

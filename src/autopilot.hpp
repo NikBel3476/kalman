@@ -8,14 +8,16 @@ enum class AutopilotState {
 	Alive,
 	Flashing
 };
+
 enum class AutopilotParamsState {
 	None,
 	Receiving,
-	Received
-};
-enum class AutopilotParamsSendState {
-	None,
 	Sending
+};
+
+enum class AutopilotParamsUploadState {
+	None,
+	Uploading
 };
 
 class Autopilot : public QObject {
@@ -25,21 +27,21 @@ public:
 	explicit Autopilot(QObject *parent = nullptr);
 	void setState(const AutopilotState &);
 	void setParamsState(const AutopilotParamsState &);
-	void setParamsSendState(const AutopilotParamsSendState &);
+	void setParamsSendState(const AutopilotParamsUploadState &);
 	const AutopilotState &getState() const;
 	const AutopilotParamsState &getParamsState() const;
-	const AutopilotParamsSendState &getParamsSendState() const;
+	const AutopilotParamsUploadState &getParamsUploadState() const;
 
 signals:
 	void stateUpdated(const AutopilotState &new_state);
 	void paramsStateUpdated(const AutopilotParamsState &new_params_state);
 	void
-	paramsSendStateUpdated(const AutopilotParamsSendState &new_params_send_state);
+	paramsSendStateUpdated(const AutopilotParamsUploadState &new_params_send_state);
 
 private:
 	AutopilotState _state = AutopilotState::None;
 	AutopilotParamsState _params_state = AutopilotParamsState::None;
-	AutopilotParamsSendState _params_send_state = AutopilotParamsSendState::None;
+	AutopilotParamsUploadState _params_send_state = AutopilotParamsUploadState::None;
 };
 
 #endif // AUTOPILOT_H

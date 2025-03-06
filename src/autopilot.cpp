@@ -14,7 +14,7 @@ void Autopilot::setParamsState(const AutopilotParamsState &new_params_state) {
 };
 
 void Autopilot::setParamsSendState(
-		const AutopilotParamsSendState &new_params_send_state) {
+		const AutopilotParamsUploadState &new_params_send_state) {
 	_params_send_state = new_params_send_state;
 	emit paramsSendStateUpdated(_params_send_state);
 };
@@ -27,6 +27,6 @@ const AutopilotParamsState &Autopilot::getParamsState() const {
 	return _params_state;
 };
 
-const AutopilotParamsSendState &Autopilot::getParamsSendState() const {
+const AutopilotParamsUploadState &Autopilot::getParamsUploadState() const {
 	return _params_send_state;
 };

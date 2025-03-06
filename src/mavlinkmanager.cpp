@@ -109,16 +109,16 @@ void MavlinkManager::requestResetSessions() {
 
 void MavlinkManager::requestWriteFile(const std::vector<char> &file_data,
 																			uint8_t session, uint32_t offset) {
-	qDebug() << "REQUEST WRITE FILE";
+	// qDebug() << "REQUEST WRITE FILE";
 	FtpMessage message;
 	message.opcode = FtpMessage::Opcode::WriteFile;
 	message.session = session;
 	message.offset = offset;
 	message.size = file_data.size();
 	memcpy(message.payload, file_data.data(), file_data.size());
-	qDebug() << "WRITE FILE OFFSET: " << message.offset
-					 << "\nPAYLOAD: " << message.payload
-					 << "\nPAYLOAD SIZE: " << file_data.size();
+	// qDebug() << "WRITE FILE OFFSET: " << message.offset
+	// 				 << "\nPAYLOAD: " << message.payload
+	// 				 << "\nPAYLOAD SIZE: " << file_data.size();
 
 	_sendFtpMessage(message);
 }

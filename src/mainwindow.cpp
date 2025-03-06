@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
 			_action_open_mavftp_page(new QAction(_toolbar)),
 			_action_open_console(new QAction(_toolbar)),
 			_action_open_firmware_page(new QAction(_toolbar)),
+			_action_open_full_setup_page(new QAction(_toolbar)),
 			_action_reboot_ap(new QAction(_toolbar)),
 			_action_about(new QAction(_toolbar)),
 			_action_logout(new QAction(_toolbar)),
@@ -32,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent)
 			_autopilot(new Autopilot(this)),
 			_serial(new QSerialPort()),
 			_mavlink_manager(new MavlinkManager(this, _serial, _autopilot)),
+			_parameters_manager(
+					new ParametersManager(this, _mavlink_manager, _autopilot)),
+			_mav_ftp_manager(new MavFtpManager(this, _mavlink_manager, _autopilot)),
 			_console(new Console(nullptr, _mavlink_manager)),
 			_authentication_page(new AuthenticationPage()),
 			_firmware_upload_page(new FirmwareUploadPage(this)),
@@ -39,8 +43,11 @@ MainWindow::MainWindow(QWidget *parent)
 					new AutopilotSettingsPage(this, _mavlink_manager)),
 			// _qml_view(new QQuickView(QUrl("qrc:/AuthenticationForm.qml"))),
 			// _qml_container(QWidget::createWindowContainer(_qml_view, this)),
-			_ap_params_page(new ApParametersPage(this, _mavlink_manager, _autopilot)),
-			_mavftp_page(new MavftpPage(this, _mavlink_manager, _autopilot)),
+			_ap_params_page(
+					new ApParametersPage(this, _autopilot, _parameters_manager)),
+			_mavftp_page(new MavftpPage(this, _autopilot, _mav_ftp_manager)),
+			_full_setup_page(new FullSetupPage(this, _autopilot, _parameters_manager,
+																				 _mav_ftp_manager)),
 			_serial_write_timer(new QTimer(this)),
 			_port_settings{},
 			_heartbeat_timer(new QTimer(this)),
@@ -69,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_toolbar->addAction(_action_open_ap_params);
 	_toolbar->addAction(_action_open_mavftp_page);
 	_toolbar->addAction(_action_open_firmware_page);
+	_toolbar->addAction(_action_open_full_setup_page);
 	_toolbar->addAction(_action_reboot_ap);
 	_toolbar->addAction(_action_open_console);
 	_toolbar->addAction(_action_clear);
@@ -113,7 +121,12 @@ MainWindow::MainWindow(QWidget *parent)
 	_action_open_firmware_page->setIcon(QIcon(":/images/firmware.png"));
 	_action_open_firmware_page->setText(tr("Upload firmware"));
 	_action_open_firmware_page->setToolTip(tr("Upload firmware"));
-	_action_open_firmware_page->setEnabled(false);
+	_action_open_firmware_page->setEnabled(true);
+
+	_action_open_full_setup_page->setIcon(QIcon(":/images/full_setup.png"));
+	_action_open_full_setup_page->setText(tr("Upload from archive"));
+	_action_open_full_setup_page->setText(tr("Upload from archive"));
+	_action_open_full_setup_page->setEnabled(true);
 
 	_action_about->setIcon(QIcon(":/images/about.png"));
 	_action_about->setText(tr("About"));
@@ -146,6 +159,7 @@ MainWindow::MainWindow(QWidget *parent)
 	_central_widget->addWidget(_autopilot_settings_page);
 	_central_widget->addWidget(_ap_params_page);
 	_central_widget->addWidget(_mavftp_page);
+	_central_widget->addWidget(_full_setup_page);
 
 	_central_widget->setCurrentWidget(_authentication_page);
 
@@ -201,6 +215,8 @@ MainWindow::MainWindow(QWidget *parent)
 					&MainWindow::_openMavftpPage);
 	connect(_action_open_firmware_page, &QAction::triggered, this,
 					&MainWindow::_openFirmwareUploadPage);
+	connect(_action_open_full_setup_page, &QAction::triggered, this,
+					&MainWindow::_openFullSetupPage);
 	connect(_action_reboot_ap, &QAction::triggered, this,
 					&MainWindow::_handleRebootActionTrigger);
 	connect(_action_open_console, &QAction::triggered, this,
@@ -229,24 +245,38 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(_mavlink_manager, &MavlinkManager::serialWriteErrorOccured, this,
 					&MainWindow::_handleSerialWriteError);
 
+	// parameters manager connections
+	connect(this, &MainWindow::autopilotConnected, _parameters_manager,
+					&ParametersManager::handleAutopilotConnection);
+	connect(_parameters_manager, &ParametersManager::parametersWritten, this,
+					&MainWindow::_handleApParametersWrite);
+	connect(_parameters_manager, &ParametersManager::paramsResetRequest, this,
+					&MainWindow::_handleParamsResetRequest);
+
 	// authentiation form connections
 	connect(_authentication_page, &AuthenticationPage::login, this,
 					&MainWindow::_login);
 
 	// firmware upload page connections
 	connect(_firmware_upload_page, &FirmwareUploadPage::uploadFirmwareStarted,
-					this, &MainWindow::handleFirmwareUpload);
+					this, [this]() {
+						_handleFirmwareUploadStart();
+						_central_widget->setCurrentWidget(_firmware_upload_page);
+					});
 	connect(_firmware_upload_page,
 					&FirmwareUploadPage::uploadFirmwareSuccsessfullyCompleted, this,
 					&MainWindow::_handleFirmwareUploadCompletion);
 
-	// autopilot parameters page connections
-	connect(this, &MainWindow::autopilotConnected, _ap_params_page,
-					&ApParametersPage::handleAutopilotConnection);
-	connect(_ap_params_page, &ApParametersPage::parametersWritten, this,
-					&MainWindow::_handleApParametersWrite);
-	connect(_ap_params_page, &ApParametersPage::paramsResetRequest, this,
-					&MainWindow::_handleParamsResetRequest);
+	// full setup page connections
+	connect(_full_setup_page, &FullSetupPage::firmwareUploadStarted, this,
+					&MainWindow::_handleFirmwareUploadStart);
+	connect(_full_setup_page,
+					&FullSetupPage::uploadFirmwareSuccsessfullyCompleted, this,
+					&MainWindow::_handleFirmwareUploadCompletion);
+	connect(_full_setup_page, &FullSetupPage::fullSetupCompleted, this,
+					&MainWindow::_handleFullSetupCompletion);
+	connect(this, &MainWindow::autopilotConnected, _full_setup_page,
+					&FullSetupPage::handleAutopilotConnection);
 }
 
 MainWindow::~MainWindow() = default;
@@ -298,15 +328,14 @@ void MainWindow::_handleApParametersWrite() {
 
 void MainWindow::_handleDisconnectActionTrigger() {
 	_autopilot->setParamsState(AutopilotParamsState::None);
-	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
+	_autopilot->setParamsSendState(AutopilotParamsUploadState::None);
 	_disconnect();
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 }
 
 void MainWindow::_handleRebootActionTrigger() {
-	_ap_params_page->clearNotSavedParams();
 	_autopilot->setParamsState(AutopilotParamsState::None);
-	_autopilot->setParamsSendState(AutopilotParamsSendState::None);
+	_autopilot->setParamsSendState(AutopilotParamsUploadState::None);
 	_rebootAp();
 	_central_widget->setCurrentWidget(_firmware_upload_page);
 	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
@@ -372,16 +401,6 @@ void MainWindow::_logout() {
 	_central_widget->setCurrentWidget(_authentication_page);
 }
 
-void MainWindow::handleFirmwareUpload(DroneType drone_type) {
-	qDebug() << std::format("Upload firmware. Drone type: {}",
-													static_cast<int>(drone_type));
-	_serial_reconnect_timer->stop();
-	_disconnect();
-	_central_widget->setCurrentWidget(_firmware_upload_page);
-	_autopilot->setState(AutopilotState::Flashing);
-	_heartbeat_timer->stop();
-}
-
 void MainWindow::_openConsole() {
 	_console->show();
 }
@@ -389,7 +408,6 @@ void MainWindow::_openConsole() {
 void MainWindow::_openApParamsPage() {
 	_central_widget->setCurrentWidget(_ap_params_page);
 	if (_autopilot->getParamsState() == AutopilotParamsState::None) {
-		_ap_params_page->clearParamsToUpload();
 		_ap_params_page->updateApParameters();
 	}
 }
@@ -404,6 +422,10 @@ void MainWindow::_openSettingsPage() {
 
 void MainWindow::_openFirmwareUploadPage() {
 	_central_widget->setCurrentWidget(_firmware_upload_page);
+}
+
+void MainWindow::_openFullSetupPage() {
+	_central_widget->setCurrentWidget(_full_setup_page);
 }
 
 void MainWindow::handleHeartbeatTimeout() {
@@ -606,7 +628,6 @@ void MainWindow::_handleAutopilotStateUpdate(const AutopilotState &new_state) {
 		_action_open_settings->setEnabled(false);
 		_action_open_ap_params->setEnabled(false);
 		_action_open_mavftp_page->setEnabled(false);
-		_action_open_firmware_page->setEnabled(false);
 	} break;
 	case AutopilotState::Alive: {
 		_serial_reconnect_timer->stop();
@@ -614,18 +635,63 @@ void MainWindow::_handleAutopilotStateUpdate(const AutopilotState &new_state) {
 		_action_open_settings->setEnabled(true);
 		_action_open_ap_params->setEnabled(true);
 		_action_open_mavftp_page->setEnabled(true);
-		_action_open_firmware_page->setEnabled(true);
 		_mavlink_manager->sendCmdLong(MAV_CMD_DO_SEND_BANNER, 0);
 	} break;
 	case AutopilotState::Flashing: {
-	}
+
+	} break;
 	}
 }
 
 void MainWindow::_handleParamsResetRequest() {
 	_rebootAp();
 	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
-	_central_widget->setCurrentWidget(_firmware_upload_page);
+}
+
+void MainWindow::_handleFullSetupCompletion(const FullSetupResult &result) {
+	_serial_reconnect_delay_timer->start(kSerialReconnectDelayTimeout);
+	switch (result) {
+	case FullSetupResult::Success: {
+		QMessageBox::information(nullptr, tr("Setup completed"),
+														 tr("Setup done successfully"));
+	} break;
+	case FullSetupResult::FcFirmwareNotFound: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Autopilot firmware file not found"));
+	} break;
+	case FullSetupResult::MultipleFcFirmwareFilesFound: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Found multiple autopilot firmware files"));
+	} break;
+	case FullSetupResult::ParamFileNotFound: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Parameters file not found"));
+	} break;
+	case FullSetupResult::MultipleParamFilesFound: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Found multiple parameters files"));
+	} break;
+	case FullSetupResult::LuaFilesNotFound: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Lua files not found"));
+	} break;
+	case FullSetupResult::FirmwareUploadError: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Firmware upload error"));
+	} break;
+	case FullSetupResult::ParametersUploadError: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Parameters upload error"));
+	} break;
+	case FullSetupResult::LuaFilesUploadError: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Lua files upload error"));
+	} break;
+	case FullSetupResult::FileReadError: {
+		QMessageBox::warning(nullptr, tr("Setup failed"),
+												 tr("Tar file read error"));
+	} break;
+	}
 }
 
 void MainWindow::_rebootAp() {
@@ -639,6 +705,14 @@ void MainWindow::_rebootAp() {
 	_autopilot->setState(AutopilotState::None);
 	_heartbeat_timer->stop();
 	_disconnect();
+}
+
+void MainWindow::_handleFirmwareUploadStart(/*DroneType drone_type*/) {
+	qDebug() << std::format("Upload firmware");
+	_serial_reconnect_timer->stop();
+	_disconnect();
+	_autopilot->setState(AutopilotState::Flashing);
+	_heartbeat_timer->stop();
 }
 
 void MainWindow::_handleFirmwareUploadCompletion(

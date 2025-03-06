@@ -6,11 +6,6 @@ set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 
 include(FetchContent)
 
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_C_EXTENSIONS OFF)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -23,8 +18,9 @@ endif()
 set(mavlink mavlink)
 set(qflightinstruments qflightinstruments)
 set(json json)
-set(kalman_filter kalman_filter)
-set(simple_kalman_filter simple_kalman_filter)
+# set(kalman_filter kalman_filter)
+# set(simple_kalman_filter simple_kalman_filter)
+set(untar untar)
 
 FetchContent_Declare(${mavlink}
 	GIT_REPOSITORY https://github.com/mavlink/c_library_v2.git
@@ -34,39 +30,46 @@ FetchContent_Declare(${qflightinstruments}
 	GIT_REPOSITORY https://github.com/NikBel3476/QFlightinstruments.git
 )
 FetchContent_Declare(${json} URL
-	https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
 )
-FetchContent_Declare(${kalman_filter}
-	GIT_REPOSITORY https://github.com/NikBel3476/kalman.git
-	GIT_TAG b4522cbd033b9b2be7ab6f8dd2f7efa6e96d69d7
+FetchContent_Declare(${untar}
+	GIT_REPOSITORY https://github.com/NikBel3476/untar.git
+	GIT_TAG b4b76dd370b50a72fd03fce8a7ba0df366042c55
 )
+# FetchContent_Declare(${kalman_filter}
+#     GIT_REPOSITORY https://github.com/NikBel3476/kalman.git
+#     GIT_TAG b4522cbd033b9b2be7ab6f8dd2f7efa6e96d69d7
+# )
 
-FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink}) #${kalman_filter})
+FetchContent_MakeAvailable(${json} ${qflightinstruments} ${mavlink} ${untar}) #${kalman_filter})
 
 find_package(Qt6 REQUIRED COMPONENTS
-	Core
-	Gui
-	Widgets
-	Quick
-	SerialPort
-	LinguistTools
-	SvgWidgets
-	Concurrent
+        Core
+        Gui
+        Widgets
+        Quick
+        SerialPort
+        LinguistTools
+        SvgWidgets
+        Concurrent
 )
 
 qt_standard_project_setup(
-	I18N_TRANSLATED_LANGUAGES en ru
+        I18N_TRANSLATED_LANGUAGES en ru
 )
 
 file(GLOB source_files
-	${PROJECT_SOURCE_DIR}/src/*.cpp
-	${PROJECT_SOURCE_DIR}/src/*.hpp
-	${PROJECT_SOURCE_DIR}/qml/*.qml
+        ${PROJECT_SOURCE_DIR}/src/*.cpp
+        ${PROJECT_SOURCE_DIR}/src/*.hpp
+        ${PROJECT_SOURCE_DIR}/qml/*.qml
 )
 
 qt_add_executable(${PROJECT_NAME}
 	${source_files}
 )
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20 c_std_17)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF C_EXTENSIONS OFF)
 
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W4)
@@ -96,9 +99,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	Qt6::Platform
 	Qt6::SvgWidgets
 	Qt6::Concurrent
-	qflightinstruments
+        ${qflightinstruments}
 	# Kalman
 	nlohmann_json::nlohmann_json
+        ${untar}
 )
 
 # SYSTEM PRIVATE to suppress warnings
@@ -120,6 +124,7 @@ set(resource_files
 	"images/folder.png"
 	"images/firmware.png"
 	"images/about.png"
+        "images/full_setup.png"
 	"qml/AuthenticationForm.qml"
 )
 

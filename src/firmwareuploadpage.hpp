@@ -25,7 +25,7 @@ public:
 	explicit FirmwareUploadPage(QWidget *parent = nullptr);
 
 signals:
-	void uploadFirmwareStarted(DroneType);
+	void uploadFirmwareStarted(/*DroneType*/);
 	void uploadFirmwareSuccsessfullyCompleted();
 
 private slots:

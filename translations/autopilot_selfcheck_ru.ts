@@ -55,6 +55,10 @@
 		<source>Upload firmware</source>
 		<translation>Загрузить прошивку</translation>
 	</message>
+    <message>
+        <source>Upload from archive</source>
+        <translation>Загрузить из архива</translation>
+    </message>
 	<message>
 		<source>Reboot</source>
 		<translation>Перезагрузить</translation>
@@ -194,6 +198,54 @@
     <message>
         <source>Contacts for suggestions and bug reports: %1</source>
         <translation>Контакты для пожеланий и сообщений об ошибках: %1</translation>
+    </message>
+    <message>
+        <source>Setup completed</source>
+        <translation>Настройка завершена</translation>
+    </message>
+    <message>
+        <source>Setup failed</source>
+        <translation>Ошибка установки</translation>
+    </message>
+    <message>
+        <source>Setup done successfully</source>
+        <translation>Настройка выполнена успешно</translation>
+    </message>
+    <message>
+        <source>Autopilot firmware file not found</source>
+        <translation>Не найден файл прошивки автопилота</translation>
+    </message>
+    <message>
+        <source>Found multiple autopilot firmware files</source>
+        <translation>Найдено несколько файлов прошивки автоплиота</translation>
+    </message>
+    <message>
+        <source>Parameters file not found</source>
+        <translation>Не найден файл параметров</translation>
+    </message>
+    <message>
+        <source>Found multiple parameters files</source>
+        <translation>Найдено несколько файлов параметров</translation>
+    </message>
+    <message>
+        <source>Lua files not found</source>
+        <translation>Не найдены lua файлы</translation>
+    </message>
+    <message>
+        <source>Firmware upload error</source>
+        <translation>Ошибка загрузки прошивки</translation>
+    </message>
+    <message>
+        <source>Parameters upload error</source>
+        <translation>Ошибка загрузки параметров</translation>
+    </message>
+    <message>
+        <source>Lua files upload error</source>
+        <translation>Ошибка загрузки lua файлов</translation>
+    </message>
+    <message>
+        <source>Tar file read error</source>
+        <translation>Ошибка чтения tar файла</translation>
     </message>
 </context>
 <context>
@@ -566,10 +618,6 @@
 		<translation>Параметры не совпадают</translation>
 	</message>
 	<message>
-		<source>Not all parameters found</source>
-		<translation>Не все параметры найдены</translation>
-	</message>
-	<message>
 		<source>Not found</source>
 		<translation>Не найдено</translation>
 	</message>
@@ -644,20 +692,20 @@
         <translation>Внимание</translation>
     </message>
     <message>
-        <source>Verification %1 failed</source>
-        <translation>Проверка %1 не удалась</translation>
+        <source>File CRC mismatch</source>
+        <translation>Несоответствие CRC файла</translation>
     </message>
     <message>
         <source>Failed to create scripts directory</source>
         <translation>Не удалось создать папку скриптов</translation>
     </message>
     <message>
-        <source>Failed to create %1 file</source>
-        <translation>Не удалось создать файл %1</translation>
+        <source>Failed to create file</source>
+        <translation>Не удалось создать файл</translation>
     </message>
     <message>
-        <source>Failed to write %1 file</source>
-        <translation>Не удалось записать файл %1</translation>
+        <source>Failed to write file</source>
+        <translation>Не удалось записать файл</translation>
     </message>
     <message>
         <source>Failed to open file</source>
@@ -666,6 +714,125 @@
     <message>
         <source>Failed to remove scripts in autopilot</source>
         <translation>Не удалось удалить скрипты в автопилоте</translation>
+    </message>
+</context>
+<context>
+    <name>FullSetupPage</name>
+    <message>
+        <source>Open archive</source>
+        <translation>Открыть архив</translation>
+    </message>
+    <message>
+        <source>Select tar archive</source>
+        <translation>Выберите tar архив</translation>
+    </message>
+    <message>
+        <source>Tar archive (*.tar)</source>
+        <translation>Tar архив (*.tar)</translation>
+    </message>
+    <message>
+        <source>Wait for setup completion</source>
+        <translation>Ожидайте завершения настройки</translation>
+    </message>
+    <message>
+        <source>Firmware uploading...</source>
+        <translation>Загрузка прошивки...</translation>
+    </message>
+    <message>
+        <source>Parameters uploading...</source>
+        <translation>Загрузка параметров...</translation>
+    </message>
+    <message>
+        <source>Lua files uploading...</source>
+        <translation>Загрузка файлов lua...</translation>
+    </message>
+    <message>
+        <source>Upload failed</source>
+        <translation>Ошибка загрузки</translation>
+    </message>
+    <message>
+        <source>Firmware image not found</source>
+        <translation>Не найден образ прошивки</translation>
+    </message>
+    <message>
+        <source>Firmware size not found</source>
+        <translation>Не найден размер прошивки</translation>
+    </message>
+    <message>
+        <source>Board id not found</source>
+        <translation>Не найден идентификатор платы</translation>
+    </message>
+    <message>
+        <source>Bootloader not found</source>
+        <translation>Загрузчик не найден</translation>
+    </message>
+    <message>
+        <source>Too large firmware</source>
+        <translation>Слишком большой размер прошивки</translation>
+    </message>
+    <message>
+        <source>Decode fail</source>
+        <translation>Не удалось расшифровать</translation>
+    </message>
+    <message>
+        <source>Erase fail</source>
+        <translation>Ошибка очистки платы</translation>
+    </message>
+    <message>
+        <source>Program fail</source>
+        <translation>Не удалось прошить</translation>
+    </message>
+    <message>
+        <source>Verification fail</source>
+        <translation>Не удалось проверить</translation>
+    </message>
+    <message>
+        <source>Unsupported board</source>
+        <translation>Неподдерживаемая плата</translation>
+    </message>
+    <message>
+        <source>Unsupported bootloader</source>
+        <translation>Неподдерживаемый загрузчик</translation>
+    </message>
+    <message>
+        <source>Incompatible board type</source>
+        <translation>Несовместимый тип платы</translation>
+    </message>
+    <message>
+        <source>Serial port error</source>
+        <translation>Ошибка последовательного порта</translation>
+    </message>
+    <message>
+        <source>Warning</source>
+        <translation>Предупреждение</translation>
+    </message>
+    <message>
+        <source>Failed to read parameters file</source>
+        <translation>Не удалось прочитать файл параметров</translation>
+    </message>
+    <message>
+        <source>Not all parameters saved</source>
+        <translation>Сохранены не все параметры</translation>
+    </message>
+    <message>
+        <source>Failed to remove scripts in autopilot</source>
+        <translation>Не удалось удалить скрипты в автопилоте</translation>
+    </message>
+    <message>
+        <source>Failed to create scripts directory</source>
+        <translation>Не удалось создать папку скриптов</translation>
+    </message>
+    <message>
+        <source>Failed to create file</source>
+        <translation>Не удалось создать файл</translation>
+    </message>
+    <message>
+        <source>Failed to write file</source>
+        <translation>Не удалось записать файл</translation>
+    </message>
+    <message>
+        <source>File CRC mismatch</source>
+        <translation>Несоответствие CRC файла</translation>
     </message>
 </context>
 </TS>
